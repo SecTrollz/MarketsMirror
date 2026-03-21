@@ -11,42 +11,143 @@
 <script src="https://unpkg.com/scrollreveal@4.0.0/dist/scrollreveal.min.js"></script>
 <style>
 
-/* ── SOLID FOUNDATION ─────────────────────────────────── */
-html { box-sizing: border-box; line-height: 1.15; }
+/* ═══════════════════════════════════════════════════════
+   MARKETSMIRROR — DESIGN SYSTEM
+   Font scale up, glass effects, scroll animation system
+═══════════════════════════════════════════════════════ */
+
+/* ── FOUNDATION ─────────────────────────────────────── */
+html { box-sizing: border-box; line-height: 1.15; scroll-behavior: smooth; }
 *, *:before, *:after { box-sizing: inherit; }
-html { font-size: 18px; line-height: 28px; }
 body {
   margin: 0;
   background: #1D2026;
-  color: #8A94A7;
+  color: #9AA5B8;
   font-family: 'IBM Plex Sans', sans-serif;
-  font-size: 1rem;
+  font-size: 17px;
+  line-height: 1.7;
   -moz-osx-font-smoothing: grayscale;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
 
-a { color: #8A94A7; text-decoration: underline; }
-a:hover, a:active { outline: 0; text-decoration: none; }
+a { color: #9AA5B8; text-decoration: underline; }
+a:hover, a:active { outline: 0; text-decoration: none; color: #fff; }
 
 h1,h2,h3,h4,h5,h6 { clear: both; color: #fff; font-weight: 600; margin-top: 0; }
-h1 { font-size: 38px; line-height: 48px; }
-@media (min-width: 641px) { h1 { font-size: 48px; line-height: 58px; } }
-h2 { font-size: 30px; line-height: 40px; }
-@media (min-width: 641px) { h2 { font-size: 36px; line-height: 46px; } }
-h3 { font-size: 22px; line-height: 32px; }
-h4 { font-size: 16px; line-height: 26px; }
+h1 { font-size: 40px; line-height: 1.15; letter-spacing: -0.02em; }
+@media (min-width: 641px) { h1 { font-size: 52px; } }
+h2 { font-size: 32px; line-height: 1.2; letter-spacing: -0.01em; }
+@media (min-width: 641px) { h2 { font-size: 40px; } }
+h3 { font-size: 24px; line-height: 1.3; }
+h4 { font-size: 17px; line-height: 1.5; font-weight: 600; }
 p { margin-top: 0; margin-bottom: 20px; }
 p:last-child { margin-bottom: 0; }
 
-.text-sm { font-size: 16px; line-height: 26px; }
-.text-xs { font-size: 14px; line-height: 22px; }
+.text-sm { font-size: 15px; line-height: 1.65; }
+.text-xs { font-size: 14px; line-height: 1.6; }
 .text-mono { font-family: 'IBM Plex Mono', monospace; }
 .text-center { text-align: center; }
 .mt-0 { margin-top: 0; }
 .mb-0 { margin-bottom: 0; }
 .mt-24 { margin-top: 24px; }
 .mb-24 { margin-bottom: 24px; }
+
+/* ═══════════════════════════════════════════════════════
+   SCROLL ANIMATION SYSTEM
+   Elements start invisible, transition in when in-view.
+   Each animation class defines start state via CSS.
+   JS adds .in-view class via IntersectionObserver.
+═══════════════════════════════════════════════════════ */
+
+/* Default: all animated elements start hidden */
+[data-anim] {
+  opacity: 0;
+  will-change: opacity, transform;
+  transition-property: opacity, transform;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  transition-duration: 0.7s;
+}
+
+/* Slide up (default — section headers, CTAs) */
+[data-anim="up"]          { transform: translateY(40px); }
+[data-anim="up"].in-view  { opacity: 1; transform: translateY(0); }
+
+/* Slide from left */
+[data-anim="left"]          { transform: translateX(-48px); }
+[data-anim="left"].in-view  { opacity: 1; transform: translateX(0); }
+
+/* Slide from right */
+[data-anim="right"]          { transform: translateX(48px); }
+[data-anim="right"].in-view  { opacity: 1; transform: translateX(0); }
+
+/* Fade + scale (callout boxes, badges) */
+[data-anim="scale"]          { transform: scale(0.95); }
+[data-anim="scale"].in-view  { opacity: 1; transform: scale(1); }
+
+/* Fade only (subtle background elements) */
+[data-anim="fade"]          { }
+[data-anim="fade"].in-view  { opacity: 1; }
+
+/* Stagger children: parent gets .stagger-parent, children get delay via nth-child */
+.stagger-parent [data-anim] { transition-duration: 0.6s; }
+.stagger-parent [data-anim]:nth-child(1) { transition-delay: 0ms; }
+.stagger-parent [data-anim]:nth-child(2) { transition-delay: 90ms; }
+.stagger-parent [data-anim]:nth-child(3) { transition-delay: 180ms; }
+.stagger-parent [data-anim]:nth-child(4) { transition-delay: 270ms; }
+.stagger-parent [data-anim]:nth-child(5) { transition-delay: 360ms; }
+.stagger-parent [data-anim]:nth-child(6) { transition-delay: 450ms; }
+.stagger-parent [data-anim]:nth-child(7) { transition-delay: 540ms; }
+.stagger-parent [data-anim]:nth-child(8) { transition-delay: 630ms; }
+
+/* ═══════════════════════════════════════════════════════
+   GLASS EFFECTS
+   Used on floating panels, banners, badges, callouts.
+   Requires position relative parent without overflow:hidden.
+═══════════════════════════════════════════════════════ */
+
+.glass {
+  background: rgba(30, 35, 45, 0.72);
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  border: 1px solid rgba(255,255,255,0.07);
+}
+
+.glass-blue {
+  background: rgba(2, 112, 215, 0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(2, 112, 215, 0.2);
+}
+
+.glass-cyan {
+  background: rgba(0, 191, 251, 0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 191, 251, 0.18);
+}
+
+/* Horizontal scan line animation for glass panels */
+@keyframes scan {
+  0%   { transform: translateY(-100%); opacity: 0; }
+  10%  { opacity: 0.4; }
+  90%  { opacity: 0.4; }
+  100% { transform: translateY(400%); opacity: 0; }
+}
+
+.glass-scan {
+  position: relative;
+  overflow: hidden;
+}
+.glass-scan::after {
+  content: '';
+  position: absolute;
+  left: 0; top: 0;
+  width: 100%; height: 2px;
+  background: linear-gradient(90deg, transparent 0%, rgba(0,191,251,0.4) 50%, transparent 100%);
+  animation: scan 5s ease-in-out infinite;
+  pointer-events: none;
+}
 
 /* ── LAYOUT ───────────────────────────────────────────── */
 .container { width: 100%; max-width: 1128px; margin: 0 auto; padding: 0 24px; }
@@ -152,9 +253,9 @@ main { flex: 1 0 auto; }
 .hero-title .accent { color: #0270D7; }
 .hero-title .accent-cyan { color: #00BFFB; }
 .hero-paragraph {
-  font-size: 18px;
-  line-height: 1.7;
-  color: #8A94A7;
+  font-size: 19px;
+  line-height: 1.75;
+  color: #9AA5B8;
   margin-bottom: 32px;
   max-width: 480px;
 }
@@ -325,13 +426,13 @@ main { flex: 1 0 auto; }
   letter-spacing: -0.02em;
 }
 .stat-label {
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.5;
   color: #6B7A99;
 }
 .stat-source {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 9px;
+  font-size: 10px;
   color: #3B404C;
   letter-spacing: 0.1em;
   margin-top: 8px;
@@ -389,10 +490,10 @@ main { flex: 1 0 auto; }
   letter-spacing: 0.05em;
   margin-bottom: 10px;
 }
-.feature-desc { font-size: 13px; line-height: 1.6; color: #6B7A99; }
+.feature-desc { font-size: 15px; line-height: 1.7; color: #6B7A99; }
 .feature-commercial {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
+  font-size: 11px;
   color: #0270D7;
   margin-top: 10px;
   padding-top: 10px;
@@ -418,7 +519,7 @@ main { flex: 1 0 auto; }
 @media (max-width: 640px) { .flow-row { grid-template-columns: 120px 1fr; } }
 .flow-step {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   color: #0270D7;
   padding: 18px 20px;
@@ -431,7 +532,7 @@ main { flex: 1 0 auto; }
   line-height: 1.4;
 }
 .flow-desc {
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.7;
   color: #8A94A7;
   padding: 18px 20px;
@@ -460,7 +561,7 @@ main { flex: 1 0 auto; }
   line-height: 1;
   margin-bottom: 8px;
 }
-.money-cell .label { font-size: 13px; color: #6B7A99; line-height: 1.5; }
+.money-cell .label { font-size: 15px; color: #6B7A99; line-height: 1.5; }
 .democracy-callout {
   background: #15181D;
   border: 1px solid #242830;
@@ -546,7 +647,7 @@ main { flex: 1 0 auto; }
 }
 @media (max-width: 640px) { .technique-name { border-right: none; border-bottom: 1px solid #242830; } }
 .technique-desc {
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.7;
   color: #8A94A7;
   padding: 18px 20px;
@@ -596,13 +697,13 @@ main { flex: 1 0 auto; }
 .eq-them-label { color: #0270D7; }
 .eq-you-val {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: #8A94A7;
 }
 .eq-them-val {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: #00BFFB;
   line-height: 1.4;
@@ -643,7 +744,7 @@ main { flex: 1 0 auto; }
   color: #4A5568;
   text-transform: uppercase;
 }
-.tool-effect { font-size: 13px; line-height: 1.6; color: #6B7A99; }
+.tool-effect { font-size: 15px; line-height: 1.7; color: #6B7A99; }
 .tool-effect strong { color: #00BFFB; }
 .tools-stat-row {
   display: grid;
@@ -664,7 +765,7 @@ main { flex: 1 0 auto; }
   font-size: 32px; font-weight: 700;
   color: #0270D7; line-height: 1; margin-bottom: 6px;
 }
-.tools-stat .label { font-size: 12px; color: #6B7A99; line-height: 1.5; }
+.tools-stat .label { font-size: 14px; color: #6B7A99; line-height: 1.5; }
 
 /* ── HOW IT WORKS ─────────────────────────────────────── */
 .how-section { background: #15181D; }
@@ -694,8 +795,8 @@ main { flex: 1 0 auto; }
   padding: 20px 0;
 }
 .how-step-body { padding: 20px 24px; }
-.how-step-body h4 { color: #fff; font-size: 14px; margin-bottom: 6px; margin-top: 0; }
-.how-step-body p { font-size: 13px; color: #6B7A99; line-height: 1.65; margin: 0; }
+.how-step-body h4 { color: #fff; font-size: 16px; margin-bottom: 6px; margin-top: 0; }
+.how-step-body p { font-size: 15px; color: #6B7A99; line-height: 1.65; margin: 0; }
 .privacy-badge {
   display: flex;
   align-items: center;
@@ -712,7 +813,7 @@ main { flex: 1 0 auto; }
   animation: pulse 2s ease infinite;
   flex-shrink: 0;
 }
-.privacy-badge-text { font-size: 12px; color: #6B7A99; line-height: 1.6; font-family: 'IBM Plex Mono', monospace; }
+.privacy-badge-text { font-size: 13px; color: #6B7A99; line-height: 1.6; font-family: 'IBM Plex Mono', monospace; }
 
 /* ── CTA SECTION ──────────────────────────────────────── */
 .cta-section { background: #15181D; }
@@ -766,10 +867,170 @@ main { flex: 1 0 auto; }
   letter-spacing: 0.05em;
 }
 
-/* ── SCROLL ANIMATIONS ────────────────────────────────── */
-.sr .has-animations .is-revealing { visibility: hidden; }
-.has-animations .anime-element { visibility: hidden; }
-.anime-ready .has-animations .anime-element { visibility: visible; }
+/* ── UPGRADED WARNING BANNER ────────────────────────── */
+.warning-banner {
+  padding: 16px 0;
+  position: relative;
+  z-index: 5;
+}
+.warning-banner.glass-scan {
+  background: rgba(2, 112, 215, 0.06);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(2,112,215,0.18);
+  border-bottom: 1px solid rgba(2,112,215,0.18);
+}
+.warning-banner-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.warning-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #00BFFB;
+  animation: pulse 2s ease infinite;
+  flex-shrink: 0;
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(0,191,251,0.4); }
+  50% { opacity: 0.7; transform: scale(0.85); box-shadow: 0 0 0 5px rgba(0,191,251,0); }
+}
+.warning-text {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  color: #6B7A99;
+  letter-spacing: 0.03em;
+  line-height: 1.5;
+}
+.warning-text strong { color: #c8d8f0; }
+
+/* ── GLASS PRIVACY BADGE OVERRIDE ───────────────────── */
+.privacy-badge {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 22px;
+  margin-top: 24px;
+}
+.privacy-badge.glass-cyan {
+  background: rgba(0, 191, 251, 0.04);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 191, 251, 0.15);
+}
+.privacy-badge-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #00BFFB;
+  animation: pulse 2s ease infinite;
+  flex-shrink: 0;
+}
+.privacy-badge-text {
+  font-size: 13px;
+  color: #6B7A99;
+  line-height: 1.65;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ── HERO COPY initial state for anime.js ────────────── */
+.hero-copy { opacity: 0; }
+.anime-ready .hero-copy { /* controlled by anime */ }
+
+/* ── SECTION TRANSITIONS ─────────────────────────────── */
+/* Prevent flash of unstyled content before observer fires */
+@media (prefers-reduced-motion: reduce) {
+  [data-anim] { opacity: 1 !important; transform: none !important; }
+}
+
+/* ── APATHY QUOTE GLASS ──────────────────────────────── */
+.apathy-callout {
+  font-size: 22px;
+  line-height: 1.5;
+  color: #4A5568;
+  font-weight: 400;
+  margin-bottom: 32px;
+  padding: 36px 40px;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(30, 35, 45, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  position: relative;
+}
+.apathy-callout::before {
+  content: '"';
+  position: absolute;
+  top: -20px; left: 28px;
+  font-size: 80px;
+  color: rgba(255,255,255,0.06);
+  font-family: Georgia, serif;
+  line-height: 1;
+}
+.apathy-callout strong { color: #8A94A7; font-weight: 600; }
+
+/* ── DEMOCRACY CALLOUT GLASS ─────────────────────────── */
+.democracy-callout {
+  background: rgba(15, 18, 23, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-left: 4px solid #0270D7;
+  padding: 36px 40px;
+  margin-bottom: 0;
+}
+.democracy-callout h3 { color: #fff; font-size: 20px; margin-bottom: 16px; }
+.democracy-callout p { font-size: 16px; line-height: 1.8; color: #8A94A7; margin-bottom: 16px; }
+.democracy-callout p:last-child { margin-bottom: 0; }
+.democracy-callout strong { color: #c8d8f0; }
+.democracy-callout em { color: #00BFFB; font-style: normal; }
+
+/* ── SECTION HEADER GLASS ────────────────────────────── */
+.section-header {
+  text-align: center;
+  margin-bottom: 56px;
+  padding: 40px;
+  background: rgba(21, 24, 29, 0.5);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,0.04);
+}
+.section-header h2 { color: #fff; margin-bottom: 14px; }
+.section-header p { max-width: 600px; margin: 0 auto; color: #8A94A7; font-size: 17px; line-height: 1.7; }
+.section-eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.35em;
+  color: #0270D7;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 14px;
+}
+
+/* ── APATHY REFRAME UPGRADED ─────────────────────────── */
+.apathy-reframe {
+  font-size: 16px;
+  line-height: 1.85;
+  color: #8A94A7;
+  margin-bottom: 28px;
+}
+.apathy-reframe p { margin-bottom: 18px; }
+.apathy-reframe strong { color: #c8d8f0; }
+
+.apathy-verdict {
+  padding: 26px 32px;
+  font-size: 16px;
+  line-height: 1.8;
+  color: #8A94A7;
+}
+.apathy-verdict.glass-blue {
+  background: rgba(2, 112, 215, 0.06);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(2, 112, 215, 0.18);
+}
+.apathy-verdict strong { color: #fff; }
 
 </style>
 </head>
@@ -804,7 +1065,7 @@ main { flex: 1 0 auto; }
 </header>
 
 <!-- ── WARNING BANNER ── -->
-<div class="warning-banner">
+<div class="warning-banner glass-scan">
   <div class="container">
     <div class="warning-banner-inner">
       <div class="warning-dot"></div>
@@ -819,7 +1080,7 @@ main { flex: 1 0 auto; }
     <div class="hero-inner">
 
       <div class="hero-copy">
-        <div class="hero-eyebrow">Live Demonstration · Local Only · No Data Stored</div>
+        <div class="hero-eyebrow glass-cyan">Live Demonstration · Local Only · No Data Stored</div>
         <h1 class="hero-title mt-0">
           Your emotional state<br>
           <span class="accent">has a market price.</span><br>
@@ -828,7 +1089,7 @@ main { flex: 1 0 auto; }
         <p class="hero-paragraph">
           Seven exchanges. The same machine learning used to profile you for advertisers, political operatives, and data brokers — running on your words, in real time, while you watch. Then it shows you the full output and exactly who gets paid.
         </p>
-        <div class="hero-meta">
+        <div class="hero-meta" data-anim="up">
           <div class="hero-meta-item">
             <span class="hero-meta-label">Session</span>
             <span class="hero-meta-value">7 exchanges</span>
@@ -880,28 +1141,28 @@ main { flex: 1 0 auto; }
 <!-- ── SCALE STATS ── -->
 <section class="stats-section has-top-divider">
   <div class="container">
-    <div class="stats-headline">
+    <div class="stats-headline" data-anim="up">
       <span class="section-eyebrow">The Scale</span>
       <h2>These are not estimates. These are filed disclosures.</h2>
-      <p>Every number below comes from peer-reviewed research, government testimony, or corporate financial filings.</p>
+      <p style="font-size:17px;line-height:1.7;">Every number below comes from peer-reviewed research, government testimony, or corporate financial filings.</p>
     </div>
-    <div class="stats-grid">
-      <div class="stat-block is-revealing">
+    <div class="stats-grid stagger-parent">
+      <div class="stat-block" data-anim="up">
         <div class="stat-num">$1T+</div>
         <div class="stat-label">Global advertising revenue in 2024. First time in history. Built almost entirely from behavioral data.</div>
         <div class="stat-source">WPP / WARC 2024</div>
       </div>
-      <div class="stat-block is-revealing">
+      <div class="stat-block" data-anim="up">
         <div class="stat-num">68</div>
         <div class="stat-label">Facebook likes needed to predict your personality, IQ, political affiliation, sexual orientation, and if your parents divorced. More accurately than your coworkers.</div>
         <div class="stat-source">Kosinski et al., PNAS 2013</div>
       </div>
-      <div class="stat-block is-revealing">
+      <div class="stat-block" data-anim="up">
         <div class="stat-num">689K</div>
         <div class="stat-label">People in Facebook's secret 2014 mood manipulation study. No consent asked. Results published. Feed unchanged.</div>
         <div class="stat-source">Kramer et al., PNAS 2014</div>
       </div>
-      <div class="stat-block is-revealing">
+      <div class="stat-block" data-anim="up">
         <div class="stat-num">$277B</div>
         <div class="stat-label">Data broker market value. 4,000+ firms selling your behavioral profile to advertisers, insurers, and political campaigns.</div>
         <div class="stat-source">Grand View Research 2023</div>
@@ -914,55 +1175,55 @@ main { flex: 1 0 auto; }
 <section class="features-section has-top-divider" id="how-it-works">
   <div class="container">
     <div class="section-inner">
-      <div class="section-header">
+      <div class="section-header" data-anim="up">
         <span class="section-eyebrow">The Algorithm</span>
         <h2>Eight specialist trees. Each reads one dimension of you.</h2>
         <p>MarketsMirror uses Random Forest — the same algorithm NASA uses on Mars to classify terrain, and the same framework Facebook uses to classify you. These 8 psycholinguistic dimensions are validated in 143,000+ academic studies. They're also what gets you segmented, targeted, and sold.</p>
       </div>
-      <div class="features-grid">
-        <div class="feature-card is-revealing">
+      <div class="features-grid stagger-parent">
+        <div class="feature-card" data-anim="up">
           <div class="feature-tree-id">T1 · LIWC-22</div>
           <div class="feature-tree-name">First Person Density</div>
           <div class="feature-desc">Rate of "I" in your language. High = internalized emotional pain. Low = dissociation or suppressed self-concept. Pennebaker (1993).</div>
           <div class="feature-commercial">→ Platform use: internalizing personality targeting</div>
         </div>
-        <div class="feature-card is-revealing">
+        <div class="feature-card" data-anim="up">
           <div class="feature-tree-id">T2 · LIWC-22</div>
           <div class="feature-tree-name">Temporal Orientation</div>
           <div class="feature-desc">Past vs. future tense across the full session. Past-dominant = unresolved attachment. Future-dominant = anxiety, identity instability.</div>
           <div class="feature-commercial">→ Platform use: retargeting pixel exploitation</div>
         </div>
-        <div class="feature-card is-revealing">
+        <div class="feature-card" data-anim="up">
           <div class="feature-tree-id">T3 · LIWC-22</div>
           <div class="feature-tree-name">Negation Architecture</div>
           <div class="feature-desc">What you say you are NOT reveals the disowned self. The honest confession lives in the clause after "but." Weighted 2× by the parser.</div>
           <div class="feature-commercial">→ Platform use: emotional vulnerability window detection</div>
         </div>
-        <div class="feature-card is-revealing">
+        <div class="feature-card" data-anim="up">
           <div class="feature-tree-id">T4 · LIWC-22</div>
           <div class="feature-tree-name">Relational Grammar</div>
           <div class="feature-desc">"I was left" vs. "I left." Who holds agency in your story of being hurt is a primary attachment wound signal used in behavioral segmentation.</div>
           <div class="feature-commercial">→ Platform use: relationship anxiety audience targeting</div>
         </div>
-        <div class="feature-card is-revealing">
+        <div class="feature-card" data-anim="up">
           <div class="feature-tree-id">T5 · LIWC-22</div>
           <div class="feature-tree-name">Valence Collision</div>
           <div class="feature-desc">Positive and negative emotion words in the same sentence = chronic ambivalence. The thing you cannot close is the thing the algorithm keeps open.</div>
           <div class="feature-commercial">→ Platform use: engagement amplification via unresolved tension</div>
         </div>
-        <div class="feature-card is-revealing">
+        <div class="feature-card" data-anim="up">
           <div class="feature-tree-id">T6 · LIWC-22</div>
           <div class="feature-tree-name">Avoidance Topology</div>
           <div class="feature-desc">Topics circled but not landed on. Sentence pivots after disclosure. The shape of what is not said is the shape of the wound — and the targeting category.</div>
           <div class="feature-commercial">→ Platform use: gradual-trust content sequencing</div>
         </div>
-        <div class="feature-card is-revealing">
+        <div class="feature-card" data-anim="up">
           <div class="feature-tree-id">T7 · LIWC-22</div>
           <div class="feature-tree-name">Rumination Index</div>
           <div class="feature-desc">Density of cognitive processing words: because, think, realize, wonder. High = analytically inside the wound. This is the "insight-framed content" targeting signal.</div>
           <div class="feature-commercial">→ Platform use: analytical segment, self-help ad delivery</div>
         </div>
-        <div class="feature-card is-revealing">
+        <div class="feature-card" data-anim="up">
           <div class="feature-tree-id">T8 · LIWC-22</div>
           <div class="feature-tree-name">Clout / Authenticity</div>
           <div class="feature-desc">Performed authority vs. private emotional state. The gap between public and private self is measurable and commercially valuable. Kacewicz et al. (2014).</div>
@@ -977,51 +1238,51 @@ main { flex: 1 0 auto; }
 <section class="money-section has-top-divider" id="democracy">
   <div class="container">
     <div class="section-inner">
-      <div class="section-header">
+      <div class="section-header" data-anim="up">
         <span class="section-eyebrow">The Money Trail</span>
         <h2>From your pause to their policy.</h2>
         <p>When a company's entire business model is "free," what they're actually selling is you. Trace where the money actually goes.</p>
       </div>
 
-      <div class="money-callout">
-        <div class="money-cell">
+      <div class="money-callout stagger-parent">
+        <div class="money-cell" data-anim="scale">
           <div class="big">$4B</div>
           <div class="label">Per day in ad revenue across major platforms. That's $2/user/day × 2B users. Every scroll generates fractions of that.</div>
         </div>
-        <div class="money-cell">
+        <div class="money-cell" data-anim="scale">
           <div class="big">9×</div>
           <div class="label">The global ad industry ($1T+) is 9 times larger than the entire U.S. SNAP food assistance program ($112B/yr). Priority is clear.</div>
         </div>
-        <div class="money-cell">
+        <div class="money-cell" data-anim="scale">
           <div class="big">$6.5M</div>
           <div class="label">Meta's U.S. federal lobbying spend in a single quarter. Toward: privacy regulation, data law, tax policy, and advertising rules.</div>
         </div>
       </div>
 
-      <div class="flow-chain">
-        <div class="flow-row">
+      <div class="flow-chain stagger-parent">
+        <div class="flow-row" data-anim="left">
           <div class="flow-step">Your attention</div>
           <div class="flow-desc">Every pause, scroll, hesitation, and rewrite — captured by tracking code embedded in nearly every website and app you use. You didn't opt in. You loaded the page.</div>
         </div>
-        <div class="flow-row">
+        <div class="flow-row" data-anim="left">
           <div class="flow-step">Your profile</div>
           <div class="flow-desc">Emotional volatility, political lean, income anxiety, relationship status, health concerns — packaged into psychographic segments and sold via <strong>real-time bidding auctions</strong> that run in milliseconds every time a page loads.</div>
         </div>
-        <div class="flow-row">
+        <div class="flow-row" data-anim="left">
           <div class="flow-step">Ad revenue</div>
           <div class="flow-desc">Approximately $2/day per active user, times 2 billion users. The revenue funds not just operations but <strong>political strategy and regulatory influence</strong>.</div>
         </div>
-        <div class="flow-row">
+        <div class="flow-row" data-anim="left">
           <div class="flow-step">Lobbying</div>
           <div class="flow-desc">Tech companies collectively spend hundreds of millions annually on lobbying. The targets: <strong>privacy regulation, advertising law, data broker oversight, antitrust enforcement, and tax rates</strong>. Consistently toward weaker rules.</div>
         </div>
-        <div class="flow-row">
+        <div class="flow-row" data-anim="left">
           <div class="flow-step">Policy</div>
           <div class="flow-desc">Weakened consent requirements. Narrow definitions of personal data. Delayed privacy legislation. Blocked antitrust action. <strong>The legal environment permitting this industry was, in large part, purchased by the revenue your attention generates.</strong></div>
         </div>
       </div>
 
-      <div class="democracy-callout" id="democracy">
+      <div class="democracy-callout" data-anim="scale" id="democracy">
         <h3>This isn't just about ads. It's about what democracy requires to function.</h3>
         <p>
           A functioning democracy depends on an informed electorate making decisions based on their actual values and real information. The behavioral data economy is built on <strong>the opposite of that</strong>. Platforms don't make money when you're informed and decisive. They make money when you're <em>engaged</em> — which means uncertain, reactive, and emotionally activated.
@@ -1047,15 +1308,15 @@ main { flex: 1 0 auto; }
     <div class="section-inner">
       <div class="apathy-inner">
         <span class="section-eyebrow" style="display:block;margin-bottom:24px;">The Shrug Response</span>
-        <div class="apathy-callout">
+        <div class="apathy-callout" data-anim="up">
           <strong>"They're tracking us anyway. Everyone knows. So what?"</strong>
         </div>
-        <div class="apathy-reframe">
+        <div class="apathy-reframe" data-anim="up">
           <p>Say that out loud and notice how it feels. It feels like clarity — like you've thought it through and landed somewhere reasonable. <strong>You haven't. You've landed exactly where the system needs you.</strong></p>
           <p>Researchers call it the <strong>privacy paradox</strong>: most people express concern about tracking and change nothing. This gap is not a personal failure. It is a <strong>measurable, modeled outcome</strong> that platforms engineer through interface design, notification timing, and algorithmic content selection. A user who shrugs and scrolls generates data indefinitely. That is the most profitable kind of user.</p>
           <p>There is also something more specific happening. <strong>Recommendation algorithms are optimized for engagement, not for your cognitive clarity.</strong> If outrage, anxiety, or emotional volatility keeps you scrolling, the system amplifies those states — because they correlate with ad impressions. Over time, this degrades sustained attention and reduces the tolerance for complexity required to act on information like this. The feedback loop maintains itself by making everything feel too big to address.</p>
         </div>
-        <div class="apathy-verdict">
+        <div class="apathy-verdict glass-blue">
           <strong>The shrug is worth billions of dollars to the people who taught it to you.</strong> These four tools take less than ten minutes. They cost nothing. The only requirement is deciding that the version of you who used to give a damn about things is still in there somewhere — because they are, and they just read all the way to this sentence.
         </div>
       </div>
@@ -1067,29 +1328,29 @@ main { flex: 1 0 auto; }
 <section class="tools-section has-top-divider" id="tools">
   <div class="container">
     <div class="section-inner">
-      <div class="section-header">
+      <div class="section-header" data-anim="up">
         <span class="section-eyebrow">Countermeasures</span>
         <h2>Your cost vs. their loss.</h2>
         <p>The data economy only functions if you continue to supply behavioral signals without resistance. Research models European ad markets found cookie restriction reduces ad value by up to 9% — hundreds of millions per percentage point of user adoption.</p>
       </div>
 
-      <div class="tools-stat-row">
-        <div class="tools-stat">
+      <div class="tools-stat-row stagger-parent">
+        <div class="tools-stat" data-anim="up">
           <div class="big">$0</div>
           <div class="label">Cost of every tool below. Total.</div>
         </div>
-        <div class="tools-stat">
+        <div class="tools-stat" data-anim="up">
           <div class="big">9%</div>
           <div class="label">Revenue drop per percentage point of users who block tracking. That's real money, documented.</div>
         </div>
-        <div class="tools-stat">
+        <div class="tools-stat" data-anim="up">
           <div class="big">&lt;10min</div>
           <div class="label">Total setup time for all four countermeasures. Less than one TikTok session.</div>
         </div>
       </div>
 
-      <div class="tools-equation">
-        <div class="eq-row">
+      <div class="tools-equation stagger-parent">
+        <div class="eq-row" data-anim="left">
           <div class="eq-left">
             <div class="eq-you-label">Your cost</div>
             <div class="eq-you-val">2 minutes · $0</div>
@@ -1100,7 +1361,7 @@ main { flex: 1 0 auto; }
             <div class="eq-them-val">All retargeting revenue from you. Every platform. Forever.</div>
           </div>
         </div>
-        <div class="eq-row">
+        <div class="eq-row" data-anim="left">
           <div class="eq-left">
             <div class="eq-you-label">Your cost</div>
             <div class="eq-you-val">5 minutes · free tier</div>
@@ -1111,7 +1372,7 @@ main { flex: 1 0 auto; }
             <div class="eq-them-val">App-level tracking across every app on your device — not just your browser.</div>
           </div>
         </div>
-        <div class="eq-row">
+        <div class="eq-row" data-anim="left">
           <div class="eq-left">
             <div class="eq-you-label">Your cost</div>
             <div class="eq-you-val">Switch browsers · $0</div>
@@ -1122,7 +1383,7 @@ main { flex: 1 0 auto; }
             <div class="eq-them-val">The cross-site identity graph. They can no longer connect your behavior across different platforms.</div>
           </div>
         </div>
-        <div class="eq-row">
+        <div class="eq-row" data-anim="left">
           <div class="eq-left">
             <div class="eq-you-label">Your cost</div>
             <div class="eq-you-val">Settings toggle · $0</div>
@@ -1135,8 +1396,8 @@ main { flex: 1 0 auto; }
         </div>
       </div>
 
-      <div class="tools-grid">
-        <div class="tool-card is-revealing">
+      <div class="tools-grid stagger-parent">
+        <div class="tool-card" data-anim="up">
           <div class="tool-header">
             <span class="tool-name">uBlock Origin</span>
             <span class="tool-badge">Free · 2 min</span>
@@ -1144,7 +1405,7 @@ main { flex: 1 0 auto; }
           <div class="tool-what">Browser extension → blocks ad + tracking scripts</div>
           <div class="tool-effect">Install in Chrome, Firefox, or Edge. Tracking pixels never fire. Retargeting windows never open. <strong>The ad that was going to follow you for 30 days doesn't get the signal to start.</strong></div>
         </div>
-        <div class="tool-card is-revealing">
+        <div class="tool-card" data-anim="up">
           <div class="tool-header">
             <span class="tool-name">NextDNS</span>
             <span class="tool-badge">Free tier · 5 min</span>
@@ -1152,7 +1413,7 @@ main { flex: 1 0 auto; }
           <div class="tool-what">DNS filter → blocks tracking at network level</div>
           <div class="tool-effect">Works on every app on your device, not just your browser. <strong>Apps that ignore browser privacy settings get stopped here.</strong> Free tier: 300K queries/month.</div>
         </div>
-        <div class="tool-card is-revealing">
+        <div class="tool-card" data-anim="up">
           <div class="tool-header">
             <span class="tool-name">Firefox / Brave</span>
             <span class="tool-badge">Free · 3 min</span>
@@ -1160,7 +1421,7 @@ main { flex: 1 0 auto; }
           <div class="tool-what">Privacy browser → breaks cross-site identity graph</div>
           <div class="tool-effect">Both block cross-site tracking by default. <strong>The mechanism connecting your behavior across different websites into one unified profile begins to fragment.</strong></div>
         </div>
-        <div class="tool-card is-revealing">
+        <div class="tool-card" data-anim="up">
           <div class="tool-header">
             <span class="tool-name">Platform Opt-Out</span>
             <span class="tool-badge">Free · 2 min each</span>
@@ -1184,29 +1445,29 @@ main { flex: 1 0 auto; }
           <span class="section-eyebrow">The Session</span>
           <h2 style="color:#fff;margin-bottom:20px;">Seven exchanges.<br>Full profile at the end.</h2>
           <p style="color:#8A94A7;font-size:15px;line-height:1.75;margin-bottom:24px;">The engine earns depth — it does not demand it. The first two questions cost nothing to answer. As signal accumulates, questions route to the dimensions with highest uncertainty. If you deflect, the engine mirrors your own words back instead of probing.</p>
-          <div class="how-steps">
-            <div class="how-step">
+          <div class="how-steps stagger-parent">
+            <div class="how-step" data-anim="left">
               <div class="how-step-num">1</div>
               <div class="how-step-body">
                 <h4>Opening (turns 1–2)</h4>
                 <p>Baseline establishment. The engine reads your linguistic style without targeting any specific emotional dimension yet.</p>
               </div>
             </div>
-            <div class="how-step">
+            <div class="how-step" data-anim="left">
               <div class="how-step-num">2</div>
               <div class="how-step-body">
                 <h4>Signal accumulation (turns 3–5)</h4>
                 <p>Questions target dimensions with highest uncertainty. The forest panel updates in real time as each tree processes your response.</p>
               </div>
             </div>
-            <div class="how-step">
+            <div class="how-step" data-anim="left">
               <div class="how-step-num">3</div>
               <div class="how-step-body">
                 <h4>Ensemble vote (turns 6–7)</h4>
                 <p>Trees with sufficient evidence cast votes. Confidence percentages and uncertainty ranges display live. The forest decides — not any single tree.</p>
               </div>
             </div>
-            <div class="how-step">
+            <div class="how-step" data-anim="left">
               <div class="how-step-num">4</div>
               <div class="how-step-body">
                 <h4>The reveal</h4>
@@ -1214,7 +1475,7 @@ main { flex: 1 0 auto; }
               </div>
             </div>
           </div>
-          <div class="privacy-badge" style="margin-top:24px;">
+          <div class="privacy-badge glass-cyan" style="margin-top:24px;">
             <div class="privacy-badge-dot"></div>
             <div class="privacy-badge-text">Zero outbound requests during the session. Verify in your network inspector. Everything runs locally in your browser. Nothing persists after you close the tab.</div>
           </div>
@@ -1223,28 +1484,28 @@ main { flex: 1 0 auto; }
         <div>
           <span class="section-eyebrow">The Techniques Used On You</span>
           <h2 style="color:#fff;margin-bottom:20px;">Named. Documented.<br>In active use today.</h2>
-          <div class="techniques-grid">
-            <div class="technique-row">
+          <div class="techniques-grid stagger-parent">
+            <div class="technique-row" data-anim="left">
               <div class="technique-name">Emotional Contagion</div>
               <div class="technique-desc"><strong>Kramer et al. (PNAS 2014)</strong> — Facebook shifted the mood of 689,003 users by altering feed content without disclosure. Negative states = more time on platform.</div>
             </div>
-            <div class="technique-row">
+            <div class="technique-row" data-anim="left">
               <div class="technique-name">Lookalike Audiences</div>
               <div class="technique-desc">Meta Ads Manager 2024. Advertisers upload emotionally vulnerable users as a seed audience. <strong>Facebook finds millions of psychologically similar users</strong> and sells access to them.</div>
             </div>
-            <div class="technique-row">
+            <div class="technique-row" data-anim="left">
               <div class="technique-name">Retargeting Windows</div>
               <div class="technique-desc">A pixel fires when you visit content matching your emotional category. <strong>For 30 days, ads follow you.</strong> The 2am search generates the therapy app ad that reaches you at 7am.</div>
             </div>
-            <div class="technique-row">
+            <div class="technique-row" data-anim="left">
               <div class="technique-name">Vulnerability Windows</div>
               <div class="technique-desc"><strong>2021 Facebook Papers.</strong> Internal research flagged emotionally open sessions as high-value inventory. Your most open moment is their highest-priced ad placement.</div>
             </div>
-            <div class="technique-row">
+            <div class="technique-row" data-anim="left">
               <div class="technique-name">Psychographic Scoring</div>
               <div class="technique-desc"><strong>Kosinski et al. (PNAS 2013)</strong> — 68 likes = full personality. Cambridge Analytica operationalized this for political micro-targeting in multiple national elections.</div>
             </div>
-            <div class="technique-row">
+            <div class="technique-row" data-anim="left">
               <div class="technique-name">Problem–Solution Capture</div>
               <div class="technique-desc">Platform contributes to anxiety. Platform sells wellness feature. <strong>Same company monetizes both the wound and the treatment.</strong> Your data funds each transaction.</div>
             </div>
@@ -1260,7 +1521,7 @@ main { flex: 1 0 auto; }
 <section class="cta-section has-top-divider">
   <div class="container">
     <div class="section-inner" style="padding-top:0;padding-bottom:0;">
-      <div class="cta-inner">
+      <div class="cta-inner" data-anim="scale">
         <div class="cta-copy">
           <h2>You've been modeled before.<br>Without knowing it.</h2>
           <p>Now watch it happen in front of you. Seven exchanges. Full output. The exact pipeline your attention feeds — and the four moves that break it. Local only. Nothing stored. You can verify that in your network inspector right now.</p>
@@ -1295,69 +1556,218 @@ main { flex: 1 0 auto; }
 
 <script>
 (function() {
+  'use strict';
+
   const doc = document.documentElement;
   doc.classList.remove('no-js');
   doc.classList.add('js');
 
-  // Ticker animation
-  const tickerVals = [
-    { val: '$112', label: 'Your data value / year (est.)' },
-    { val: '≈200', label: 'Ads shown to you per day' },
-    { val: '$6.5M', label: 'Meta lobbying / quarter' },
-    { val: '68', label: 'Likes to predict your life' },
-    { val: '$4B', label: 'Ad revenue per day globally' },
-  ];
-  let tickerIdx = 0;
-  const tickerNum = document.getElementById('ticker-val');
-  const tickerLbl = document.getElementById('ticker-lbl');
-  if (tickerNum && tickerLbl) {
-    setInterval(() => {
-      tickerIdx = (tickerIdx + 1) % tickerVals.length;
-      tickerNum.style.opacity = '0';
-      tickerLbl.style.opacity = '0';
-      setTimeout(() => {
-        tickerNum.textContent = tickerVals[tickerIdx].val;
-        tickerLbl.textContent = tickerVals[tickerIdx].label;
-        tickerNum.style.opacity = '1';
-        tickerLbl.style.opacity = '1';
-      }, 300);
-    }, 2800);
-    tickerNum.style.transition = 'opacity 0.3s ease';
-    tickerLbl.style.transition = 'opacity 0.3s ease';
+  /* ── STICKY HEADER ──────────────────────────────────── */
+  const header = document.querySelector('.site-header');
+  if (header) {
+    let lastY = 0;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y > 80) {
+        header.style.cssText = `
+          position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+          background: rgba(21, 24, 29, 0.92);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border-bottom: 1px solid rgba(255,255,255,0.06);
+          padding: 14px 0;
+          transition: all 0.3s ease;
+        `;
+        document.body.style.paddingTop = header.offsetHeight + 'px';
+      } else {
+        header.style.cssText = 'position: relative; z-index: 10; padding: 20px 0;';
+        document.body.style.paddingTop = '0';
+      }
+      lastY = y;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
   }
 
-  if (document.body.classList.contains('has-animations')) {
-    const sr = window.sr = ScrollReveal();
-    sr.reveal('.is-revealing', {
-      duration: 600,
-      distance: '24px',
-      easing: 'cubic-bezier(0.5, -0.01, 0, 1.005)',
-      origin: 'bottom',
-      interval: 80
+  /* ── SMOOTH ANCHOR NAV ──────────────────────────────── */
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const id = a.getAttribute('href').slice(1);
+      const target = document.getElementById(id);
+      if (target) {
+        e.preventDefault();
+        const headerH = header ? header.offsetHeight : 80;
+        const top = target.getBoundingClientRect().top + window.scrollY - headerH - 24;
+        window.scrollTo({ top, behavior: 'smooth' });
+      }
+    });
+  });
+
+  /* ── INTERSECTION OBSERVER — SCROLL ANIMATIONS ─────── */
+  // Collect all elements with data-anim attribute
+  const animEls = document.querySelectorAll('[data-anim]');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('in-view');
+        // Once triggered, stop observing
+        observer.unobserve(entry.target);
+      }
+    });
+  }, {
+    threshold: 0.12,
+    rootMargin: '0px 0px -40px 0px'
+  });
+
+  animEls.forEach(el => observer.observe(el));
+
+  /* ── HERO TICKER ──────────────────────────────────────
+     Cycles through key stats in the hero figure.
+     Each value fades out up, new value fades in from below.
+  ─────────────────────────────────────────────────────── */
+  const tickerVals = [
+    { val: '$112',   label: 'Est. value of your data / year' },
+    { val: '≈200',   label: 'Ads served to you per day' },
+    { val: '$6.5M',  label: 'Meta lobbying spend / quarter' },
+    { val: '68',     label: 'Likes to map your entire life' },
+    { val: '$4B',    label: 'Global ad revenue per day' },
+    { val: '4,000+', label: 'Data brokers selling you now' },
+  ];
+
+  const tickerNum = document.getElementById('ticker-val');
+  const tickerLbl = document.getElementById('ticker-lbl');
+
+  if (tickerNum && tickerLbl) {
+    let idx = 0;
+
+    // Initial transition styles
+    [tickerNum, tickerLbl].forEach(el => {
+      el.style.transition = 'opacity 0.35s ease, transform 0.35s ease';
     });
 
+    const rotate = () => {
+      // Slide current out upward
+      tickerNum.style.opacity = '0';
+      tickerNum.style.transform = 'translateY(-12px)';
+      tickerLbl.style.opacity = '0';
+      tickerLbl.style.transform = 'translateY(-8px)';
+
+      setTimeout(() => {
+        idx = (idx + 1) % tickerVals.length;
+        tickerNum.textContent = tickerVals[idx].val;
+        tickerLbl.textContent = tickerVals[idx].label;
+
+        // Start from below
+        tickerNum.style.transition = 'none';
+        tickerLbl.style.transition = 'none';
+        tickerNum.style.transform = 'translateY(12px)';
+        tickerLbl.style.transform = 'translateY(8px)';
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            tickerNum.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+            tickerLbl.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+            tickerNum.style.opacity = '1';
+            tickerNum.style.transform = 'translateY(0)';
+            tickerLbl.style.opacity = '1';
+            tickerLbl.style.transform = 'translateY(0)';
+          });
+        });
+      }, 360);
+    };
+
+    setInterval(rotate, 3000);
+  }
+
+  /* ── HERO ANIME.JS ANIMATIONS ─────────────────────────
+     Exact Solid template animation logic, preserved.
+  ─────────────────────────────────────────────────────── */
+  if (typeof anime !== 'undefined') {
     doc.classList.add('anime-ready');
 
     anime.timeline({ targets: '.hero-figure-box-05' })
-      .add({ duration: 400, easing: 'easeInOutExpo', scaleX: [0.05, 0.05], scaleY: [0, 1], perspective: '500px', delay: anime.random(0, 400) })
+      .add({ duration: 400, easing: 'easeInOutExpo', scaleX: [0.05, 0.05], scaleY: [0, 1], perspective: '500px', delay: anime.random(0, 300) })
       .add({ duration: 400, easing: 'easeInOutExpo', scaleX: 1 })
       .add({ duration: 800, rotateY: '-15deg', rotateX: '8deg', rotateZ: '-1deg' });
 
     anime.timeline({ targets: '.hero-figure-box-06, .hero-figure-box-07' })
-      .add({ duration: 400, easing: 'easeInOutExpo', scaleX: [0.05, 0.05], scaleY: [0, 1], perspective: '500px', delay: anime.random(0, 400) })
+      .add({ duration: 400, easing: 'easeInOutExpo', scaleX: [0.05, 0.05], scaleY: [0, 1], perspective: '500px', delay: anime.random(0, 300) })
       .add({ duration: 400, easing: 'easeInOutExpo', scaleX: 1 })
       .add({ duration: 800, rotateZ: '20deg' });
 
     anime({
       targets: '.hero-figure-box-01, .hero-figure-box-02, .hero-figure-box-03, .hero-figure-box-04, .hero-figure-box-08, .hero-figure-box-09, .hero-figure-box-10',
-      duration: anime.random(600, 800),
-      delay: anime.random(600, 800),
-      rotate: [anime.random(-360, 360), function(el) { return el.getAttribute('data-rotation'); }],
+      duration: anime.random(600, 900),
+      delay: anime.random(400, 700),
+      rotate: [anime.random(-360, 360), el => el.getAttribute('data-rotation')],
       scale: [0.7, 1],
       opacity: [0, 1],
       easing: 'easeInOutExpo'
     });
+
+    // Hero copy slides in from left on load
+    anime({
+      targets: '.hero-copy',
+      opacity: [0, 1],
+      translateX: [-40, 0],
+      duration: 900,
+      delay: 200,
+      easing: 'easeOutExpo'
+    });
+
+    // Floating idle animation on the hero figure boxes (subtle, continuous)
+    setTimeout(() => {
+      ['.hero-figure-box-06', '.hero-figure-box-07', '.hero-figure-box-10'].forEach((sel, i) => {
+        anime({
+          targets: sel,
+          translateY: [0, -8, 0],
+          duration: 3000 + i * 700,
+          delay: i * 400,
+          loop: true,
+          direction: 'alternate',
+          easing: 'easeInOutSine'
+        });
+      });
+    }, 1600);
   }
+
+  /* ── COUNTER ANIMATION ────────────────────────────────
+     Animates numeric stat blocks when they enter view.
+  ─────────────────────────────────────────────────────── */
+  const statNums = document.querySelectorAll('.stat-num, .money-cell .big, .tools-stat .big');
+  const countObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const el = entry.target;
+        const text = el.textContent;
+        // Only animate if it starts with $ or pure number
+        const numMatch = text.match(/[\d,.]+/);
+        if (numMatch && typeof anime !== 'undefined') {
+          const raw = parseFloat(numMatch[0].replace(/,/g, ''));
+          if (!isNaN(raw) && raw > 0 && raw < 10000) {
+            const prefix = text.match(/^[^0-9]*/)[0];
+            const suffix = text.match(/[^0-9]*$/)[0];
+            const obj = { val: 0 };
+            anime({
+              targets: obj,
+              val: raw,
+              duration: 1200,
+              delay: 200,
+              easing: 'easeOutExpo',
+              update: () => {
+                const disp = raw < 10 ? obj.val.toFixed(1) : Math.round(obj.val).toLocaleString();
+                el.textContent = prefix + disp + suffix;
+              }
+            });
+          }
+        }
+        countObserver.unobserve(el);
+      }
+    });
+  }, { threshold: 0.5 });
+
+  statNums.forEach(el => countObserver.observe(el));
+
 }());
 </script>
 
