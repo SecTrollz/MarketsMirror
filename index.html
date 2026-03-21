@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MarketsMirror — Your Attention Is a Commodity</title>
+<meta name="description" content="A live demonstration of how your language, behavior, and emotional patterns are converted into marketable psychological profiles. See exactly what gets extracted — and what you can do about it.">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/animejs@3.0.1/lib/anime.min.js"></script>
+<script src="https://unpkg.com/scrollreveal@4.0.0/dist/scrollreveal.min.js"></script>
+<style>
+
+/* ── SOLID FOUNDATION ─────────────────────────────────── */
+html { box-sizing: border-box; line-height: 1.15; }
+*, *:before, *:after { box-sizing: inherit; }
+html { font-size: 18px; line-height: 28px; }
+body {
+  margin: 0;
+  background: #1D2026;
+  color: #8A94A7;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 1rem;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+a { color: #8A94A7; text-decoration: underline; }
+a:hover, a:active { outline: 0; text-decoration: none; }
+
+h1,h2,h3,h4,h5,h6 { clear: both; color: #fff; font-weight: 600; margin-top: 0; }
+h1 { font-size: 38px; line-height: 48px; }
+@media (min-width: 641px) { h1 { font-size: 48px; line-height: 58px; } }
+h2 { font-size: 30px; line-height: 40px; }
+@media (min-width: 641px) { h2 { font-size: 36px; line-height: 46px; } }
+h3 { font-size: 22px; line-height: 32px; }
+h4 { font-size: 16px; line-height: 26px; }
+p { margin-top: 0; margin-bottom: 20px; }
+p:last-child { margin-bottom: 0; }
+
+.text-sm { font-size: 16px; line-height: 26px; }
+.text-xs { font-size: 14px; line-height: 22px; }
+.text-mono { font-family: 'IBM Plex Mono', monospace; }
+.text-center { text-align: center; }
+.mt-0 { margin-top: 0; }
+.mb-0 { margin-bottom: 0; }
+.mt-24 { margin-top: 24px; }
+.mb-24 { margin-bottom: 24px; }
+
+/* ── LAYOUT ───────────────────────────────────────────── */
+.container { width: 100%; max-width: 1128px; margin: 0 auto; padding: 0 24px; }
+.container-sm { width: 100%; max-width: 848px; margin: 0 auto; padding: 0 24px; }
+.is-boxed { background: #242830; }
+.body-wrap { background: #1D2026; overflow: hidden; display: flex; flex-direction: column; min-height: 100vh; }
+main { flex: 1 0 auto; }
+.section-inner { position: relative; padding-top: 64px; padding-bottom: 64px; }
+@media (min-width: 641px) { .section-inner { padding-top: 96px; padding-bottom: 96px; } }
+.has-top-divider { position: relative; }
+.has-top-divider::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 1px; background: #242830; }
+.has-bottom-divider { position: relative; }
+.has-bottom-divider::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 1px; background: #242830; }
+
+/* ── BUTTONS ──────────────────────────────────────────── */
+.button {
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.5px;
+  text-decoration: none !important;
+  text-transform: uppercase;
+  background-color: #242830;
+  color: #fff !important;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  justify-content: center;
+  padding: 16px 32px;
+  height: 48px;
+  white-space: nowrap;
+  align-items: center;
+  transition: background 0.2s;
+}
+.button:hover { background: #2d3340; }
+.button-primary {
+  background: linear-gradient(65deg, #0270D7 0, #0F8AFD 100%);
+}
+.button-primary:hover { background: linear-gradient(65deg, #0275e1 0, #198ffd 100%); }
+.button-block { display: flex; width: 100%; }
+@media (max-width: 640px) { .button-wide-mobile { width: 100%; max-width: 280px; } }
+
+/* ── HEADER ───────────────────────────────────────────── */
+.site-header { padding: 20px 0; position: relative; z-index: 10; }
+.site-header-inner { display: flex; justify-content: space-between; align-items: center; }
+.brand h1 { margin: 0; font-size: 20px; line-height: 1; }
+.brand a { text-decoration: none; display: flex; align-items: center; gap: 10px; }
+.brand-mark {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, #0270D7, #00BFFB);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px; font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+.brand-name { color: #fff; font-size: 18px; font-weight: 700; letter-spacing: -0.5px; }
+.brand-sub { color: #4A5568; font-size: 10px; font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase; margin-left: 2px; }
+.header-links { display: inline-flex; list-style: none; padding: 0; margin: 0; gap: 8px; align-items: center; }
+.header-links a:not(.button) {
+  font-size: 13px; font-weight: 600; color: #8A94A7;
+  text-transform: uppercase; text-decoration: none;
+  padding: 8px 16px; letter-spacing: 0.05em;
+  transition: color 0.2s;
+}
+.header-links a:not(.button):hover { color: #fff; }
+@media (max-width: 640px) { .header-links { display: none; } }
+
+/* ── HERO ─────────────────────────────────────────────── */
+.hero {
+  padding-top: 56px;
+  padding-bottom: 96px;
+  text-align: center;
+  position: relative;
+}
+@media (min-width: 641px) {
+  .hero { text-align: left; padding-top: 72px; padding-bottom: 112px; }
+  .hero-inner { display: flex; justify-content: space-between; align-items: center; gap: 48px; }
+  .hero-copy { flex-shrink: 0; max-width: 520px; }
+}
+.hero-eyebrow {
+  display: inline-block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: #00BFFB;
+  margin-bottom: 20px;
+  padding: 6px 12px;
+  border: 1px solid rgba(0,191,251,0.25);
+  background: rgba(0,191,251,0.05);
+}
+.hero-title {
+  font-size: clamp(32px, 5vw, 52px);
+  line-height: 1.1;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 20px;
+  letter-spacing: -0.02em;
+}
+.hero-title .accent { color: #0270D7; }
+.hero-title .accent-cyan { color: #00BFFB; }
+.hero-paragraph {
+  font-size: 18px;
+  line-height: 1.7;
+  color: #8A94A7;
+  margin-bottom: 32px;
+  max-width: 480px;
+}
+@media (max-width: 640px) { .hero-paragraph { margin-left: auto; margin-right: auto; } }
+
+.hero-meta {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 36px;
+  justify-content: center;
+}
+@media (min-width: 641px) { .hero-meta { justify-content: flex-start; } }
+
+.hero-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.hero-meta-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: #4A5568;
+  text-transform: uppercase;
+}
+.hero-meta-value {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: #6B7A99;
+}
+
+.hero-cta { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+@media (min-width: 641px) { .hero-cta { justify-content: flex-start; } }
+.hero-cta .button { min-width: 160px; }
+
+/* Hero animated figure */
+.hero-figure {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  margin: 48px auto 0;
+  flex-shrink: 0;
+}
+@media (min-width: 641px) { .hero-figure { margin-top: 0; width: 480px; } }
+.hero-figure svg.placeholder { width: 100%; height: auto; }
+.hero-figure-box { position: absolute; top: 0; will-change: transform; }
+.hero-figure-box-01,.hero-figure-box-02,.hero-figure-box-03,.hero-figure-box-04,
+.hero-figure-box-08,.hero-figure-box-09 { overflow: hidden; }
+.hero-figure-box-01::before,.hero-figure-box-02::before,.hero-figure-box-03::before,
+.hero-figure-box-04::before,.hero-figure-box-08::before,.hero-figure-box-09::before {
+  content: ''; position: absolute; top: 0; bottom: 0; left: 0; right: 0;
+  transform-origin: 100% 100%;
+}
+.hero-figure-box-01 { left: 103.2%; top: 41.9%; width: 28.03%; height: 37.37%; background: linear-gradient(to left top, #00BFFB, rgba(0,191,251,0)); transform: rotateZ(45deg); }
+.hero-figure-box-01::before { background: linear-gradient(to left, #15181D 0%, rgba(21,24,29,0) 60%); transform: rotateZ(45deg) scale(1.5); }
+.hero-figure-box-02 { left: 61.3%; top: 64.1%; width: 37.87%; height: 50.50%; background: linear-gradient(to left top, #0270D7, rgba(2,112,215,0)); transform: rotateZ(-45deg); }
+.hero-figure-box-02::before { background: linear-gradient(to top, #15181D 0%, rgba(21,24,29,0) 60%); transform: rotateZ(-45deg) scale(1.5); }
+.hero-figure-box-03 { left: 87.7%; top: -56.8%; width: 56.81%; height: 75.75%; background: linear-gradient(to left top, #00BFFB, rgba(0,191,251,0)); }
+.hero-figure-box-03::before { background: linear-gradient(to left, #15181D 0%, rgba(21,24,29,0) 60%); transform: rotateZ(45deg) scale(1.5); }
+.hero-figure-box-04 { left: 54.9%; top: -8%; width: 45.45%; height: 60.60%; background: linear-gradient(to left top, #0270D7, rgba(2,112,215,0)); transform: rotateZ(-135deg); }
+.hero-figure-box-04::before { background: linear-gradient(to top, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0) 60%); transform: rotateZ(-45deg) scale(1.5); }
+.hero-figure-box-05,.hero-figure-box-06,.hero-figure-box-07 { background-color: #242830; box-shadow: -20px 32px 64px rgba(0,0,0,0.25); }
+.hero-figure-box-05 { left: 17.4%; top: 13.3%; width: 64%; height: 73.7%; transform: perspective(500px) rotateY(-15deg) rotateX(8deg) rotateZ(-1deg); }
+.hero-figure-box-06 { left: 65.5%; top: 6.3%; width: 30.3%; height: 40.4%; transform: rotateZ(20deg); }
+.hero-figure-box-07 { left: 1.9%; top: 42.4%; width: 12.12%; height: 16.16%; transform: rotateZ(20deg); }
+.hero-figure-box-08 { left: 27.1%; top: 81.6%; width: 19.51%; height: 26.01%; background: #0270D7; transform: rotateZ(-22deg); }
+.hero-figure-box-08::before { background: linear-gradient(to left, rgba(255,255,255,0) 0%, rgba(255,255,255,0.48) 100%); transform: rotateZ(45deg) scale(1.5); }
+.hero-figure-box-09 { left: 42.6%; top: -17.9%; width: 6.63%; height: 8.83%; background: #00BFFB; transform: rotateZ(-52deg); }
+.hero-figure-box-09::before { background: linear-gradient(to left, rgba(255,255,255,0) 0%, rgba(255,255,255,0.64) 100%); transform: rotateZ(45deg) scale(1.5); }
+.hero-figure-box-10 { left: -3.8%; top: 4.3%; width: 3.03%; height: 4.04%; background: rgba(0,191,251,0.32); transform: rotateZ(-50deg); }
+@media (max-width: 640px) {
+  .hero-cta { max-width: 280px; margin-left: auto; margin-right: auto; }
+  .hero-figure::after,.hero-figure-box-03,.hero-figure-box-04,.hero-figure-box-09 { display: none; }
+}
+@media (min-width: 641px) {
+  .site-header::before {
+    content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 700px;
+    background: linear-gradient(80deg, rgba(36,40,48,0.5) 0%, rgba(36,40,48,0) 100%);
+    transform-origin: 0; transform: skewY(-12deg);
+  }
+  .site-header { position: relative; }
+}
+
+/* stat ticker inside hero figure */
+.hero-data-ticker {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  text-align: center;
+  pointer-events: none;
+}
+.ticker-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+.ticker-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: #00BFFB;
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+
+/* ── WARNING BANNER ───────────────────────────────────── */
+.warning-banner {
+  background: rgba(2,112,215,0.08);
+  border-top: 1px solid rgba(2,112,215,0.2);
+  border-bottom: 1px solid rgba(2,112,215,0.2);
+  padding: 14px 0;
+}
+.warning-banner-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.warning-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #00BFFB;
+  animation: pulse 2s ease infinite;
+  flex-shrink: 0;
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.6); }
+}
+.warning-text {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: #6B7A99;
+  letter-spacing: 0.05em;
+}
+.warning-text strong { color: #fff; }
+
+/* ── STATS SECTION ────────────────────────────────────── */
+.stats-section { padding: 72px 0; }
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: #242830;
+  border: 1px solid #242830;
+}
+@media (max-width: 768px) { .stats-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 480px) { .stats-grid { grid-template-columns: 1fr; } }
+.stat-block {
+  background: #1D2026;
+  padding: 32px 24px;
+  text-align: center;
+  transition: background 0.2s;
+}
+.stat-block:hover { background: #21262e; }
+.stat-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 700;
+  color: #0270D7;
+  line-height: 1;
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+.stat-label {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #6B7A99;
+}
+.stat-source {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  color: #3B404C;
+  letter-spacing: 0.1em;
+  margin-top: 8px;
+  text-transform: uppercase;
+}
+.stats-headline {
+  text-align: center;
+  margin-bottom: 48px;
+}
+.stats-headline h2 { color: #fff; margin-bottom: 12px; }
+.stats-headline p { max-width: 560px; margin: 0 auto; color: #6B7A99; }
+
+/* ── FEATURES / SIGNAL TREES ──────────────────────────── */
+.features-section { background: #1a1e24; }
+.section-header { text-align: center; margin-bottom: 56px; }
+.section-header h2 { color: #fff; margin-bottom: 12px; }
+.section-header p { max-width: 580px; margin: 0 auto; color: #6B7A99; font-size: 16px; }
+.section-eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.35em;
+  color: #0270D7;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 14px;
+}
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: #242830;
+  border: 1px solid #242830;
+}
+@media (max-width: 900px) { .features-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 480px) { .features-grid { grid-template-columns: 1fr; } }
+.feature-card {
+  background: #1D2026;
+  padding: 28px 24px;
+  transition: background 0.2s;
+}
+.feature-card:hover { background: #21262e; }
+.feature-tree-id {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  color: #00BFFB;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.feature-tree-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
+.feature-desc { font-size: 13px; line-height: 1.6; color: #6B7A99; }
+.feature-commercial {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: #0270D7;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #242830;
+  line-height: 1.5;
+}
+
+/* ── MONEY FLOW ───────────────────────────────────────── */
+.money-section { }
+.flow-chain {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid #242830;
+  margin-bottom: 48px;
+}
+.flow-row {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  border-bottom: 1px solid #242830;
+}
+.flow-row:last-child { border-bottom: none; }
+@media (max-width: 640px) { .flow-row { grid-template-columns: 120px 1fr; } }
+.flow-step {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0270D7;
+  padding: 18px 20px;
+  border-right: 1px solid #242830;
+  background: #21262e;
+  display: flex;
+  align-items: flex-start;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+}
+.flow-desc {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #8A94A7;
+  padding: 18px 20px;
+  background: #1D2026;
+}
+.flow-desc strong { color: #c8d8f0; }
+.money-callout {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1px;
+  background: #242830;
+  border: 1px solid #242830;
+  margin-bottom: 48px;
+}
+@media (max-width: 640px) { .money-callout { grid-template-columns: 1fr; } }
+.money-cell {
+  background: #1D2026;
+  padding: 28px 24px;
+  text-align: center;
+}
+.money-cell .big {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: clamp(28px, 3vw, 40px);
+  font-weight: 700;
+  color: #0270D7;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+.money-cell .label { font-size: 13px; color: #6B7A99; line-height: 1.5; }
+.democracy-callout {
+  background: #15181D;
+  border: 1px solid #242830;
+  border-left: 4px solid #0270D7;
+  padding: 32px 36px;
+  margin-bottom: 0;
+}
+.democracy-callout h3 { color: #fff; font-size: 18px; margin-bottom: 12px; }
+.democracy-callout p { font-size: 15px; line-height: 1.75; color: #8A94A7; margin-bottom: 14px; }
+.democracy-callout p:last-child { margin-bottom: 0; }
+.democracy-callout strong { color: #c8d8f0; }
+.democracy-callout em { color: #00BFFB; font-style: normal; }
+
+/* ── APATHY SECTION ───────────────────────────────────── */
+.apathy-section { background: #15181D; }
+.apathy-inner { max-width: 780px; margin: 0 auto; }
+.apathy-callout {
+  font-size: 22px;
+  line-height: 1.5;
+  color: #4A5568;
+  font-weight: 400;
+  margin-bottom: 32px;
+  padding: 32px;
+  border: 1px solid #242830;
+  position: relative;
+}
+.apathy-callout::before {
+  content: '"';
+  position: absolute;
+  top: -16px; left: 24px;
+  font-size: 64px;
+  color: #242830;
+  font-family: Georgia, serif;
+  line-height: 1;
+}
+.apathy-callout strong { color: #6B7A99; }
+.apathy-reframe {
+  font-size: 15px;
+  line-height: 1.8;
+  color: #8A94A7;
+  margin-bottom: 24px;
+}
+.apathy-reframe strong { color: #fff; }
+.apathy-verdict {
+  background: rgba(2,112,215,0.06);
+  border: 1px solid rgba(2,112,215,0.2);
+  padding: 24px 28px;
+  font-size: 15px;
+  line-height: 1.75;
+  color: #8A94A7;
+}
+.apathy-verdict strong { color: #fff; }
+
+/* ── TECHNIQUES ───────────────────────────────────────── */
+.techniques-section { }
+.techniques-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid #242830;
+  margin-bottom: 48px;
+}
+.technique-row {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  border-bottom: 1px solid #242830;
+}
+.technique-row:last-child { border-bottom: none; }
+@media (max-width: 640px) { .technique-row { grid-template-columns: 1fr; } }
+.technique-name {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: #00BFFB;
+  padding: 18px 20px;
+  border-right: 1px solid #242830;
+  background: #21262e;
+  display: flex;
+  align-items: flex-start;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+}
+@media (max-width: 640px) { .technique-name { border-right: none; border-bottom: 1px solid #242830; } }
+.technique-desc {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #8A94A7;
+  padding: 18px 20px;
+  background: #1D2026;
+}
+.technique-desc strong { color: #c8d8f0; }
+
+/* ── TOOLS / COUNTERMEASURES ──────────────────────────── */
+.tools-section { background: #1a1e24; }
+.tools-equation {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  border: 1px solid #242830;
+  margin-bottom: 32px;
+}
+.eq-row {
+  display: grid;
+  grid-template-columns: 1fr 32px 1fr;
+  align-items: center;
+  border-bottom: 1px solid #242830;
+}
+.eq-row:last-child { border-bottom: none; }
+@media (max-width: 560px) { .eq-row { grid-template-columns: 1fr; } }
+.eq-left, .eq-right { padding: 16px 20px; }
+.eq-op {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  color: #3B404C;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #21262e;
+  border-left: 1px solid #242830;
+  border-right: 1px solid #242830;
+  align-self: stretch;
+}
+@media (max-width: 560px) { .eq-op { display: none; } }
+.eq-you-label, .eq-them-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.eq-you-label { color: #4A5568; }
+.eq-them-label { color: #0270D7; }
+.eq-you-val {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: #8A94A7;
+}
+.eq-them-val {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #00BFFB;
+  line-height: 1.4;
+}
+.tools-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: #242830;
+  border: 1px solid #242830;
+  margin-bottom: 32px;
+}
+@media (max-width: 640px) { .tools-grid { grid-template-columns: 1fr; } }
+.tool-card {
+  background: #1D2026;
+  padding: 24px;
+  transition: background 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tool-card:hover { background: #21262e; }
+.tool-header { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.tool-name { font-size: 15px; font-weight: 700; color: #fff; }
+.tool-badge {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: #00BFFB;
+  border: 1px solid rgba(0,191,251,0.3);
+  padding: 2px 8px;
+  text-transform: uppercase;
+}
+.tool-what {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: #4A5568;
+  text-transform: uppercase;
+}
+.tool-effect { font-size: 13px; line-height: 1.6; color: #6B7A99; }
+.tool-effect strong { color: #00BFFB; }
+.tools-stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: #242830;
+  border: 1px solid #242830;
+  margin-bottom: 32px;
+}
+@media (max-width: 640px) { .tools-stat-row { grid-template-columns: 1fr; } }
+.tools-stat {
+  background: #1D2026;
+  padding: 24px;
+  text-align: center;
+}
+.tools-stat .big {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 32px; font-weight: 700;
+  color: #0270D7; line-height: 1; margin-bottom: 6px;
+}
+.tools-stat .label { font-size: 12px; color: #6B7A99; line-height: 1.5; }
+
+/* ── HOW IT WORKS ─────────────────────────────────────── */
+.how-section { background: #15181D; }
+.how-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid #242830;
+  counter-reset: steps;
+}
+.how-step {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  border-bottom: 1px solid #242830;
+}
+.how-step:last-child { border-bottom: none; }
+.how-step-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0270D7;
+  background: #21262e;
+  border-right: 1px solid #242830;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 20px 0;
+}
+.how-step-body { padding: 20px 24px; }
+.how-step-body h4 { color: #fff; font-size: 14px; margin-bottom: 6px; margin-top: 0; }
+.how-step-body p { font-size: 13px; color: #6B7A99; line-height: 1.65; margin: 0; }
+.privacy-badge {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid rgba(0,191,251,0.2);
+  background: rgba(0,191,251,0.03);
+  padding: 16px 20px;
+  margin-top: 24px;
+}
+.privacy-badge-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #00BFFB;
+  animation: pulse 2s ease infinite;
+  flex-shrink: 0;
+}
+.privacy-badge-text { font-size: 12px; color: #6B7A99; line-height: 1.6; font-family: 'IBM Plex Mono', monospace; }
+
+/* ── CTA SECTION ──────────────────────────────────────── */
+.cta-section { background: #15181D; }
+.cta-inner {
+  position: relative;
+  background: #21262e;
+  overflow: hidden;
+  padding: 56px 48px;
+  text-align: center;
+}
+@media (min-width: 641px) { .cta-inner { text-align: left; display: flex; align-items: center; justify-content: space-between; gap: 48px; } }
+.cta-inner::before {
+  content: '';
+  position: absolute;
+  right: -60px; top: -80px;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(2,112,215,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.cta-copy { position: relative; }
+.cta-copy h2 { color: #fff; font-size: clamp(24px, 3vw, 34px); margin-bottom: 12px; line-height: 1.2; }
+.cta-copy p { font-size: 15px; color: #8A94A7; margin-bottom: 0; max-width: 440px; }
+.cta-action { position: relative; flex-shrink: 0; margin-top: 32px; }
+@media (min-width: 641px) { .cta-action { margin-top: 0; } }
+.cta-action .button { min-width: 220px; height: 56px; font-size: 13px; }
+.cta-sub {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: #4A5568;
+  letter-spacing: 0.1em;
+  text-align: center;
+  margin-top: 10px;
+}
+
+/* ── FOOTER ───────────────────────────────────────────── */
+.site-footer { font-size: 13px; color: #4A5568; padding: 48px 0; }
+.site-footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+.footer-copy { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.1em; }
+.footer-note { font-size: 12px; color: #3B404C; max-width: 400px; line-height: 1.6; }
+.footer-cites {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  color: #2A2F3A;
+  line-height: 1.8;
+  letter-spacing: 0.05em;
+}
+
+/* ── SCROLL ANIMATIONS ────────────────────────────────── */
+.sr .has-animations .is-revealing { visibility: hidden; }
+.has-animations .anime-element { visibility: hidden; }
+.anime-ready .has-animations .anime-element { visibility: visible; }
+
+</style>
+</head>
+<body class="is-boxed has-animations">
+<div class="body-wrap">
+
+<!-- ── HEADER ── -->
+<header class="site-header">
+  <div class="container">
+    <div class="site-header-inner">
+      <div class="brand">
+        <h1 class="m-0">
+          <a href="#">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="brand-mark">MM</div>
+              <div>
+                <div class="brand-name">MarketsMirror</div>
+                <div class="brand-sub">Behavioral Profiling Demo</div>
+              </div>
+            </div>
+          </a>
+        </h1>
+      </div>
+      <ul class="header-links">
+        <li><a href="#how-it-works">How it works</a></li>
+        <li><a href="#democracy">Why it matters</a></li>
+        <li><a href="#tools">Take back control</a></li>
+        <li><a class="button button-primary button-sm" href="#begin">Begin Session</a></li>
+      </ul>
+    </div>
+  </div>
+</header>
+
+<!-- ── WARNING BANNER ── -->
+<div class="warning-banner">
+  <div class="container">
+    <div class="warning-banner-inner">
+      <div class="warning-dot"></div>
+      <span class="warning-text"><strong>Right now</strong> — as you load this page — behavioral data is being recorded by 3rd-party tracking scripts on most of the internet. <strong>Not here.</strong> Zero trackers. Verify in your dev tools.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-inner">
+
+      <div class="hero-copy">
+        <div class="hero-eyebrow">Live Demonstration · Local Only · No Data Stored</div>
+        <h1 class="hero-title mt-0">
+          Your emotional state<br>
+          <span class="accent">has a market price.</span><br>
+          <span class="accent-cyan">We'll show you what it is.</span>
+        </h1>
+        <p class="hero-paragraph">
+          Seven exchanges. The same machine learning used to profile you for advertisers, political operatives, and data brokers — running on your words, in real time, while you watch. Then it shows you the full output and exactly who gets paid.
+        </p>
+        <div class="hero-meta">
+          <div class="hero-meta-item">
+            <span class="hero-meta-label">Session</span>
+            <span class="hero-meta-value">7 exchanges</span>
+          </div>
+          <div class="hero-meta-item">
+            <span class="hero-meta-label">Algorithm</span>
+            <span class="hero-meta-value">Random Forest · Bayesian</span>
+          </div>
+          <div class="hero-meta-item">
+            <span class="hero-meta-label">Data sent</span>
+            <span class="hero-meta-value">Zero bytes</span>
+          </div>
+          <div class="hero-meta-item">
+            <span class="hero-meta-label">Industry size</span>
+            <span class="hero-meta-value">$1T/year</span>
+          </div>
+        </div>
+        <div class="hero-cta" id="begin">
+          <a class="button button-primary" href="MarketsMirror.html">Begin Session →</a>
+          <a class="button" href="#how-it-works">How it works</a>
+        </div>
+      </div>
+
+      <div class="hero-figure anime-element">
+        <svg class="placeholder" width="528" height="396" viewBox="0 0 528 396">
+          <rect width="528" height="396" style="fill:transparent;" />
+        </svg>
+        <div class="hero-figure-box hero-figure-box-01" data-rotation="45deg"></div>
+        <div class="hero-figure-box hero-figure-box-02" data-rotation="-45deg"></div>
+        <div class="hero-figure-box hero-figure-box-03" data-rotation="0deg"></div>
+        <div class="hero-figure-box hero-figure-box-04" data-rotation="-135deg"></div>
+        <div class="hero-figure-box hero-figure-box-05"></div>
+        <div class="hero-figure-box hero-figure-box-06"></div>
+        <div class="hero-figure-box hero-figure-box-07"></div>
+        <div class="hero-figure-box hero-figure-box-08" data-rotation="-22deg"></div>
+        <div class="hero-figure-box hero-figure-box-09" data-rotation="-52deg"></div>
+        <div class="hero-figure-box hero-figure-box-10" data-rotation="-50deg"></div>
+        <!-- Centered stat display inside the box -->
+        <div class="hero-data-ticker">
+          <div class="ticker-num" id="ticker-val">$0</div>
+          <div class="ticker-label" id="ticker-lbl">Your data value / year</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── SCALE STATS ── -->
+<section class="stats-section has-top-divider">
+  <div class="container">
+    <div class="stats-headline">
+      <span class="section-eyebrow">The Scale</span>
+      <h2>These are not estimates. These are filed disclosures.</h2>
+      <p>Every number below comes from peer-reviewed research, government testimony, or corporate financial filings.</p>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-block is-revealing">
+        <div class="stat-num">$1T+</div>
+        <div class="stat-label">Global advertising revenue in 2024. First time in history. Built almost entirely from behavioral data.</div>
+        <div class="stat-source">WPP / WARC 2024</div>
+      </div>
+      <div class="stat-block is-revealing">
+        <div class="stat-num">68</div>
+        <div class="stat-label">Facebook likes needed to predict your personality, IQ, political affiliation, sexual orientation, and if your parents divorced. More accurately than your coworkers.</div>
+        <div class="stat-source">Kosinski et al., PNAS 2013</div>
+      </div>
+      <div class="stat-block is-revealing">
+        <div class="stat-num">689K</div>
+        <div class="stat-label">People in Facebook's secret 2014 mood manipulation study. No consent asked. Results published. Feed unchanged.</div>
+        <div class="stat-source">Kramer et al., PNAS 2014</div>
+      </div>
+      <div class="stat-block is-revealing">
+        <div class="stat-num">$277B</div>
+        <div class="stat-label">Data broker market value. 4,000+ firms selling your behavioral profile to advertisers, insurers, and political campaigns.</div>
+        <div class="stat-source">Grand View Research 2023</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SIGNAL TREES ── -->
+<section class="features-section has-top-divider" id="how-it-works">
+  <div class="container">
+    <div class="section-inner">
+      <div class="section-header">
+        <span class="section-eyebrow">The Algorithm</span>
+        <h2>Eight specialist trees. Each reads one dimension of you.</h2>
+        <p>MarketsMirror uses Random Forest — the same algorithm NASA uses on Mars to classify terrain, and the same framework Facebook uses to classify you. These 8 psycholinguistic dimensions are validated in 143,000+ academic studies. They're also what gets you segmented, targeted, and sold.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card is-revealing">
+          <div class="feature-tree-id">T1 · LIWC-22</div>
+          <div class="feature-tree-name">First Person Density</div>
+          <div class="feature-desc">Rate of "I" in your language. High = internalized emotional pain. Low = dissociation or suppressed self-concept. Pennebaker (1993).</div>
+          <div class="feature-commercial">→ Platform use: internalizing personality targeting</div>
+        </div>
+        <div class="feature-card is-revealing">
+          <div class="feature-tree-id">T2 · LIWC-22</div>
+          <div class="feature-tree-name">Temporal Orientation</div>
+          <div class="feature-desc">Past vs. future tense across the full session. Past-dominant = unresolved attachment. Future-dominant = anxiety, identity instability.</div>
+          <div class="feature-commercial">→ Platform use: retargeting pixel exploitation</div>
+        </div>
+        <div class="feature-card is-revealing">
+          <div class="feature-tree-id">T3 · LIWC-22</div>
+          <div class="feature-tree-name">Negation Architecture</div>
+          <div class="feature-desc">What you say you are NOT reveals the disowned self. The honest confession lives in the clause after "but." Weighted 2× by the parser.</div>
+          <div class="feature-commercial">→ Platform use: emotional vulnerability window detection</div>
+        </div>
+        <div class="feature-card is-revealing">
+          <div class="feature-tree-id">T4 · LIWC-22</div>
+          <div class="feature-tree-name">Relational Grammar</div>
+          <div class="feature-desc">"I was left" vs. "I left." Who holds agency in your story of being hurt is a primary attachment wound signal used in behavioral segmentation.</div>
+          <div class="feature-commercial">→ Platform use: relationship anxiety audience targeting</div>
+        </div>
+        <div class="feature-card is-revealing">
+          <div class="feature-tree-id">T5 · LIWC-22</div>
+          <div class="feature-tree-name">Valence Collision</div>
+          <div class="feature-desc">Positive and negative emotion words in the same sentence = chronic ambivalence. The thing you cannot close is the thing the algorithm keeps open.</div>
+          <div class="feature-commercial">→ Platform use: engagement amplification via unresolved tension</div>
+        </div>
+        <div class="feature-card is-revealing">
+          <div class="feature-tree-id">T6 · LIWC-22</div>
+          <div class="feature-tree-name">Avoidance Topology</div>
+          <div class="feature-desc">Topics circled but not landed on. Sentence pivots after disclosure. The shape of what is not said is the shape of the wound — and the targeting category.</div>
+          <div class="feature-commercial">→ Platform use: gradual-trust content sequencing</div>
+        </div>
+        <div class="feature-card is-revealing">
+          <div class="feature-tree-id">T7 · LIWC-22</div>
+          <div class="feature-tree-name">Rumination Index</div>
+          <div class="feature-desc">Density of cognitive processing words: because, think, realize, wonder. High = analytically inside the wound. This is the "insight-framed content" targeting signal.</div>
+          <div class="feature-commercial">→ Platform use: analytical segment, self-help ad delivery</div>
+        </div>
+        <div class="feature-card is-revealing">
+          <div class="feature-tree-id">T8 · LIWC-22</div>
+          <div class="feature-tree-name">Clout / Authenticity</div>
+          <div class="feature-desc">Performed authority vs. private emotional state. The gap between public and private self is measurable and commercially valuable. Kacewicz et al. (2014).</div>
+          <div class="feature-commercial">→ Platform use: social status anxiety targeting</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── MONEY FLOW + DEMOCRACY ── -->
+<section class="money-section has-top-divider" id="democracy">
+  <div class="container">
+    <div class="section-inner">
+      <div class="section-header">
+        <span class="section-eyebrow">The Money Trail</span>
+        <h2>From your pause to their policy.</h2>
+        <p>When a company's entire business model is "free," what they're actually selling is you. Trace where the money actually goes.</p>
+      </div>
+
+      <div class="money-callout">
+        <div class="money-cell">
+          <div class="big">$4B</div>
+          <div class="label">Per day in ad revenue across major platforms. That's $2/user/day × 2B users. Every scroll generates fractions of that.</div>
+        </div>
+        <div class="money-cell">
+          <div class="big">9×</div>
+          <div class="label">The global ad industry ($1T+) is 9 times larger than the entire U.S. SNAP food assistance program ($112B/yr). Priority is clear.</div>
+        </div>
+        <div class="money-cell">
+          <div class="big">$6.5M</div>
+          <div class="label">Meta's U.S. federal lobbying spend in a single quarter. Toward: privacy regulation, data law, tax policy, and advertising rules.</div>
+        </div>
+      </div>
+
+      <div class="flow-chain">
+        <div class="flow-row">
+          <div class="flow-step">Your attention</div>
+          <div class="flow-desc">Every pause, scroll, hesitation, and rewrite — captured by tracking code embedded in nearly every website and app you use. You didn't opt in. You loaded the page.</div>
+        </div>
+        <div class="flow-row">
+          <div class="flow-step">Your profile</div>
+          <div class="flow-desc">Emotional volatility, political lean, income anxiety, relationship status, health concerns — packaged into psychographic segments and sold via <strong>real-time bidding auctions</strong> that run in milliseconds every time a page loads.</div>
+        </div>
+        <div class="flow-row">
+          <div class="flow-step">Ad revenue</div>
+          <div class="flow-desc">Approximately $2/day per active user, times 2 billion users. The revenue funds not just operations but <strong>political strategy and regulatory influence</strong>.</div>
+        </div>
+        <div class="flow-row">
+          <div class="flow-step">Lobbying</div>
+          <div class="flow-desc">Tech companies collectively spend hundreds of millions annually on lobbying. The targets: <strong>privacy regulation, advertising law, data broker oversight, antitrust enforcement, and tax rates</strong>. Consistently toward weaker rules.</div>
+        </div>
+        <div class="flow-row">
+          <div class="flow-step">Policy</div>
+          <div class="flow-desc">Weakened consent requirements. Narrow definitions of personal data. Delayed privacy legislation. Blocked antitrust action. <strong>The legal environment permitting this industry was, in large part, purchased by the revenue your attention generates.</strong></div>
+        </div>
+      </div>
+
+      <div class="democracy-callout" id="democracy">
+        <h3>This isn't just about ads. It's about what democracy requires to function.</h3>
+        <p>
+          A functioning democracy depends on an informed electorate making decisions based on their actual values and real information. The behavioral data economy is built on <strong>the opposite of that</strong>. Platforms don't make money when you're informed and decisive. They make money when you're <em>engaged</em> — which means uncertain, reactive, and emotionally activated.
+        </p>
+        <p>
+          Cambridge Analytica operationalized psychographic scoring — the exact framework this tool demonstrates — to <strong>micro-target voters in multiple national elections</strong> using Facebook data collected without consent. The model didn't need your vote. It needed your psychological profile to deliver the right emotional trigger at the right moment to change it.
+        </p>
+        <p>
+          The checkbox you didn't read when you made your account? It wasn't designed to inform you. <strong>It was designed to appear to inform you while obscuring what you were actually agreeing to.</strong> Every lawyer who reviewed those terms of service knows exactly what informed consent looks like. What got deployed was something else.
+        </p>
+        <p>
+          When companies have a business model where everything is free and they still generate trillion-dollar revenue — <em>you are the product</em>. Not the customer. Not the user. The inventory.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── APATHY ── -->
+<section class="apathy-section has-top-divider">
+  <div class="container">
+    <div class="section-inner">
+      <div class="apathy-inner">
+        <span class="section-eyebrow" style="display:block;margin-bottom:24px;">The Shrug Response</span>
+        <div class="apathy-callout">
+          <strong>"They're tracking us anyway. Everyone knows. So what?"</strong>
+        </div>
+        <div class="apathy-reframe">
+          <p>Say that out loud and notice how it feels. It feels like clarity — like you've thought it through and landed somewhere reasonable. <strong>You haven't. You've landed exactly where the system needs you.</strong></p>
+          <p>Researchers call it the <strong>privacy paradox</strong>: most people express concern about tracking and change nothing. This gap is not a personal failure. It is a <strong>measurable, modeled outcome</strong> that platforms engineer through interface design, notification timing, and algorithmic content selection. A user who shrugs and scrolls generates data indefinitely. That is the most profitable kind of user.</p>
+          <p>There is also something more specific happening. <strong>Recommendation algorithms are optimized for engagement, not for your cognitive clarity.</strong> If outrage, anxiety, or emotional volatility keeps you scrolling, the system amplifies those states — because they correlate with ad impressions. Over time, this degrades sustained attention and reduces the tolerance for complexity required to act on information like this. The feedback loop maintains itself by making everything feel too big to address.</p>
+        </div>
+        <div class="apathy-verdict">
+          <strong>The shrug is worth billions of dollars to the people who taught it to you.</strong> These four tools take less than ten minutes. They cost nothing. The only requirement is deciding that the version of you who used to give a damn about things is still in there somewhere — because they are, and they just read all the way to this sentence.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── TOOLS / COUNTERMEASURES ── -->
+<section class="tools-section has-top-divider" id="tools">
+  <div class="container">
+    <div class="section-inner">
+      <div class="section-header">
+        <span class="section-eyebrow">Countermeasures</span>
+        <h2>Your cost vs. their loss.</h2>
+        <p>The data economy only functions if you continue to supply behavioral signals without resistance. Research models European ad markets found cookie restriction reduces ad value by up to 9% — hundreds of millions per percentage point of user adoption.</p>
+      </div>
+
+      <div class="tools-stat-row">
+        <div class="tools-stat">
+          <div class="big">$0</div>
+          <div class="label">Cost of every tool below. Total.</div>
+        </div>
+        <div class="tools-stat">
+          <div class="big">9%</div>
+          <div class="label">Revenue drop per percentage point of users who block tracking. That's real money, documented.</div>
+        </div>
+        <div class="tools-stat">
+          <div class="big">&lt;10min</div>
+          <div class="label">Total setup time for all four countermeasures. Less than one TikTok session.</div>
+        </div>
+      </div>
+
+      <div class="tools-equation">
+        <div class="eq-row">
+          <div class="eq-left">
+            <div class="eq-you-label">Your cost</div>
+            <div class="eq-you-val">2 minutes · $0</div>
+          </div>
+          <div class="eq-op">=</div>
+          <div class="eq-right">
+            <div class="eq-them-label">They lose</div>
+            <div class="eq-them-val">All retargeting revenue from you. Every platform. Forever.</div>
+          </div>
+        </div>
+        <div class="eq-row">
+          <div class="eq-left">
+            <div class="eq-you-label">Your cost</div>
+            <div class="eq-you-val">5 minutes · free tier</div>
+          </div>
+          <div class="eq-op">=</div>
+          <div class="eq-right">
+            <div class="eq-them-label">They lose</div>
+            <div class="eq-them-val">App-level tracking across every app on your device — not just your browser.</div>
+          </div>
+        </div>
+        <div class="eq-row">
+          <div class="eq-left">
+            <div class="eq-you-label">Your cost</div>
+            <div class="eq-you-val">Switch browsers · $0</div>
+          </div>
+          <div class="eq-op">=</div>
+          <div class="eq-right">
+            <div class="eq-them-label">They lose</div>
+            <div class="eq-them-val">The cross-site identity graph. They can no longer connect your behavior across different platforms.</div>
+          </div>
+        </div>
+        <div class="eq-row">
+          <div class="eq-left">
+            <div class="eq-you-label">Your cost</div>
+            <div class="eq-you-val">Settings toggle · $0</div>
+          </div>
+          <div class="eq-op">=</div>
+          <div class="eq-right">
+            <div class="eq-them-label">They lose</div>
+            <div class="eq-them-val">You exit the real-time bidding auction. Advertisers can no longer bid on your psychological profile specifically.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tools-grid">
+        <div class="tool-card is-revealing">
+          <div class="tool-header">
+            <span class="tool-name">uBlock Origin</span>
+            <span class="tool-badge">Free · 2 min</span>
+          </div>
+          <div class="tool-what">Browser extension → blocks ad + tracking scripts</div>
+          <div class="tool-effect">Install in Chrome, Firefox, or Edge. Tracking pixels never fire. Retargeting windows never open. <strong>The ad that was going to follow you for 30 days doesn't get the signal to start.</strong></div>
+        </div>
+        <div class="tool-card is-revealing">
+          <div class="tool-header">
+            <span class="tool-name">NextDNS</span>
+            <span class="tool-badge">Free tier · 5 min</span>
+          </div>
+          <div class="tool-what">DNS filter → blocks tracking at network level</div>
+          <div class="tool-effect">Works on every app on your device, not just your browser. <strong>Apps that ignore browser privacy settings get stopped here.</strong> Free tier: 300K queries/month.</div>
+        </div>
+        <div class="tool-card is-revealing">
+          <div class="tool-header">
+            <span class="tool-name">Firefox / Brave</span>
+            <span class="tool-badge">Free · 3 min</span>
+          </div>
+          <div class="tool-what">Privacy browser → breaks cross-site identity graph</div>
+          <div class="tool-effect">Both block cross-site tracking by default. <strong>The mechanism connecting your behavior across different websites into one unified profile begins to fragment.</strong></div>
+        </div>
+        <div class="tool-card is-revealing">
+          <div class="tool-header">
+            <span class="tool-name">Platform Opt-Out</span>
+            <span class="tool-badge">Free · 2 min each</span>
+          </div>
+          <div class="tool-what">Platform settings → exits real-time bidding auction</div>
+          <div class="tool-effect">Meta · Google · TikTok · LinkedIn all offer this in Settings → Privacy. <strong>You exit the auction. Advertisers lose access to your specific psychographic profile.</strong></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── HOW THE SESSION WORKS ── -->
+<section class="how-section has-top-divider" id="session">
+  <div class="container">
+    <div class="section-inner">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start;">
+
+        <div>
+          <span class="section-eyebrow">The Session</span>
+          <h2 style="color:#fff;margin-bottom:20px;">Seven exchanges.<br>Full profile at the end.</h2>
+          <p style="color:#8A94A7;font-size:15px;line-height:1.75;margin-bottom:24px;">The engine earns depth — it does not demand it. The first two questions cost nothing to answer. As signal accumulates, questions route to the dimensions with highest uncertainty. If you deflect, the engine mirrors your own words back instead of probing.</p>
+          <div class="how-steps">
+            <div class="how-step">
+              <div class="how-step-num">1</div>
+              <div class="how-step-body">
+                <h4>Opening (turns 1–2)</h4>
+                <p>Baseline establishment. The engine reads your linguistic style without targeting any specific emotional dimension yet.</p>
+              </div>
+            </div>
+            <div class="how-step">
+              <div class="how-step-num">2</div>
+              <div class="how-step-body">
+                <h4>Signal accumulation (turns 3–5)</h4>
+                <p>Questions target dimensions with highest uncertainty. The forest panel updates in real time as each tree processes your response.</p>
+              </div>
+            </div>
+            <div class="how-step">
+              <div class="how-step-num">3</div>
+              <div class="how-step-body">
+                <h4>Ensemble vote (turns 6–7)</h4>
+                <p>Trees with sufficient evidence cast votes. Confidence percentages and uncertainty ranges display live. The forest decides — not any single tree.</p>
+              </div>
+            </div>
+            <div class="how-step">
+              <div class="how-step-num">4</div>
+              <div class="how-step-body">
+                <h4>The reveal</h4>
+                <p>Primary pattern with evidence words. Emotional arc by turn. What each tree found. Which advertising techniques apply to you specifically. What you can do.</p>
+              </div>
+            </div>
+          </div>
+          <div class="privacy-badge" style="margin-top:24px;">
+            <div class="privacy-badge-dot"></div>
+            <div class="privacy-badge-text">Zero outbound requests during the session. Verify in your network inspector. Everything runs locally in your browser. Nothing persists after you close the tab.</div>
+          </div>
+        </div>
+
+        <div>
+          <span class="section-eyebrow">The Techniques Used On You</span>
+          <h2 style="color:#fff;margin-bottom:20px;">Named. Documented.<br>In active use today.</h2>
+          <div class="techniques-grid">
+            <div class="technique-row">
+              <div class="technique-name">Emotional Contagion</div>
+              <div class="technique-desc"><strong>Kramer et al. (PNAS 2014)</strong> — Facebook shifted the mood of 689,003 users by altering feed content without disclosure. Negative states = more time on platform.</div>
+            </div>
+            <div class="technique-row">
+              <div class="technique-name">Lookalike Audiences</div>
+              <div class="technique-desc">Meta Ads Manager 2024. Advertisers upload emotionally vulnerable users as a seed audience. <strong>Facebook finds millions of psychologically similar users</strong> and sells access to them.</div>
+            </div>
+            <div class="technique-row">
+              <div class="technique-name">Retargeting Windows</div>
+              <div class="technique-desc">A pixel fires when you visit content matching your emotional category. <strong>For 30 days, ads follow you.</strong> The 2am search generates the therapy app ad that reaches you at 7am.</div>
+            </div>
+            <div class="technique-row">
+              <div class="technique-name">Vulnerability Windows</div>
+              <div class="technique-desc"><strong>2021 Facebook Papers.</strong> Internal research flagged emotionally open sessions as high-value inventory. Your most open moment is their highest-priced ad placement.</div>
+            </div>
+            <div class="technique-row">
+              <div class="technique-name">Psychographic Scoring</div>
+              <div class="technique-desc"><strong>Kosinski et al. (PNAS 2013)</strong> — 68 likes = full personality. Cambridge Analytica operationalized this for political micro-targeting in multiple national elections.</div>
+            </div>
+            <div class="technique-row">
+              <div class="technique-name">Problem–Solution Capture</div>
+              <div class="technique-desc">Platform contributes to anxiety. Platform sells wellness feature. <strong>Same company monetizes both the wound and the treatment.</strong> Your data funds each transaction.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ── -->
+<section class="cta-section has-top-divider">
+  <div class="container">
+    <div class="section-inner" style="padding-top:0;padding-bottom:0;">
+      <div class="cta-inner">
+        <div class="cta-copy">
+          <h2>You've been modeled before.<br>Without knowing it.</h2>
+          <p>Now watch it happen in front of you. Seven exchanges. Full output. The exact pipeline your attention feeds — and the four moves that break it. Local only. Nothing stored. You can verify that in your network inspector right now.</p>
+        </div>
+        <div class="cta-action">
+          <a class="button button-primary button-wide-mobile" href="MarketsMirror.html">Begin Session →</a>
+          <div class="cta-sub">7 turns · local only · no data stored · profile + countermeasures at end</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer class="site-footer has-top-divider">
+  <div class="container">
+    <div class="site-footer-inner">
+      <div>
+        <div class="footer-copy">© MarketsMirror — All processing local. No data collected.</div>
+      </div>
+      <div class="footer-note">
+        This tool is for educational and awareness purposes. It demonstrates the class of techniques used in commercial behavioral profiling using publicly documented research methods.
+      </div>
+      <div class="footer-cites">
+        Breiman (2001) · Kosinski et al. (2013) · Kramer et al. (2014) · Boyd et al. LIWC-22 (2022) · Haugen / Facebook Papers (2021) · Johnson (2022)
+      </div>
+    </div>
+  </div>
+</footer>
+
+</div><!-- /body-wrap -->
+
+<script>
+(function() {
+  const doc = document.documentElement;
+  doc.classList.remove('no-js');
+  doc.classList.add('js');
+
+  // Ticker animation
+  const tickerVals = [
+    { val: '$112', label: 'Your data value / year (est.)' },
+    { val: '≈200', label: 'Ads shown to you per day' },
+    { val: '$6.5M', label: 'Meta lobbying / quarter' },
+    { val: '68', label: 'Likes to predict your life' },
+    { val: '$4B', label: 'Ad revenue per day globally' },
+  ];
+  let tickerIdx = 0;
+  const tickerNum = document.getElementById('ticker-val');
+  const tickerLbl = document.getElementById('ticker-lbl');
+  if (tickerNum && tickerLbl) {
+    setInterval(() => {
+      tickerIdx = (tickerIdx + 1) % tickerVals.length;
+      tickerNum.style.opacity = '0';
+      tickerLbl.style.opacity = '0';
+      setTimeout(() => {
+        tickerNum.textContent = tickerVals[tickerIdx].val;
+        tickerLbl.textContent = tickerVals[tickerIdx].label;
+        tickerNum.style.opacity = '1';
+        tickerLbl.style.opacity = '1';
+      }, 300);
+    }, 2800);
+    tickerNum.style.transition = 'opacity 0.3s ease';
+    tickerLbl.style.transition = 'opacity 0.3s ease';
+  }
+
+  if (document.body.classList.contains('has-animations')) {
+    const sr = window.sr = ScrollReveal();
+    sr.reveal('.is-revealing', {
+      duration: 600,
+      distance: '24px',
+      easing: 'cubic-bezier(0.5, -0.01, 0, 1.005)',
+      origin: 'bottom',
+      interval: 80
+    });
+
+    doc.classList.add('anime-ready');
+
+    anime.timeline({ targets: '.hero-figure-box-05' })
+      .add({ duration: 400, easing: 'easeInOutExpo', scaleX: [0.05, 0.05], scaleY: [0, 1], perspective: '500px', delay: anime.random(0, 400) })
+      .add({ duration: 400, easing: 'easeInOutExpo', scaleX: 1 })
+      .add({ duration: 800, rotateY: '-15deg', rotateX: '8deg', rotateZ: '-1deg' });
+
+    anime.timeline({ targets: '.hero-figure-box-06, .hero-figure-box-07' })
+      .add({ duration: 400, easing: 'easeInOutExpo', scaleX: [0.05, 0.05], scaleY: [0, 1], perspective: '500px', delay: anime.random(0, 400) })
+      .add({ duration: 400, easing: 'easeInOutExpo', scaleX: 1 })
+      .add({ duration: 800, rotateZ: '20deg' });
+
+    anime({
+      targets: '.hero-figure-box-01, .hero-figure-box-02, .hero-figure-box-03, .hero-figure-box-04, .hero-figure-box-08, .hero-figure-box-09, .hero-figure-box-10',
+      duration: anime.random(600, 800),
+      delay: anime.random(600, 800),
+      rotate: [anime.random(-360, 360), function(el) { return el.getAttribute('data-rotation'); }],
+      scale: [0.7, 1],
+      opacity: [0, 1],
+      easing: 'easeInOutExpo'
+    });
+  }
+}());
+</script>
+
+</body>
+</html>
