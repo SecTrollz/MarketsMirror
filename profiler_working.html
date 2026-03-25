@@ -667,33 +667,41 @@ const FRAMEWORKS = [
             return null;
         }
 
+        const provider = (NLP_CONFIG.provider || "openai").toLowerCase();
+        const headers = {
+            ...NLP_CONFIG.headers,
+            'Content-Type': 'application/json'
+        };
+
         // Build request body according to provider
         let body = {};
-        if (NLP_CONFIG.provider === "openai") {
+        if (provider.startsWith("openai")) {
             body = {
                 model: NLP_CONFIG.model,
                 messages: [{ role: "user", content: `Analyze the sentiment and psychological tone of this text. Return only a JSON object with fields: sentiment (positive/negative/neutral), intensity (0-1), and any notable emotion words. Text: "${text}"` }],
                 temperature: 0.3,
                 max_tokens: 150
             };
-        } else if (NLP_CONFIG.provider === "google") {
+            headers.Authorization = `Bearer ${NLP_CONFIG.apiKey}`;
+        } else if (provider === "google") {
             body = {
                 document: { type: "PLAIN_TEXT", content: text },
                 encodingType: "UTF8"
             };
+        } else if (provider === "huggingface") {
+            body = { inputs: text, options: { wait_for_model: true } };
+            headers.Authorization = `Bearer ${NLP_CONFIG.apiKey}`;
         } else {
-            // fallback – you'll need to implement your own
-            console.warn("Unsupported provider for external API.");
-            return null;
+            body = { text, model: NLP_CONFIG.model };
+            if (NLP_CONFIG.apiKey) {
+                headers.Authorization = `Bearer ${NLP_CONFIG.apiKey}`;
+            }
         }
 
         try {
             const response = await fetch(NLP_CONFIG.endpoint, {
                 method: 'POST',
-                headers: {
-                    ...NLP_CONFIG.headers,
-                    'Authorization': `Bearer ${NLP_CONFIG.apiKey}`
-                },
+                headers,
                 body: JSON.stringify(body)
             });
             if (!response.ok) {

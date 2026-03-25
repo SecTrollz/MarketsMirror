@@ -523,7 +523,6 @@ body {
     </div>
   </div>
   <div id="right-panel">
-    <div class="panel-header">
     <div id="api-settings-panel" style="border-bottom: 1px solid var(--border); padding: 12px 20px; background: var(--bg1);">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
         <span class="panel-title" style="margin-bottom: 0;">🤖 External NLP API</span>
@@ -545,6 +544,7 @@ body {
       </div>
       <div id="api-status" style="margin-top: 8px; font-size: 9px; font-family: var(--mono); color: var(--text-dim);"></div>
     </div>
+    <div class="panel-header">
       <span class="panel-title">Live Diagnostic</span>
       <div class="panel-status">
         <span class="status-item">readiness: <span class="status-val" id="stat-readiness">—</span></span>
@@ -644,94 +644,6 @@ const FRAMEWORKS = [
   ] }
 ];
 
-    /* ─── External NLP API Configuration ──────────────────────────── */
-    // WARNING: Never commit API keys to public repositories.
-    // For local testing only.
-    const NLP_CONFIG = {
-        enabled: false,              // set to true to use external API
-        provider: "openai",          // "openai", "google", "huggingface", etc.
-        apiKey: "YOUR_API_KEY_HERE",
-        endpoint: "https://api.openai.com/v1/chat/completions", // example
-        // For Google Cloud NLP: "https://language.googleapis.com/v1/documents:analyzeSentiment"
-        model: "gpt-3.5-turbo",      // provider-specific
-        // Custom headers if needed
-        headers: {
-            "Content-Type": "application/json"
-        }
-    };
-
-    /* Call external NLP API */
-    async function callExternalAPI(text) {
-        if (!NLP_CONFIG.enabled || !NLP_CONFIG.apiKey || NLP_CONFIG.apiKey === "YOUR_API_KEY_HERE") {
-            console.log("External NLP disabled or not configured.");
-            return null;
-        }
-
-        // Build request body according to provider
-        let body = {};
-        if (NLP_CONFIG.provider === "openai") {
-            body = {
-                model: NLP_CONFIG.model,
-                messages: [{ role: "user", content: `Analyze the sentiment and psychological tone of this text. Return only a JSON object with fields: sentiment (positive/negative/neutral), intensity (0-1), and any notable emotion words. Text: "${text}"` }],
-                temperature: 0.3,
-                max_tokens: 150
-            };
-        } else if (NLP_CONFIG.provider === "google") {
-            body = {
-                document: { type: "PLAIN_TEXT", content: text },
-                encodingType: "UTF8"
-            };
-        } else {
-            // fallback – you'll need to implement your own
-            console.warn("Unsupported provider for external API.");
-            return null;
-        }
-
-        try {
-            const response = await fetch(NLP_CONFIG.endpoint, {
-                method: 'POST',
-                headers: {
-                    ...NLP_CONFIG.headers,
-                    'Authorization': `Bearer ${NLP_CONFIG.apiKey}`
-                },
-                body: JSON.stringify(body)
-            });
-            if (!response.ok) {
-                console.error("External API error:", response.status, await response.text());
-                return null;
-            }
-            const data = await response.json();
-            console.log("External NLP response:", data);
-            return data;
-        } catch (err) {
-            console.error("External API call failed:", err);
-            return null;
-        }
-    }
-
-    /* Merge external API results into the evidence map */
-    function mergeExternalEvidence(evidence, externalResult) {
-        if (!externalResult) return evidence;
-        // Example: adapt OpenAI response to influence dimensions
-        // You'll need to write this based on what your API returns.
-        // For demonstration, we'll boost the "b5_open" dimension if the external
-        // sentiment is positive and the response contains "curious".
-        try {
-            const content = externalResult.choices?.[0]?.message?.content || "";
-            if (content.toLowerCase().includes("positive") || content.toLowerCase().includes("curious")) {
-                evidence["b5_open"].pos += 0.2;
-                evidence["b5_open"].words.push("external_nlp");
-            }
-            if (content.toLowerCase().includes("negative") || content.toLowerCase().includes("anxious")) {
-                evidence["b5_neuro"].pos += 0.2;
-                evidence["b5_neuro"].words.push("external_nlp");
-            }
-        } catch(e) {
-            console.warn("Error merging external evidence:", e);
-        }
-        return evidence;
-    }
-    
 const ALL_DIMS = FRAMEWORKS.flatMap(f => f.dims);
 const DIM_KEYS = ALL_DIMS.map(d => d.k);
 
