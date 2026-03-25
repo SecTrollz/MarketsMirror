@@ -2669,47 +2669,24 @@ let sessionActive = false;
 let lastFeatures = null;
 
 function beginSession() {
-  const inputEl = document.getElementById('user-input');
-  const sendBtn = document.getElementById('send-btn');
   document.getElementById('intro').classList.add('fading');
   setTimeout(() => {
     document.getElementById('intro').style.display = 'none';
     document.getElementById('app').classList.add('visible');
-    inputEl?.focus();
   }, 620);
 
   profile = initProfile();
-  sessionActive = true;
-  if (inputEl) inputEl.disabled = false;
-  if (sendBtn) sendBtn.disabled = false;
   const wiringCheck = validateSystemWiring(profile);
   if (!wiringCheck.ok) {
     console.warn('System wiring check failed:', wiringCheck);
   }
-
-  try {
-    initCharts();
-  } catch (err) {
-    console.error('Chart initialization failed. Continuing without chart rendering.', err);
-    addMsg('sys', 'Chart engine unavailable in this environment; chat and profiling remain active.');
-  }
-
-  try {
-    initMultimodalEngine();
-  } catch (err) {
-    console.error('Multimodal initialization failed. Falling back to text-only mode.', err);
-    const statusEl = document.getElementById('mm-status');
-    if (statusEl) statusEl.innerHTML = 'MM emotion: <strong>degraded</strong> · mode: text-only fallback';
-  }
-
+  initCharts();
+  initMultimodalEngine();
   enableAudioFusion().then(enabled => {
     if (!enabled) return;
     const statusEl = document.getElementById('mm-status');
     if (statusEl) statusEl.innerHTML = 'MM emotion: <strong>audio connected</strong> · mode: text+audio';
-  }).catch(err => {
-    console.warn('Audio fusion initialization skipped.', err);
   });
-
   renderScorePanel(profile);
   renderCustomerInsights(profile);
   renderLinguaInsightReport({
@@ -2718,6 +2695,7 @@ function beginSession() {
     onnx_status: { available: !!multimodal.session, fallback_used: true },
     self_critique_log: [{ stage: 'data_integrity', issue: 'Insufficient turns at session start.', action: 'Collect at least 3 responses for trend stability.' }]
   });
+  sessionActive = true;
   if (!wiringCheck.ok) {
     addMsg('sys', `Wiring check warning. Missing IDs: ${wiringCheck.missingDomIds.join(', ') || 'none'} · Missing accumulators: ${wiringCheck.missingAccumulators.join(', ') || 'none'}`);
   }
@@ -2727,20 +2705,18 @@ function beginSession() {
     const opener = OPENERS[Math.floor(Math.random() * OPENERS.length)];
     profile.questionHistory.push({ t: opener.t, fw: null });
     addMsg('ai', opener.t);
-    inputEl?.focus();
+    document.getElementById('user-input').focus();
   }, 500);
 }
 
 async function send() {
   const input = document.getElementById('user-input');
-  const sendBtn = document.getElementById('send-btn');
-  if (!input || !sendBtn) return;
   const text = input.value.trim();
   if (!text || !sessionActive) return;
 
   input.value = '';
   input.style.height = 'auto';
-  sendBtn.disabled = true;
+  document.getElementById('send-btn').disabled = true;
 
   addMsg('user', escapeHTML(text));
   showThinking();
@@ -2788,7 +2764,7 @@ async function send() {
         addMsg('sys', 'Phase I complete. Generating full profile...');
         setTimeout(() => showReveal(), 1400);
       }, 600);
-      sendBtn.disabled = false;
+      document.getElementById('send-btn').disabled = false;
       return;
     }
 
@@ -2796,14 +2772,14 @@ async function send() {
     const next = selectNextQuestion(profile, result.features);
     setTimeout(() => {
       addMsg('ai', next.text);
-      sendBtn.disabled = false;
+      document.getElementById('send-btn').disabled = false;
       document.getElementById('user-input').focus();
     }, 180);
   } catch (err) {
     console.error('Send pipeline failed:', err);
     removeThinking();
     addMsg('sys', 'Processing error detected. Pipeline kept state intact; please try sending again.');
-    sendBtn.disabled = false;
+    document.getElementById('send-btn').disabled = false;
   }
 }
 
@@ -2905,25 +2881,17 @@ function escapeHTML(str) {
 
 /* ─── INPUT BEHAVIOR ────────────────────────────────────── */
 
-function getInputMaxHeight() {
-  const mobileMax = Math.round(window.innerHeight * 0.34);
-  return window.innerWidth <= 820 ? Math.max(120, mobileMax) : 120;
-}
+document.getElementById('user-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    send();
+  }
+});
 
-const userInputEl = document.getElementById('user-input');
-if (userInputEl) {
-  userInputEl.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      send();
-    }
-  });
-
-  userInputEl.addEventListener('input', function () {
-    this.style.height = 'auto';
-    this.style.height = Math.min(this.scrollHeight, getInputMaxHeight()) + 'px';
-  });
-}
+document.getElementById('user-input').addEventListener('input', function () {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
 
 
 
@@ -4887,3 +4855,4 @@ function selectNextQuestionWarm(profile) {
     panel.innerHTML = groups;
   };
 })();
+
