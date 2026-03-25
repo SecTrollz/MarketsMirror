@@ -2638,36 +2638,6 @@ function removeThinking() {
   if (t) t.remove();
 }
 
-function openChatInputPopup() {
-  const modal = document.getElementById('chat-input-popup');
-  const baseInput = document.getElementById('user-input');
-  const popupInput = document.getElementById('popup-user-input');
-  if (!modal || !baseInput || !popupInput || baseInput.disabled) return;
-  popupInput.value = baseInput.value;
-  modal.classList.add('visible');
-  modal.setAttribute('aria-hidden', 'false');
-  setTimeout(() => popupInput.focus(), 10);
-}
-
-function closeChatInputPopup() {
-  const modal = document.getElementById('chat-input-popup');
-  if (!modal) return;
-  modal.classList.remove('visible');
-  modal.setAttribute('aria-hidden', 'true');
-  document.getElementById('user-input')?.focus();
-}
-
-function applyPopupDraft(sendImmediately = false) {
-  const baseInput = document.getElementById('user-input');
-  const popupInput = document.getElementById('popup-user-input');
-  if (!baseInput || !popupInput) return;
-  baseInput.value = popupInput.value;
-  baseInput.style.height = 'auto';
-  baseInput.style.height = Math.min(baseInput.scrollHeight, 120) + 'px';
-  closeChatInputPopup();
-  if (sendImmediately) send();
-}
-
 function formatProcessingError(stage, err) {
   const msg = err?.message ? String(err.message) : 'Unknown processing error.';
   const likelyNetwork = /network|fetch|timeout|http_/i.test(msg);
@@ -2834,8 +2804,9 @@ async function send() {
       try {
         return await runStage(stageLabel, handler, options);
       } catch (err) {
-        logPipelineError(stageLabel, err, { fallback_applied: true });
-        return fallbackFactory(err, null);
+        const logged = logPipelineError(stageLabel, err, { fallback_applied: true });
+        addMsg('sys', `Notice: ${stageLabel} degraded gracefully (ref: ${logged.id}).`);
+        return fallbackFactory(err, logged);
       }
     };
 
@@ -2931,6 +2902,10 @@ async function send() {
     logPipelineError(activeStage, err, { fatal: true, input_length: text.length });
     console.error('Send pipeline failed:', err);
     removeThinking();
+    const logged = logPipelineError(activeStage, err, { fatal: true, input_length: text.length });
+    console.error('Send pipeline failed:', err);
+    removeThinking();
+    addMsg('sys', `Processing error detected. ${formatProcessingError(activeStage, err)} (ref: ${logged.id})`);
     document.getElementById('send-btn').disabled = false;
   }
 }
