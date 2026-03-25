@@ -2614,22 +2614,92 @@ function addMsg(role, text) {
   messages.scrollTop = messages.scrollHeight;
 }
 
-function showThinking() {
+function showThinking(initialStatus = 'Starting analysis…') {
   const messages = document.getElementById('chat-messages');
   const div = document.createElement('div');
   div.className = 'msg ai'; div.id = 'thinking-msg';
   div.innerHTML = `
     <div class="msg-role">Linguistic Insight Profiler</div>
     <div class="msg-body">
+      <div id="thinking-status">${escapeHTML(initialStatus)}</div>
       <div class="thinking-dots"><span></span><span></span><span></span></div>
     </div>`;
   messages.appendChild(div);
   messages.scrollTop = messages.scrollHeight;
 }
 
+function updateThinkingStatus(statusText) {
+  const status = document.getElementById('thinking-status');
+  if (status) status.textContent = statusText;
+}
+
 function removeThinking() {
   const t = document.getElementById('thinking-msg');
   if (t) t.remove();
+}
+
+function openChatInputPopup() {
+  const modal = document.getElementById('chat-input-popup');
+  const baseInput = document.getElementById('user-input');
+  const popupInput = document.getElementById('popup-user-input');
+  if (!modal || !baseInput || !popupInput || baseInput.disabled) return;
+  popupInput.value = baseInput.value;
+  modal.classList.add('visible');
+  modal.setAttribute('aria-hidden', 'false');
+  setTimeout(() => popupInput.focus(), 10);
+}
+
+function closeChatInputPopup() {
+  const modal = document.getElementById('chat-input-popup');
+  if (!modal) return;
+  modal.classList.remove('visible');
+  modal.setAttribute('aria-hidden', 'true');
+  document.getElementById('user-input')?.focus();
+}
+
+function applyPopupDraft(sendImmediately = false) {
+  const baseInput = document.getElementById('user-input');
+  const popupInput = document.getElementById('popup-user-input');
+  if (!baseInput || !popupInput) return;
+  baseInput.value = popupInput.value;
+  baseInput.style.height = 'auto';
+  baseInput.style.height = Math.min(baseInput.scrollHeight, 120) + 'px';
+  closeChatInputPopup();
+  if (sendImmediately) send();
+}
+
+function formatProcessingError(stage, err) {
+  const msg = err?.message ? String(err.message) : 'Unknown processing error.';
+  const likelyNetwork = /network|fetch|timeout|http_/i.test(msg);
+  if (likelyNetwork) {
+    return `Network/API issue while ${stage}. Please verify connectivity and try again.`;
+  }
+  return `Unable to continue while ${stage}. ${msg.slice(0, 180)}`;
+}
+
+function isTransientProcessingError(err) {
+  const msg = err?.message ? String(err.message).toLowerCase() : '';
+  return /network|timeout|temporar|429|503|504|fetch|rate limit|econnreset/.test(msg);
+}
+
+function logPipelineError(stage, err, context = {}) {
+  const entry = {
+    id: `mm-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    stage,
+    message: err?.message || 'Unknown error',
+    stack: err?.stack || 'No stack available',
+    context: {
+      turn: profile?.turn || 0,
+      timestamp: new Date().toISOString(),
+      ...context
+    }
+  };
+
+  window.mmPipelineErrors = window.mmPipelineErrors || [];
+  window.mmPipelineErrors.push(entry);
+  if (window.mmPipelineErrors.length > 100) window.mmPipelineErrors.shift();
+  console.error(`[PipelineError:${entry.id}] stage=${stage}`, entry);
+  return entry;
 }
 
 function validateSystemWiring(currentProfile) {
@@ -2707,31 +2777,108 @@ function beginSession() {
     addMsg('ai', opener.t);
     document.getElementById('user-input').focus();
   }, 500);
+  document.getElementById('popup-input-btn').disabled = false;
 }
 
 async function send() {
   const input = document.getElementById('user-input');
   const text = input.value.trim();
   if (!text || !sessionActive) return;
+  closeChatInputPopup();
 
   input.value = '';
   input.style.height = 'auto';
   document.getElementById('send-btn').disabled = true;
 
   addMsg('user', escapeHTML(text));
-  showThinking();
+  showThinking('Queued. Preparing your response for analysis…');
+  let progressHeartbeat = null;
+  let activeStage = 'initializing request';
+  const stageDurations = {};
 
   try {
+    const runStage = async (stageLabel, handler, options = {}) => {
+      const retries = Number.isInteger(options.retries) ? options.retries : 0;
+      const retryDelayMs = typeof options.retryDelayMs === 'number' ? options.retryDelayMs : 350;
+      let attempts = 0;
+      let lastErr = null;
+
+      while (attempts <= retries) {
+        const startedAt = performance.now();
+        const attemptLabel = attempts > 0 ? `${stageLabel} (retry ${attempts}/${retries})` : stageLabel;
+        attempts += 1;
+        lastErr = null;
+        activeStage = attemptLabel;
+        updateThinkingStatus(attemptLabel);
+        try {
+          const result = await handler();
+          stageDurations[stageLabel] = Math.round(performance.now() - startedAt);
+          return result;
+        } catch (err) {
+          lastErr = err;
+          const elapsed = Math.round(performance.now() - startedAt);
+          stageDurations[stageLabel] = elapsed;
+          const shouldRetry = attempts <= retries && isTransientProcessingError(err);
+          logPipelineError(stageLabel, err, { attempt: attempts, retries, elapsed_ms: elapsed, retrying: shouldRetry });
+          if (!shouldRetry) break;
+          updateThinkingStatus(`${stageLabel} stalled, retrying…`);
+          await new Promise(r => setTimeout(r, retryDelayMs));
+        }
+      }
+
+      throw lastErr || new Error(`Unknown stage failure (${stageLabel})`);
+    };
+
+    const runStageWithFallback = async (stageLabel, handler, fallbackFactory, options = {}) => {
+      activeStage = stageLabel;
+      try {
+        return await runStage(stageLabel, handler, options);
+      } catch (err) {
+        logPipelineError(stageLabel, err, { fallback_applied: true });
+        return fallbackFactory(err, null);
+      }
+    };
+
+    progressHeartbeat = setInterval(() => {
+      updateThinkingStatus(`Still working — ${activeStage}…`);
+    }, 2400);
+
     // Simulate brief processing pause (realistic + allows for animation to render)
-    await new Promise(r => setTimeout(r, 420 + Math.random() * 280));
+    await runStage('stabilizing input', async () => {
+      await new Promise(r => setTimeout(r, 420 + Math.random() * 280));
+    });
 
     // Update profile
-    const result = updateProfile(profile, text);
+    const result = await runStage('extracting language features', async () => updateProfile(profile, text));
     profile = result.profile;
     lastFeatures = result.features;
-    const mmScores = await updateMultimodalEmotion(text, result.sentiment);
-    const cognitiveProfile = await runCognitiveLinguistV2(text, profile, result.sentiment, mmScores);
-    const linguaInsightReport = await generateLinguaInsightReport(profile, cognitiveProfile, mmScores, getSelectedModesFromUI());
+    const mmScores = await runStageWithFallback(
+      'evaluating multimodal emotion signals',
+      async () => updateMultimodalEmotion(text, result.sentiment),
+      () => ({ analytical: 1, neutral: 0.7, fallback_used: true })
+    );
+    const cognitiveProfile = await runStageWithFallback(
+      'running deep cognitive analysis',
+      async () => runCognitiveLinguistV2(text, profile, result.sentiment, mmScores),
+      () => ({
+        profile_id: 'fallback',
+        status: 'degraded_fallback',
+        summary: 'Deep cognitive analysis unavailable for this turn.',
+        feature_vectors: { status: 'fallback', dominant_emotion: 'analytical' }
+      }),
+      { retries: 1, retryDelayMs: 500 }
+    );
+    const linguaInsightReport = await runStageWithFallback(
+      'building educational report',
+      async () => generateLinguaInsightReport(profile, cognitiveProfile, mmScores, getSelectedModesFromUI()),
+      () => ({
+        modes_selected: getSelectedModesFromUI(),
+        session_arc: 'Report generation temporarily unavailable. Core diagnostics still updated.',
+        onnx_status: { available: !!multimodal.session, fallback_used: true },
+        self_critique_log: [{ stage: 'report_generation', issue: 'generation_failed', action: 'retry_next_turn' }]
+      }),
+      { retries: 1, retryDelayMs: 650 }
+    );
     profile.latestCognitiveProfile = cognitiveProfile;
     profile.latestLinguaInsightReport = linguaInsightReport;
     window.latestCognitiveProfile = cognitiveProfile;
@@ -2748,14 +2895,18 @@ async function send() {
     console.log('Volatility:', profile.sentimentVolatility);
     console.log('Cognitive Linguist v2 JSON:', cognitiveProfile);
     console.log('LinguaInsight report JSON:', linguaInsightReport);
+    console.log('Stage durations (ms):', stageDurations);
     console.groupEnd();
 
     // Update all visualizations
-    updateCharts(profile);
-    renderScorePanel(profile);
-    updateStatus(profile);
-    updateNarrative(profile);
+    await runStage('updating visual diagnostics', async () => {
+      updateCharts(profile);
+      renderScorePanel(profile);
+      updateStatus(profile);
+      updateNarrative(profile);
+    });
 
+    clearInterval(progressHeartbeat);
     removeThinking();
 
     // Phase-1 → Reveal at turn 17
@@ -2776,9 +2927,10 @@ async function send() {
       document.getElementById('user-input').focus();
     }, 180);
   } catch (err) {
+    clearInterval(progressHeartbeat);
+    logPipelineError(activeStage, err, { fatal: true, input_length: text.length });
     console.error('Send pipeline failed:', err);
     removeThinking();
-    addMsg('sys', 'Processing error detected. Pipeline kept state intact; please try sending again.');
     document.getElementById('send-btn').disabled = false;
   }
 }
@@ -2871,6 +3023,7 @@ function restartSession() {
     addMsg('ai', opener.t);
     document.getElementById('user-input').focus();
   }, 200);
+  document.getElementById('popup-input-btn').disabled = false;
 }
 
 function escapeHTML(str) {
@@ -2891,6 +3044,11 @@ document.getElementById('user-input').addEventListener('keydown', e => {
 document.getElementById('user-input').addEventListener('input', function () {
   this.style.height = 'auto';
   this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+document.getElementById('popup-user-input').addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeChatInputPopup();
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') applyPopupDraft(true);
 });
 
 
@@ -4855,4 +5013,3 @@ function selectNextQuestionWarm(profile) {
     panel.innerHTML = groups;
   };
 })();
-
