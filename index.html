@@ -382,6 +382,40 @@ body {
   color: var(--amber);
   font-weight: 400;
 }
+.mm-loader {
+  margin-top: 8px;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--text-dim);
+}
+.mm-loader.visible { display: flex; }
+.mm-loader-wheel {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1px solid var(--border-mid);
+  border-top-color: var(--amber);
+  animation: mm-spin 0.8s linear infinite;
+}
+.mm-loader-track {
+  width: 150px;
+  height: 5px;
+  border: 1px solid var(--border-mid);
+  background: var(--bg2);
+}
+.mm-loader-fill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--amber-lo), var(--amber));
+  transition: width 220ms ease;
+}
+@keyframes mm-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 
 #diag-content {
   flex: 1; overflow-y: auto; display: flex;
@@ -1320,6 +1354,12 @@ body.mobile-optimized .reveal-inner {
             </label>
           </div>
           <div class="mm-status" id="mm-status">MM emotion: <strong>initializing</strong> · mode: text-only · suite loading</div>
+          <div class="mm-loader" id="mm-loader" aria-live="polite">
+            <span class="mm-loader-wheel" aria-hidden="true"></span>
+            <span id="mm-loader-label">booting</span>
+            <span class="mm-loader-track" aria-hidden="true"><span class="mm-loader-fill" id="mm-loader-fill"></span></span>
+            <span id="mm-loader-pct">0%</span>
+          </div>
         </div>
       </div>
     </div>
@@ -1423,6 +1463,14 @@ body.mobile-optimized .reveal-inner {
 
 
 
+
+<script defer src="src/main.js"></script>
+<script>
+const Q = [
+// ── OPENERS ───────────────────────────
+{t:"To start gently: what has taken the most mental energy this week?",                      fw:'big5',dk:'b5_neuro',r:0,depth:1,s:'opener'},
+{t:"What feels steady in your life right now, even if other parts feel noisy?",              fw:'attachment',dk:'att_anxious',r:0,depth:1,s:'opener'},
+{t:"If today had one emotional headline, what would it be?",                                  fw:'enneagram',dk:'enn_head',r:0,depth:1,s:'opener'},
 
 // ── WORTH / PERFORMANCE ───────────────
 {t:"When do you feel most at ease — like you don't have to prove anything?",               fw:'hexaco',dk:'hex_hh',r:0,depth:1,s:'reflective'},
@@ -1898,19 +1946,25 @@ function ensureChartLoaded(timeoutMs = 5000) {
   if (chartLoaderPromise) return chartLoaderPromise;
   chartLoaderPromise = new Promise(resolve => {
     let settled = false;
-    const finalize = (value, timer) => {
+    const settle = value => {
       if (settled) return;
       settled = true;
-      if (timer) clearTimeout(timer);
+      clearTimeout(timer);
       resolve(value);
     };
-
+    const timer = setTimeout(() => settle(!!window.Chart), timeoutMs);
     const existing = document.querySelector(`script[src="${CHART_CDN_URL}"]`);
     if (existing) {
-      const settleFromState = () => finalize(!!window.Chart);
-      existing.addEventListener('load', settleFromState, { once: true });
-      existing.addEventListener('error', () => finalize(false), { once: true });
-      const timer = setTimeout(settleFromState, Math.min(timeoutMs, 300));
+      if (window.Chart) {
+        settle(true);
+        return;
+      }
+      if (existing.readyState === 'complete') {
+        settle(!!window.Chart);
+        return;
+      }
+      existing.addEventListener('load', () => settle(!!window.Chart), { once: true });
+      existing.addEventListener('error', () => settle(false), { once: true });
       return;
     }
 
@@ -1918,9 +1972,12 @@ function ensureChartLoaded(timeoutMs = 5000) {
     tag.src = CHART_CDN_URL;
     tag.async = true;
     tag.defer = true;
-    const timer = setTimeout(() => finalize(false), timeoutMs);
-    tag.onload = () => finalize(!!window.Chart, timer);
-    tag.onerror = () => finalize(false, timer);
+    tag.onload = () => {
+      settle(!!window.Chart);
+    };
+    tag.onerror = () => {
+      settle(false);
+    };
     document.head.appendChild(tag);
   });
   return chartLoaderPromise;
@@ -1987,6 +2044,20 @@ const multimodal = {
   media: { stream: null, ctx: null, analyser: null, data: null }
 };
 
+function setMmLoader(active, progress = 0, label = 'loading') {
+  const loader = document.getElementById('mm-loader');
+  const fill = document.getElementById('mm-loader-fill');
+  const pct = document.getElementById('mm-loader-pct');
+  const text = document.getElementById('mm-loader-label');
+  if (!loader || !fill || !pct || !text) return;
+  if (active) loader.classList.add('visible');
+  else loader.classList.remove('visible');
+  const safeProgress = Math.max(0, Math.min(100, Math.round(progress)));
+  fill.style.width = `${safeProgress}%`;
+  pct.textContent = `${safeProgress}%`;
+  text.textContent = label;
+}
+
 async function initMultimodalEngine() {
   const statusEl = document.getElementById('mm-status');
   if (!statusEl) return;
@@ -2000,22 +2071,29 @@ async function initMultimodalEngine() {
   }
 
   if (!ortReady || !window.ort || !multimodal.modelUrl) {
+    setMmLoader(false, 0, 'disabled');
     statusEl.innerHTML = `MM emotion: <strong>text heuristic</strong> · mode: text-only · rec: ${PRETRAINED_MODEL_SUITE.textEmotion.id} + ${PRETRAINED_MODEL_SUITE.audioEmotion.id}`;
     return;
   }
 
   try {
+    setMmLoader(true, 8, 'loading runtime');
     statusEl.innerHTML = `MM emotion: <strong>loading onnx</strong> · model: ${picked.id} · cache: tmp`;
+    setMmLoader(true, 35, 'caching model');
     const cachedModelUrl = await cacheModelInTmp(multimodal.modelUrl);
     if (multimodal.modelBlobUrl && multimodal.modelBlobUrl.startsWith('blob:')) URL.revokeObjectURL(multimodal.modelBlobUrl);
     multimodal.modelBlobUrl = cachedModelUrl;
+    setMmLoader(true, 72, 'creating session');
     multimodal.session = await ort.InferenceSession.create(multimodal.modelBlobUrl, {
       executionProviders: ['wasm']
     });
+    setMmLoader(true, 100, 'ready');
     statusEl.innerHTML = `MM emotion: <strong>onnx ready</strong> · mode: text-only · model: ${picked.id}`;
     statusEl.innerHTML = `MM emotion: <strong>onnx ready</strong> · mode: text-only · fusion: ${PRETRAINED_MODEL_SUITE.fusionOnnx.id}`;
+    setTimeout(() => setMmLoader(false, 100, 'ready'), 900);
   } catch (err) {
     console.warn('ONNX model failed to load; falling back to heuristic fusion.', err);
+    setMmLoader(false, 0, 'fallback');
     statusEl.innerHTML = 'MM emotion: <strong>fallback active</strong> · mode: text-only';
   }
 }
@@ -3229,6 +3307,7 @@ document.getElementById('user-input').addEventListener('input', function () {
   this.style.height = 'auto';
   this.style.height = Math.min(this.scrollHeight, 120) + 'px';
 });
+}
 </script>
 
 <script>
@@ -5246,7 +5325,5 @@ function selectNextQuestionWarm(profile) {
   };
 })();
 </script>
-<script src="src/main.js"></script>
-
 </body>
 </html>
