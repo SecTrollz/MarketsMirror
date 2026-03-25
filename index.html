@@ -4,8 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Linguistic Insight Profiler — Psycholinguistic Intelligence</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,700;1,300&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&display=swap" rel="stylesheet">
 <style>
@@ -36,7 +35,7 @@
 }
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { height: 100%; overflow: hidden; }
+html, body { min-height: 100%; overflow-x: hidden; overflow-y: auto; }
 
 body {
   background: var(--bg0);
@@ -44,6 +43,7 @@ body {
   font-family: var(--serif);
   font-size: 15px;
   line-height: 1.6;
+  min-height: 100svh;
 }
 
 /* ── INTRO SCREEN ─────────────────────────────────── */
@@ -51,19 +51,20 @@ body {
 #intro {
   position: fixed; inset: 0; z-index: 100;
   background: var(--bg0);
-  display: flex; align-items: stretch;
+  display: flex; align-items: stretch; flex-wrap: wrap;
   transition: opacity 600ms ease, transform 600ms ease;
+  overflow-y: auto;
 }
 #intro.fading { opacity: 0; transform: translateY(-8px); pointer-events: none; }
 
 .intro-left {
-  width: 50%; padding: 72px 56px;
+  flex: 1 1 420px; padding: clamp(28px, 4vw, 72px) clamp(20px, 4vw, 56px);
   display: flex; flex-direction: column; justify-content: center;
   border-right: 1px solid var(--border);
 }
 
 .intro-right {
-  width: 50%; padding: 72px 56px;
+  flex: 1 1 420px; padding: clamp(28px, 4vw, 72px) clamp(20px, 4vw, 56px);
   display: flex; flex-direction: column; justify-content: center;
   background: var(--bg1);
 }
@@ -129,7 +130,7 @@ body {
 /* ── APP LAYOUT ───────────────────────────────────── */
 
 #app {
-  display: flex; height: 100vh; overflow: hidden;
+  display: flex; min-height: 100svh; height: auto; overflow: hidden;
   opacity: 0; transition: opacity 600ms ease;
 }
 #app.visible { opacity: 1; }
@@ -137,7 +138,7 @@ body {
 /* ── LEFT PANEL: CHAT ─────────────────────────────── */
 
 #left-panel {
-  width: 44%; min-width: 360px; max-width: 520px;
+  width: clamp(320px, 40vw, 560px); min-width: 300px; max-width: 100%;
   display: flex; flex-direction: column;
   border-right: 1px solid var(--border);
   background: var(--bg1);
@@ -320,10 +321,20 @@ body {
   margin-bottom: 8px;
 }
 .insight-cell {
-  padding: 8px;
+  padding: 10px;
   border: 1px solid var(--border);
   background: var(--bg2);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text);
+  display: grid;
+  gap: 6px;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: border-color var(--transition), background var(--transition);
 }
+.insight-cell:hover { border-color: var(--border-hi); background: var(--bg3); }
+.insight-cell input { accent-color: var(--amber); }
 .insight-label {
   display: block;
   font-family: var(--mono);
@@ -345,6 +356,19 @@ body {
   line-height: 1.4;
   color: var(--text-dim);
 }
+.insight-note label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.insight-note input { accent-color: var(--amber); }
+.hf-input {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border-mid);
+  color: var(--text);
+  padding: 6px 8px;
+}
 .mm-status {
   margin-top: 7px;
   font-family: var(--mono);
@@ -359,6 +383,9 @@ body {
 
 #diag-content {
   flex: 1; overflow-y: auto; display: flex;
+  min-width: 0;
+  gap: 14px;
+  padding: 14px;
   scrollbar-width: thin; scrollbar-color: var(--border) transparent;
 }
 #diag-content::-webkit-scrollbar { width: 4px; }
@@ -367,13 +394,35 @@ body {
 /* ── RADAR SECTION ────────────────────────────────── */
 
 #chart-col {
-  width: 48%; border-right: 1px solid var(--border);
+  width: min(48%, 540px);
   display: flex; flex-direction: column; flex-shrink: 0;
+  min-width: 300px;
+  gap: 12px;
+}
+
+.viz-zone {
+  border: 1px solid var(--border);
+  background: var(--bg1);
+}
+.viz-zone-head {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+.viz-zone-note {
+  color: var(--text-dim);
+  font-size: 9px;
+  letter-spacing: 0.12em;
 }
 
 .chart-block {
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid var(--border);
+  padding: 16px;
+  border: 1px solid var(--border);
+  background: var(--bg1);
 }
 .chart-label {
   font-family: var(--mono); font-size: 8px;
@@ -393,6 +442,10 @@ body {
 
 #scores-col {
   flex: 1; overflow-y: auto; padding: 0;
+  border: 1px solid var(--border);
+  background: var(--bg1);
+  content-visibility: auto;
+  contain-intrinsic-size: 700px;
   scrollbar-width: thin; scrollbar-color: var(--border) transparent;
 }
 
@@ -400,6 +453,8 @@ body {
   border-top: 1px solid var(--border);
   background: var(--bg1);
   padding: 14px 16px 16px;
+  content-visibility: auto;
+  contain-intrinsic-size: 500px;
 }
 .ci-head {
   font-family: var(--mono);
@@ -547,21 +602,13 @@ body {
 /* ── NARRATIVE PANEL ──────────────────────────────── */
 
 #narrative-section {
-  border-top: 1px solid var(--border);
   flex-shrink: 0; display: none;
 }
 #narrative-section.visible { display: block; }
-.narrative-header {
-  padding: 14px 20px 12px;
-  background: var(--bg1);
-  font-family: var(--mono); font-size: 8px;
-  letter-spacing: 0.35em; text-transform: uppercase;
-  color: var(--amber); border-bottom: 1px solid var(--border);
-}
 #narrative-body {
-  padding: 20px 20px;
+  padding: 16px;
   font-family: var(--serif); font-size: 14px; font-style: italic;
-  color: var(--text); line-height: 1.75; max-height: 200px;
+  color: var(--text); line-height: 1.75; max-height: 260px;
   overflow-y: auto;
 }
 #narrative-body p { margin-bottom: 10px; }
@@ -646,6 +693,7 @@ body {
 
 .reveal-actions {
   display: flex; gap: 12px; margin-top: 8px;
+  flex-wrap: wrap;
 }
 .reveal-btn {
   font-family: var(--mono); font-size: 10px;
@@ -661,6 +709,22 @@ body {
   background: none; border-color: var(--border); color: var(--text-dim);
 }
 .reveal-btn.secondary:hover { background: var(--bg2); border-color: var(--border-mid); }
+
+@media (min-width: 1101px) {
+  #diag-content {
+    display: grid;
+    grid-template-columns: minmax(300px, 42%) minmax(0, 1fr);
+  }
+
+  #chart-col {
+    width: 100%;
+    min-width: 0;
+  }
+
+  #scores-col {
+    min-width: 0;
+  }
+}
 
 
 /* ===== MOBILE-FIRST PATCH BEGIN ===== */
@@ -1003,7 +1067,7 @@ body.mobile-optimized .reveal-inner {
   }
 
   .chart-label,
-  .narrative-header,
+  .viz-zone-head,
   .framework-title {
     font-size: 10px;
     letter-spacing: 0.18em;
@@ -1190,30 +1254,50 @@ body.mobile-optimized .reveal-inner {
           <div class="insight-note">
             <label><input type="checkbox" id="learning-mode" checked> Learning mode</label>
           </div>
+          <div class="insight-note">
+            <label><input type="checkbox" id="hf-deep-nlp"> Enable Hugging Face deep NLP</label>
+          </div>
+          <div class="insight-grid" style="grid-template-columns: 1fr;">
+            <label class="insight-cell">
+              <span class="insight-label">HF model</span>
+              <input id="hf-model" class="hf-input" type="text" value="google/flan-t5-large">
+            </label>
+            <label class="insight-cell">
+              <span class="insight-label">HF token (optional, stored in-memory)</span>
+              <input id="hf-token" class="hf-input" type="password" placeholder="hf_xxx...">
+            </label>
+          </div>
           <div class="mm-status" id="mm-status">MM emotion: <strong>initializing</strong> · mode: text-only · suite loading</div>
         </div>
       </div>
     </div>
     <div id="diag-content">
       <div id="chart-col">
-        <div class="chart-block">
-          <div class="chart-label">28-axis psychographic profile</div>
-          <div id="radar-wrap">
-            <canvas id="radar-chart" width="340" height="320"></canvas>
+        <div class="viz-zone">
+          <div class="viz-zone-head">Primary Signals <span class="viz-zone-note">focus on directional behavior</span></div>
+          <div class="chart-block">
+            <div class="chart-label">28-axis psychographic profile</div>
+            <div id="radar-wrap">
+              <canvas id="radar-chart" width="340" height="320"></canvas>
+            </div>
           </div>
         </div>
-        <div class="chart-block">
-          <div class="chart-label">Sentiment arc</div>
-          <div id="sentiment-wrap">
-            <canvas id="sentiment-chart" width="340" height="100"></canvas>
+        <div class="viz-zone">
+          <div class="viz-zone-head">Momentum Signals <span class="viz-zone-note">emotional trajectory over turns</span></div>
+          <div class="chart-block">
+            <div class="chart-label">Sentiment arc</div>
+            <div id="sentiment-wrap">
+              <canvas id="sentiment-chart" width="340" height="100"></canvas>
+            </div>
           </div>
         </div>
-        <div id="narrative-section">
-          <div class="narrative-header">Live Interpretation</div>
+        <div class="viz-zone" id="narrative-section">
+          <div class="viz-zone-head">Interpretive Layer <span class="viz-zone-note">language-backed rationale</span></div>
           <div id="narrative-body"></div>
         </div>
       </div>
       <div id="scores-col">
+        <div class="viz-zone-head">Trait Breakdown <span class="viz-zone-note">framework evidence by dimension</span></div>
         <!-- Framework score groups rendered here by JS -->
       </div>
     </div>
@@ -2796,6 +2880,7 @@ let radarChart = null;
 let sentimentChart = null;
 
 function initCharts() {
+  if (!window.Chart) return;
   const AMBER = 'rgba(200,146,42,0.85)';
   const AMBER_FILL = 'rgba(200,146,42,0.12)';
   const GRID = 'rgba(100,80,50,0.2)';
@@ -2909,8 +2994,12 @@ function updateCharts(profile) {
 
 function renderScorePanel(profile) {
   const container = document.getElementById('scores-col');
+  if (!container) return;
+  const sectionHead = container.querySelector('.viz-zone-head');
   container.innerHTML = '';
+  if (sectionHead) container.appendChild(sectionHead);
   const acc = profile.accumulators;
+  const fragment = document.createDocumentFragment();
 
   FRAMEWORKS.forEach(fw => {
     const group = document.createElement('div');
@@ -2932,27 +3021,46 @@ function renderScorePanel(profile) {
       const topRow = document.createElement('div');
       topRow.className = 'fw-dim-row';
 
-      topRow.innerHTML = `
-        <span class="fw-dim-name">${d.label}</span>
-        <div class="fw-bar-wrap"><div class="fw-bar" style="width:${pct}%"></div></div>
-        <span class="fw-score">${pct}</span>
-        <span class="fw-conf">${conf}%</span>
-      `;
+      const dimName = document.createElement('span');
+      dimName.className = 'fw-dim-name';
+      dimName.textContent = d.label;
+      const barWrap = document.createElement('div');
+      barWrap.className = 'fw-bar-wrap';
+      const bar = document.createElement('div');
+      bar.className = 'fw-bar';
+      bar.style.width = `${pct}%`;
+      barWrap.appendChild(bar);
+      const score = document.createElement('span');
+      score.className = 'fw-score';
+      score.textContent = `${pct}`;
+      const confEl = document.createElement('span');
+      confEl.className = 'fw-conf';
+      confEl.textContent = `${conf}%`;
+      topRow.append(dimName, barWrap, score, confEl);
 
       const evRow = document.createElement('div');
       evRow.className = 'fw-evidence';
       const words = a.words || [];
-      evRow.innerHTML = words.length > 0
-        ? `Evidence: ${words.map(w => `<em>${w}</em>`).join(', ')}`
-        : 'Hover for evidence — no signals yet.';
+      if (words.length > 0) {
+        evRow.append('Evidence: ');
+        words.forEach((w, idx) => {
+          const em = document.createElement('em');
+          em.textContent = w;
+          evRow.appendChild(em);
+          if (idx < words.length - 1) evRow.append(', ');
+        });
+      } else {
+        evRow.textContent = 'Hover for evidence — no signals yet.';
+      }
 
       row.appendChild(topRow);
       row.appendChild(evRow);
       group.appendChild(row);
     });
 
-    container.appendChild(group);
+    fragment.appendChild(group);
   });
+  container.appendChild(fragment);
 }
 
 /* ─── MULTI-MODAL EMOTION (TEXT + AUDIO + ONNX) ─────────── */
@@ -3000,6 +3108,67 @@ const MODEL_CANDIDATES = [
   }
 ];
 const TMP_MODEL_CACHE_NAME = 'linguainsight-tmp-models-v1';
+const CHART_CDN_URL = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';
+const ORT_CDN_URL = 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js';
+let chartLoaderPromise = null;
+let ortLoaderPromise = null;
+
+function ensureChartLoaded(timeoutMs = 5000) {
+  if (window.Chart) return Promise.resolve(true);
+  if (chartLoaderPromise) return chartLoaderPromise;
+  chartLoaderPromise = new Promise(resolve => {
+    const existing = document.querySelector(`script[src="${CHART_CDN_URL}"]`);
+    if (existing) {
+      existing.addEventListener('load', () => resolve(!!window.Chart), { once: true });
+      existing.addEventListener('error', () => resolve(false), { once: true });
+      return;
+    }
+    const tag = document.createElement('script');
+    tag.src = CHART_CDN_URL;
+    tag.async = true;
+    tag.defer = true;
+    const timer = setTimeout(() => resolve(false), timeoutMs);
+    tag.onload = () => {
+      clearTimeout(timer);
+      resolve(!!window.Chart);
+    };
+    tag.onerror = () => {
+      clearTimeout(timer);
+      resolve(false);
+    };
+    document.head.appendChild(tag);
+  });
+  return chartLoaderPromise;
+}
+
+function ensureOrtLoaded(timeoutMs = 7000) {
+  if (window.ort) return Promise.resolve(true);
+  if (ortLoaderPromise) return ortLoaderPromise;
+  ortLoaderPromise = new Promise(resolve => {
+    const existing = document.querySelector(`script[data-ort-loader="1"]`);
+    if (existing) {
+      existing.addEventListener('load', () => resolve(!!window.ort), { once: true });
+      existing.addEventListener('error', () => resolve(false), { once: true });
+      return;
+    }
+    const tag = document.createElement('script');
+    tag.src = ORT_CDN_URL;
+    tag.async = true;
+    tag.defer = true;
+    tag.dataset.ortLoader = '1';
+    const timer = setTimeout(() => resolve(false), timeoutMs);
+    tag.onload = () => {
+      clearTimeout(timer);
+      resolve(!!window.ort);
+    };
+    tag.onerror = () => {
+      clearTimeout(timer);
+      resolve(false);
+    };
+    document.head.appendChild(tag);
+  });
+  return ortLoaderPromise;
+}
 
 function selectModelCandidate() {
   const mem = navigator.deviceMemory || 4;
@@ -3025,13 +3194,10 @@ async function cacheModelInTmp(url) {
 const multimodal = {
   modelUrl: '', // Set to your ONNX model path when available.
   modelBlobUrl: '',
-
-const multimodal = {
-  modelUrl: '', // Set to your ONNX model path when available.
   session: null,
   textOnly: true,
   emaScores: { calm: 0.25, stressed: 0.25, guarded: 0.25, engaged: 0.25 },
-  fixedAudio: { rms: 0, zcr: 0, flux: 0 }
+  fixedAudio: { rms: 0, zcr: 0, flux: 0 },
   latestAudio: { rms: 0, zcr: 0, flux: 0 },
   media: { stream: null, ctx: null, analyser: null, data: null }
 };
@@ -3039,6 +3205,7 @@ const multimodal = {
 async function initMultimodalEngine() {
   const statusEl = document.getElementById('mm-status');
   if (!statusEl) return;
+  const ortReady = await ensureOrtLoaded();
   const configured = new URLSearchParams(window.location.search).get('fusion_onnx');
   const picked = configured ? { id: 'custom', url: configured, key: 'custom' } : selectModelCandidate();
   multimodal.modelUrl = picked.url;
@@ -3047,7 +3214,7 @@ async function initMultimodalEngine() {
     if (configured) multimodal.modelUrl = configured;
   }
 
-  if (!window.ort || !multimodal.modelUrl) {
+  if (!ortReady || !window.ort || !multimodal.modelUrl) {
     statusEl.innerHTML = `MM emotion: <strong>text heuristic</strong> · mode: text-only · rec: ${PRETRAINED_MODEL_SUITE.textEmotion.id} + ${PRETRAINED_MODEL_SUITE.audioEmotion.id}`;
     return;
   }
@@ -3061,9 +3228,6 @@ async function initMultimodalEngine() {
       executionProviders: ['wasm']
     });
     statusEl.innerHTML = `MM emotion: <strong>onnx ready</strong> · mode: text-only · model: ${picked.id}`;
-    multimodal.session = await ort.InferenceSession.create(multimodal.modelUrl, {
-      executionProviders: ['wasm']
-    });
     statusEl.innerHTML = `MM emotion: <strong>onnx ready</strong> · mode: text-only · fusion: ${PRETRAINED_MODEL_SUITE.fusionOnnx.id}`;
   } catch (err) {
     console.warn('ONNX model failed to load; falling back to heuristic fusion.', err);
@@ -3192,10 +3356,6 @@ function renderMultimodalStatus(rawScores, mode) {
 
 async function updateMultimodalEmotion(text, sentiment) {
   const textFeat = textEmotionFeatures(text, sentiment);
-  const audioFeat = multimodal.fixedAudio;
-  const fused = fuseTextAudio(textFeat, audioFeat);
-  const scores = await onnxEmotionInference(fused);
-  renderMultimodalStatus(scores, 'text-only');
   const audioFeat = multimodal.textOnly ? multimodal.latestAudio : sampleAudioFeatures();
   const fused = fuseTextAudio(textFeat, audioFeat);
   const scores = await onnxEmotionInference(fused);
@@ -3206,14 +3366,25 @@ async function updateMultimodalEmotion(text, sentiment) {
 /* ─── COGNITIVE LINGUIST v2.0 (ONNX + JS HEURISTICS) ───── */
 
 const COG_LING_V2_CONFIG = {
-  minTokensForOnnx: 50,
+  minTokensForOnnx: 15,
   volatilityThreshold: 0.35,
   volatilityWindow: 10,
   cohesionLowThreshold: 0.6
 };
 
+const TOKEN_CACHE = new Map();
+const TOKEN_CACHE_MAX = 300;
+
 function simpleTokens(text) {
-  return (text.toLowerCase().match(/[a-z0-9']+/g) || []);
+  const source = text || '';
+  if (TOKEN_CACHE.has(source)) return TOKEN_CACHE.get(source);
+  const tokens = (source.toLowerCase().match(/[a-z0-9']+/g) || []);
+  if (TOKEN_CACHE.size >= TOKEN_CACHE_MAX) {
+    const oldestKey = TOKEN_CACHE.keys().next().value;
+    TOKEN_CACHE.delete(oldestKey);
+  }
+  TOKEN_CACHE.set(source, tokens);
+  return tokens;
 }
 
 function shannonEntropy(tokens) {
@@ -3378,6 +3549,7 @@ function extractSubjectTurns() {
     const complexity = syntacticComplexity(text);
     const mtld = estimateMTLD(tokens);
     const pronouns = pronounRatio(tokens);
+    const thirdPerson = tokens.filter(w => ['they', 'them', 'their', 'he', 'she'].includes(w)).length;
     const words = Math.max(tokens.length, 1);
     return {
       id: `A${idx + 1}`,
@@ -3387,7 +3559,8 @@ function extractSubjectTurns() {
       syntactic_complexity: +complexity.toFixed(3),
       filler_ratio: +(fillers / words).toFixed(3),
       hedging_frequency: hedging,
-      pronouns
+      pronouns,
+      third_person_ratio: +(thirdPerson / words).toFixed(3)
     };
   });
 }
@@ -3430,14 +3603,14 @@ function modeBFromSession(profile, turns, mmScores) {
   const volatility = hist.length ? std(hist.slice(-10)) : 0;
   const volatilityIndex = volatility > 0.35 ? 'high' : volatility > 0.18 ? 'medium' : 'low';
   const pivots = [];
-  const emotions = turns.map((t, i) => {
+  const turnScores = turns.map((t, i) => {
     const sent = hist[i] || 0;
-    if (i === turns.length - 1 && mmScores) return dominantEmotionFromScores(mmScores);
-    return dominantEmotionFromScores(inferTurnEmotionScores(t.text, sent));
+    return i === turns.length - 1 && mmScores ? mmScores : inferTurnEmotionScores(t.text, sent);
   });
+  const emotions = turnScores.map(scores => dominantEmotionFromScores(scores));
   for (let i = 1; i < emotions.length; i++) {
-    const prevScores = inferTurnEmotionScores(turns[i - 1]?.text || '', hist[i - 1] || 0);
-    const currScores = i === turns.length - 1 && mmScores ? mmScores : inferTurnEmotionScores(turns[i]?.text || '', hist[i] || 0);
+    const prevScores = turnScores[i - 1] || {};
+    const currScores = turnScores[i] || {};
     const prevLabel = emotions[i - 1];
     const currLabel = emotions[i];
     const shift = Math.abs((currScores[currLabel] || 0) - (prevScores[prevLabel] || 0));
@@ -3449,13 +3622,6 @@ function modeBFromSession(profile, turns, mmScores) {
   const regulation = turns.length > 1
     ? Math.round(clamp((smoothTransitions / (turns.length - 1)) * (1 - volatility), 0, 1) * 100)
     : Math.round(clamp(1 - volatility * 1.7, 0, 1) * 100);
-  const emotions = turns.map((_, i) => i === turns.length - 1
-    ? (Object.entries(mmScores || { neutral: 1 }).sort((a, b) => b[1] - a[1])[0][0])
-    : 'neutral');
-  for (let i = 1; i < emotions.length; i++) {
-    if (emotions[i] !== emotions[i - 1]) pivots.push({ response: turns[i].id, from: emotions[i - 1], to: emotions[i] });
-  }
-  const regulation = Math.round(clamp(1 - volatility * 1.7, 0, 1) * 100);
   return {
     volatility_index: volatilityIndex,
     emotional_pivot_points: pivots,
@@ -3468,10 +3634,7 @@ function modeCFromTurns(turns, cognitiveProfile) {
   const cohesion = cognitiveProfile?.feature_vectors?.js_metrics?.narrative_cohesion ?? 1;
   const avgHedge = turns.length ? mean(turns.map(t => t.hedging_frequency)) : 0;
   const avgThird = turns.length
-    ? mean(turns.map(t => {
-      const third = simpleTokens(t.text).filter(w => ['they', 'them', 'their', 'he', 'she'].includes(w)).length;
-      return third / Math.max(t.tokens, 1);
-    }))
+    ? mean(turns.map(t => t.third_person_ratio || 0))
     : 0;
   const defensiveness = cohesion < 0.6 && (avgHedge > 1.4 || avgThird > 0.08) ? 'elevated' : 'not elevated';
   return {
@@ -3505,12 +3668,6 @@ function buildTransitionAnalytics(turns, profile) {
       emotion_change: Math.abs(currSent - prevSent) > 0.2,
       trigger_question: triggerQuestion,
       trigger_question_text: triggerQuestionText
-    out.push({
-      from: prev.id,
-      to: curr.id,
-      cognitive_load_delta: delta,
-      emotion_change: Math.abs(currSent - prevSent) > 0.2,
-      trigger_question: Math.abs(delta) > 0.2 ? `Q${i + 1}` : null
     });
   }
   return out;
@@ -3567,18 +3724,208 @@ function getSelectedModesFromUI() {
   return selected.length ? selected : ['A', 'B', 'C'];
 }
 
+function getHFConfigFromUI() {
+  const modelRaw = (document.getElementById('hf-model')?.value || 'google/flan-t5-large').trim();
+  const model = modelRaw.replace(/\s+/g, '');
+  return {
+    enabled: !!document.getElementById('hf-deep-nlp')?.checked,
+    model: model || 'google/flan-t5-large',
+    token: (document.getElementById('hf-token')?.value || '').trim()
+  };
+}
+
+function parseHFQuestions(text = '') {
+  return text
+    .split('\n')
+    .map(line => line.trim().replace(/^[-*]\s*/, ''))
+    .filter(line => /^q\d*[:.)\s-]/i.test(line) || line.includes('?'))
+    .slice(0, 3)
+    .map(line => line.replace(/^q\d*[:.)\s-]*/i, '').trim());
+}
+
+function fastHash(str = '') {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(16);
+}
+
+const HF_REQUEST_CACHE = new Map();
+
+async function requestHFDeepDive(report, profile, cognitiveProfile, mmScores) {
+  const cfg = getHFConfigFromUI();
+  if (!cfg.enabled) return { enabled: false, status: 'disabled' };
+  if (!cfg.token) return { enabled: true, status: 'token_missing', model: cfg.model };
+
+  const compactPayload = {
+    session_arc: report.session_arc,
+    metrics: report.metrics,
+    latest_sentiment: profile?.sentimentHistory?.at(-1) || null,
+    cognitive_summary: cognitiveProfile?.summary || '',
+    multimodal_scores: mmScores || {}
+  };
+  const prompt = [
+    'You are a psycholinguistics analyst.',
+    'Return plain text with exactly these sections:',
+    'EXPLANATION: one short paragraph.',
+    'QUESTIONS: 3 concise follow-up questions for the user.',
+    JSON.stringify(compactPayload)
+  ].join('\n');
+  const cacheKey = `${cfg.model}:${fastHash(prompt)}`;
+  if (HF_REQUEST_CACHE.has(cacheKey)) return HF_REQUEST_CACHE.get(cacheKey);
+
+  let timeoutId = null;
+  try {
+    const controller = new AbortController();
+    timeoutId = setTimeout(() => controller.abort(), 9000);
+    const res = await fetch(`https://api-inference.huggingface.co/models/${encodeURIComponent(cfg.model)}`, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Authorization': `Bearer ${cfg.token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        inputs: prompt,
+        parameters: { max_new_tokens: 240, return_full_text: false, temperature: 0.35 }
+      })
+    });
+    if (!res.ok) {
+      const errTxt = await res.text();
+      return { enabled: true, status: `http_${res.status}`, model: cfg.model, error: errTxt.slice(0, 280) };
+    }
+    const data = await res.json();
+    const text = Array.isArray(data)
+      ? (data[0]?.generated_text || '')
+      : (data?.generated_text || '');
+    const questions = parseHFQuestions(text);
+    const explanation = (text.match(/EXPLANATION:\s*([\s\S]*?)(QUESTIONS:|$)/i)?.[1] || text).trim();
+    const output = {
+      enabled: true,
+      status: 'ok',
+      model: cfg.model,
+      explanation: explanation.slice(0, 900),
+      follow_up_questions: questions
+    };
+    HF_REQUEST_CACHE.set(cacheKey, output);
+    if (HF_REQUEST_CACHE.size > 40) HF_REQUEST_CACHE.delete(HF_REQUEST_CACHE.keys().next().value);
+    return output;
+  } catch (err) {
+    return {
+      enabled: true,
+      status: 'network_error',
+      model: cfg.model,
+      error: err?.message || 'unknown error'
+    };
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
+function parseTurns(inputText = '') {
+  if (inputText && typeof inputText === 'string') {
+    return inputText
+      .split(/\n+/)
+      .map((line, idx) => ({ id: `A${idx + 1}`, text: line.trim() }))
+      .filter(t => t.text.length > 0)
+      .map(t => {
+        const tokens = simpleTokens(t.text);
+        const words = Math.max(tokens.length, 1);
+        const hedging = (t.text.match(/\b(maybe|perhaps|sort of|kind of|i think|i guess|possibly)\b/gi) || []).length;
+        const fillers = (t.text.match(/\b(um+|uh+|erm+|like)\b/gi) || []).length;
+        const thirdPerson = tokens.filter(w => ['they', 'them', 'their', 'he', 'she'].includes(w)).length;
+        return {
+          ...t,
+          tokens: tokens.length,
+          lexical_diversity: +estimateMTLD(tokens).toFixed(3),
+          syntactic_complexity: +syntacticComplexity(t.text).toFixed(3),
+          filler_ratio: +(fillers / words).toFixed(3),
+          hedging_frequency: hedging,
+          pronouns: pronounRatio(tokens),
+          third_person_ratio: +(thirdPerson / words).toFixed(3)
+        };
+      });
+  }
+  return extractSubjectTurns();
+}
+
+function runJSMetrics(turn) {
+  return {
+    lexical_diversity: turn.lexical_diversity,
+    syntactic_complexity: turn.syntactic_complexity,
+    filler_ratio: turn.filler_ratio,
+    hedging_frequency: turn.hedging_frequency,
+    pronouns: turn.pronouns,
+    third_person_ratio: turn.third_person_ratio
+  };
+}
+
+async function runONNX(turnText, profileCtx, sentiment, mmScores) {
+  return runCognitiveLinguistV2(turnText, profileCtx, sentiment, mmScores);
+}
+
+function aggregateModes(turns, selectedModes, profile, cognitiveProfile, mmScores) {
+  const metrics = {};
+  if (selectedModes.includes('A')) metrics.mode_a = modeAFromTurns(turns, cognitiveProfile);
+  if (selectedModes.includes('B')) metrics.mode_b = modeBFromSession(profile, turns, mmScores);
+  if (selectedModes.includes('C')) metrics.mode_c = modeCFromTurns(turns, cognitiveProfile);
+  return metrics;
+}
+
+function computeTransitionAnalytics(turns, profile) {
+  return buildTransitionAnalytics(turns, profile);
+}
+
+function generateSessionArc(metrics, learningMode = true) {
+  const a = metrics.mode_a || { cognitive_load_trend: 'stable' };
+  const b = metrics.mode_b || { volatility_index: 'medium' };
+  const c = metrics.mode_c || { cohesion_score: 50, defensiveness_indicator: 'not elevated' };
+  return learningMode
+    ? `The session shows a ${a.cognitive_load_trend} cognitive-load trajectory with ${b.volatility_index} emotional volatility. *Why this matters:* shifts in load and emotion can reflect recall pressure, uncertainty, or threat sensitivity. Cohesion is ${c.cohesion_score}/100 with defensiveness marked as ${c.defensiveness_indicator}.`
+    : `Session trend: cognitive load ${a.cognitive_load_trend}, emotional volatility ${b.volatility_index}, cohesion ${c.cohesion_score}/100.`;
+}
+
+async function enrichWithHF(report, profile, cognitiveProfile, mmScores) {
+  const hf = await requestHFDeepDive(report, profile, cognitiveProfile, mmScores);
+  return {
+    enabled: !!hf.enabled,
+    model_used: hf.model || null,
+    follow_up_questions: hf.follow_up_questions || [],
+    deeper_explanation: hf.explanation || '',
+    status: hf.status || 'disabled',
+    error: hf.error || null
+  };
+}
+
+function selfCritique(output) {
+  const log = [...(output.self_critique_log || [])];
+  if (!output.transition_analytics?.length) {
+    log.push({ stage: 'data_integrity', issue: 'No transition analytics available.', action: 'Need at least 2 responses for transition analysis.' });
+  }
+  if (!output.metrics || Object.keys(output.metrics).length === 0) {
+    log.push({ stage: 'mode_mapping', issue: 'No active mode metrics produced.', action: 'Enable at least one mode (A/B/C).' });
+  }
+  if (output.deep_nlp?.enabled && output.deep_nlp.status !== 'ok') {
+    log.push({ stage: 'deep_nlp', issue: `Deep NLP status is ${output.deep_nlp.status}.`, action: 'Fallback to local metrics and retry deep NLP if desired.' });
+  }
+  return log;
+}
+
 async function generateLinguaInsightReport(profile, cognitiveProfile, mmScores, modes = LINGUA_MODES) {
-  const turns = extractSubjectTurns();
-  const modeA = modeAFromTurns(turns, cognitiveProfile);
-  const modeB = modeBFromSession(profile, turns, mmScores);
-  const modeC = modeCFromTurns(turns, cognitiveProfile);
-  const transitionAnalytics = buildTransitionAnalytics(turns, profile);
-  const educationalInsights = buildEducationalInsights(modeA, modeB, modeC, transitionAnalytics);
+  const turns = parseTurns();
+  const metrics = aggregateModes(turns, modes, profile, cognitiveProfile, mmScores);
+  const transitionAnalytics = computeTransitionAnalytics(turns, profile);
+  const educationalInsights = buildEducationalInsights(
+    metrics.mode_a || modeAFromTurns(turns, cognitiveProfile),
+    metrics.mode_b || modeBFromSession(profile, turns, mmScores),
+    metrics.mode_c || modeCFromTurns(turns, cognitiveProfile),
+    transitionAnalytics
+  );
   const onnxUsed = !(cognitiveProfile?.feature_vectors?.onnx_logits?.cognitive_load === null);
   const learningMode = !!document.getElementById('learning-mode')?.checked;
-  const sessionArc = learningMode
-    ? `The session shows a ${modeA.cognitive_load_trend} cognitive-load trajectory with ${modeB.volatility_index} emotional volatility. *Why this matters:* shifts in load and emotion can reflect recall pressure, uncertainty, or threat sensitivity. Cohesion is ${modeC.cohesion_score}/100 with defensiveness marked as ${modeC.defensiveness_indicator}.`
-    : `Session trend: cognitive load ${modeA.cognitive_load_trend}, emotional volatility ${modeB.volatility_index}, cohesion ${modeC.cohesion_score}/100.`;
+  const sessionArc = generateSessionArc(metrics, learningMode);
   const selfCritiqueLog = [];
   if (turns.length < 3) selfCritiqueLog.push({ stage: 'data_integrity', issue: 'Fewer than 3 subject turns.', action: 'Trend confidence reduced; recommend longer sample.' });
   if (!multimodal.session) selfCritiqueLog.push({ stage: 'onnx_reliability', issue: 'ONNX model unavailable.', action: 'JS heuristics + fallback used.' });
@@ -3596,12 +3943,7 @@ async function generateLinguaInsightReport(profile, cognitiveProfile, mmScores, 
     });
   }
 
-  const metrics = {};
-  if (modes.includes('A')) metrics.mode_a = modeA;
-  if (modes.includes('B')) metrics.mode_b = modeB;
-  if (modes.includes('C')) metrics.mode_c = modeC;
-
-  return {
+  const baseReport = {
     modes_selected: modes,
     session_arc: sessionArc,
     metrics,
@@ -3615,17 +3957,45 @@ async function generateLinguaInsightReport(profile, cognitiveProfile, mmScores, 
     },
     self_critique_log: selfCritiqueLog
   };
+
+  const deepNlp = await enrichWithHF(baseReport, profile, cognitiveProfile, mmScores);
+  if (deepNlp.enabled && deepNlp.status !== 'ok') {
+    selfCritiqueLog.push({
+      stage: 'deep_nlp',
+      issue: `Hugging Face deep NLP unavailable (${deepNlp.status}).`,
+      action: 'Using local psycholinguistic interpretation only.'
+    });
+  }
+
+  const finalized = {
+    ...baseReport,
+    deep_nlp: deepNlp
+  };
+  finalized.self_critique_log = selfCritique(finalized);
+  return finalized;
 }
 
 function renderLinguaInsightReport(report) {
+  report = normalizeReportShape(report);
   const arcEl = document.getElementById('report-arc');
   const metaEl = document.getElementById('report-meta');
   const critiqueEl = document.getElementById('report-critique');
   if (!arcEl || !metaEl || !critiqueEl || !report) return;
-  arcEl.innerHTML = report.session_arc || 'No arc generated yet.';
+  const deepNlp = report.deep_nlp || { enabled: false, status: 'disabled' };
+  const hfQuestions = deepNlp.follow_up_questions || [];
+  const questionList = hfQuestions.length
+    ? `<br><br><strong>Suggested follow-up questions</strong><br>${hfQuestions.map((q, i) => `${i + 1}. ${escapeHTML(q)}`).join('<br>')}`
+    : '';
+  const deepExplanation = deepNlp.deeper_explanation
+    ? `<br><br><strong>Deep NLP enrichment</strong><br>${escapeHTML(deepNlp.deeper_explanation)}`
+    : '';
+  arcEl.innerHTML = (report.session_arc || 'No arc generated yet.') + deepExplanation + questionList;
   metaEl.textContent = `Modes: ${(report.modes_selected || []).join(', ') || 'none'} · ONNX available: ${report.onnx_status?.available ? 'yes' : 'no'} · Fallback: ${report.onnx_status?.fallback_used ? 'yes' : 'no'}`;
   const critiques = (report.self_critique_log || []).map(c => `• [${c.stage}] ${c.issue} → ${c.action}`).join('\n');
-  critiqueEl.textContent = critiques || 'No major critique flags for this turn.';
+  const hfLine = deepNlp.enabled
+    ? `\n• [deep_nlp] status=${deepNlp.status}${deepNlp.model_used ? ` model=${deepNlp.model_used}` : ''}${deepNlp.error ? ` error=${deepNlp.error}` : ''}`
+    : '';
+  critiqueEl.textContent = (critiques || 'No major critique flags for this turn.') + hfLine;
 }
 
 function copyLinguaInsightJson() {
@@ -3756,13 +4126,43 @@ function removeThinking() {
   if (t) t.remove();
 }
 
+function validateSystemWiring(currentProfile) {
+  const requiredIds = [
+    'chat-messages', 'scores-col', 'report-arc', 'report-meta', 'report-critique',
+    'mode-a', 'mode-b', 'mode-c', 'learning-mode', 'mm-status'
+  ];
+  const missing = requiredIds.filter(id => !document.getElementById(id));
+  const frameworkKeys = new Set(FRAMEWORKS.flatMap(fw => fw.dims.map(d => d.k)));
+  const accumulatorKeys = currentProfile ? new Set(Object.keys(currentProfile.accumulators || {})) : new Set();
+  const missingAccumulators = [...frameworkKeys].filter(k => !accumulatorKeys.has(k));
+  return {
+    ok: missing.length === 0 && missingAccumulators.length === 0,
+    missingDomIds: missing,
+    missingAccumulators
+  };
+}
+
+function normalizeReportShape(report = {}) {
+  return {
+    modes_selected: Array.isArray(report.modes_selected) ? report.modes_selected : ['A', 'B', 'C'],
+    session_arc: report.session_arc || 'No arc generated yet.',
+    onnx_status: {
+      available: !!report.onnx_status?.available,
+      fallback_used: !!report.onnx_status?.fallback_used
+    },
+    self_critique_log: Array.isArray(report.self_critique_log) ? report.self_critique_log : [],
+    deep_nlp: report.deep_nlp || { enabled: false, status: 'disabled', follow_up_questions: [], deeper_explanation: '' },
+    ...report
+  };
+}
+
 /* ─── SESSION STATE ─────────────────────────────────────── */
 
 let profile = null;
 let sessionActive = false;
 let lastFeatures = null;
 
-function beginSession() {
+async function beginSession() {
   document.getElementById('intro').classList.add('fading');
   setTimeout(() => {
     document.getElementById('intro').style.display = 'none';
@@ -3770,6 +4170,14 @@ function beginSession() {
   }, 620);
 
   profile = initProfile();
+  const wiringCheck = validateSystemWiring(profile);
+  if (!wiringCheck.ok) {
+    console.warn('System wiring check failed:', wiringCheck);
+  }
+  const chartReady = await ensureChartLoaded();
+  if (!chartReady) {
+    addMsg('sys', 'Visualization engine not ready yet. Retrying with reduced telemetry mode.');
+  }
   initCharts();
   initMultimodalEngine();
   enableAudioFusion().then(enabled => {
@@ -3786,6 +4194,9 @@ function beginSession() {
     self_critique_log: [{ stage: 'data_integrity', issue: 'Insufficient turns at session start.', action: 'Collect at least 3 responses for trend stability.' }]
   });
   sessionActive = true;
+  if (!wiringCheck.ok) {
+    addMsg('sys', `Wiring check warning. Missing IDs: ${wiringCheck.missingDomIds.join(', ') || 'none'} · Missing accumulators: ${wiringCheck.missingAccumulators.join(', ') || 'none'}`);
+  }
 
   // First question — slight delay for atmosphere
   setTimeout(() => {
@@ -3808,59 +4219,66 @@ async function send() {
   addMsg('user', escapeHTML(text));
   showThinking();
 
-  // Simulate brief processing pause (realistic + allows for animation to render)
-  await new Promise(r => setTimeout(r, 420 + Math.random() * 280));
+  try {
+    // Simulate brief processing pause (realistic + allows for animation to render)
+    await new Promise(r => setTimeout(r, 420 + Math.random() * 280));
 
-  // Update profile
-  const result = updateProfile(profile, text);
-  profile = result.profile;
-  lastFeatures = result.features;
-  const mmScores = await updateMultimodalEmotion(text, result.sentiment);
-  const cognitiveProfile = await runCognitiveLinguistV2(text, profile, result.sentiment, mmScores);
-  const linguaInsightReport = await generateLinguaInsightReport(profile, cognitiveProfile, mmScores, getSelectedModesFromUI());
-  profile.latestCognitiveProfile = cognitiveProfile;
-  profile.latestLinguaInsightReport = linguaInsightReport;
-  window.latestCognitiveProfile = cognitiveProfile;
-  window.latestLinguaInsightReport = linguaInsightReport;
-  renderLinguaInsightReport(linguaInsightReport);
+    // Update profile
+    const result = updateProfile(profile, text);
+    profile = result.profile;
+    lastFeatures = result.features;
+    const mmScores = await updateMultimodalEmotion(text, result.sentiment);
+    const cognitiveProfile = await runCognitiveLinguistV2(text, profile, result.sentiment, mmScores);
+    const linguaInsightReport = await generateLinguaInsightReport(profile, cognitiveProfile, mmScores, getSelectedModesFromUI());
+    profile.latestCognitiveProfile = cognitiveProfile;
+    profile.latestLinguaInsightReport = linguaInsightReport;
+    window.latestCognitiveProfile = cognitiveProfile;
+    window.latestLinguaInsightReport = linguaInsightReport;
+    renderLinguaInsightReport(linguaInsightReport);
 
-  // Expose to console for auditing
-  console.group(`%cLinguistic Insight Profiler — Turn ${profile.turn}`, 'color:#c8922a;font-family:monospace');
-  console.log('Sentiment:', result.sentiment);
-  console.log('Features:', result.features);
-  console.log('Evidence delta:', result.evidence);
-  console.log('Accumulators:', profile.accumulators);
-  console.log('Readiness:', profile.readiness);
-  console.log('Volatility:', profile.sentimentVolatility);
-  console.log('Cognitive Linguist v2 JSON:', cognitiveProfile);
-  console.log('LinguaInsight report JSON:', linguaInsightReport);
-  console.groupEnd();
+    // Expose to console for auditing
+    console.group(`%cLinguistic Insight Profiler — Turn ${profile.turn}`, 'color:#c8922a;font-family:monospace');
+    console.log('Sentiment:', result.sentiment);
+    console.log('Features:', result.features);
+    console.log('Evidence delta:', result.evidence);
+    console.log('Accumulators:', profile.accumulators);
+    console.log('Readiness:', profile.readiness);
+    console.log('Volatility:', profile.sentimentVolatility);
+    console.log('Cognitive Linguist v2 JSON:', cognitiveProfile);
+    console.log('LinguaInsight report JSON:', linguaInsightReport);
+    console.groupEnd();
 
-  // Update all visualizations
-  updateCharts(profile);
-  renderScorePanel(profile);
-  updateStatus(profile);
-  updateNarrative(profile);
+    // Update all visualizations
+    updateCharts(profile);
+    renderScorePanel(profile);
+    updateStatus(profile);
+    updateNarrative(profile);
 
-  removeThinking();
+    removeThinking();
 
-  // Phase-1 → Reveal at turn 17
-  if (profile.turn === 17) {
+    // Phase-1 → Reveal at turn 17
+    if (profile.turn === 17) {
+      setTimeout(() => {
+        addMsg('sys', 'Phase I complete. Generating full profile...');
+        setTimeout(() => showReveal(), 1400);
+      }, 600);
+      document.getElementById('send-btn').disabled = false;
+      return;
+    }
+
+    // Select and deliver next question
+    const next = selectNextQuestion(profile, result.features);
     setTimeout(() => {
-      addMsg('sys', 'Phase I complete. Generating full profile...');
-      setTimeout(() => showReveal(), 1400);
-    }, 600);
+      addMsg('ai', next.text);
+      document.getElementById('send-btn').disabled = false;
+      document.getElementById('user-input').focus();
+    }, 180);
+  } catch (err) {
+    console.error('Send pipeline failed:', err);
+    removeThinking();
+    addMsg('sys', 'Processing error detected. Pipeline kept state intact; please try sending again.');
     document.getElementById('send-btn').disabled = false;
-    return;
   }
-
-  // Select and deliver next question
-  const next = selectNextQuestion(profile, result.features);
-  setTimeout(() => {
-    addMsg('ai', next.text);
-    document.getElementById('send-btn').disabled = false;
-    document.getElementById('user-input').focus();
-  }, 180);
 }
 
 function continueSession() {
