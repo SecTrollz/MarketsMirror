@@ -2747,12 +2747,14 @@ function beginSession() {
     addMsg('ai', opener.t);
     document.getElementById('user-input').focus();
   }, 500);
+  document.getElementById('popup-input-btn').disabled = false;
 }
 
 async function send() {
   const input = document.getElementById('user-input');
   const text = input.value.trim();
   if (!text || !sessionActive) return;
+  closeChatInputPopup();
 
   input.value = '';
   input.style.height = 'auto';
@@ -2897,6 +2899,9 @@ async function send() {
     }, 180);
   } catch (err) {
     clearInterval(progressHeartbeat);
+    logPipelineError(activeStage, err, { fatal: true, input_length: text.length });
+    console.error('Send pipeline failed:', err);
+    removeThinking();
     const logged = logPipelineError(activeStage, err, { fatal: true, input_length: text.length });
     console.error('Send pipeline failed:', err);
     removeThinking();
@@ -2993,6 +2998,7 @@ function restartSession() {
     addMsg('ai', opener.t);
     document.getElementById('user-input').focus();
   }, 200);
+  document.getElementById('popup-input-btn').disabled = false;
 }
 
 function escapeHTML(str) {
@@ -3013,6 +3019,11 @@ document.getElementById('user-input').addEventListener('keydown', e => {
 document.getElementById('user-input').addEventListener('input', function () {
   this.style.height = 'auto';
   this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+document.getElementById('popup-user-input').addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeChatInputPopup();
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') applyPopupDraft(true);
 });
 
 

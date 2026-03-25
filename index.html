@@ -66,6 +66,7 @@
     <div class="chat-input-wrap">
       <div class="chat-input-row">
         <textarea id="user-input" rows="1" placeholder="Respond naturally. There are no right answers." disabled></textarea>
+        <button id="popup-input-btn" type="button" onclick="openChatInputPopup()" disabled>Expand</button>
         <button id="send-btn" onclick="send()" disabled>Send</button>
       </div>
       <div class="turn-counter" id="turn-counter">Turn 0 / 17</div>
@@ -156,6 +157,20 @@
     </div>
   </div>
 
+</div>
+
+<div id="chat-input-popup" class="chat-popup" aria-hidden="true">
+  <div class="chat-popup-card" role="dialog" aria-modal="true" aria-labelledby="chat-popup-title">
+    <div class="chat-popup-head">
+      <div id="chat-popup-title" class="chat-popup-title">Expanded Response Composer</div>
+      <button class="chat-popup-close" type="button" onclick="closeChatInputPopup()">Close</button>
+    </div>
+    <textarea id="popup-user-input" rows="8" placeholder="Draft your response here..."></textarea>
+    <div class="chat-popup-actions">
+      <button class="chat-popup-btn secondary" type="button" onclick="applyPopupDraft(false)">Apply Draft</button>
+      <button class="chat-popup-btn primary" type="button" onclick="applyPopupDraft(true)">Apply + Send</button>
+    </div>
+  </div>
 </div>
 
 <!-- ═══════════════════════════════════ REVEAL ══ -->
