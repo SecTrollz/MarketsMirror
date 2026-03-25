@@ -2638,6 +2638,36 @@ function removeThinking() {
   if (t) t.remove();
 }
 
+function openChatInputPopup() {
+  const modal = document.getElementById('chat-input-popup');
+  const baseInput = document.getElementById('user-input');
+  const popupInput = document.getElementById('popup-user-input');
+  if (!modal || !baseInput || !popupInput || baseInput.disabled) return;
+  popupInput.value = baseInput.value;
+  modal.classList.add('visible');
+  modal.setAttribute('aria-hidden', 'false');
+  setTimeout(() => popupInput.focus(), 10);
+}
+
+function closeChatInputPopup() {
+  const modal = document.getElementById('chat-input-popup');
+  if (!modal) return;
+  modal.classList.remove('visible');
+  modal.setAttribute('aria-hidden', 'true');
+  document.getElementById('user-input')?.focus();
+}
+
+function applyPopupDraft(sendImmediately = false) {
+  const baseInput = document.getElementById('user-input');
+  const popupInput = document.getElementById('popup-user-input');
+  if (!baseInput || !popupInput) return;
+  baseInput.value = popupInput.value;
+  baseInput.style.height = 'auto';
+  baseInput.style.height = Math.min(baseInput.scrollHeight, 120) + 'px';
+  closeChatInputPopup();
+  if (sendImmediately) send();
+}
+
 function formatProcessingError(stage, err) {
   const msg = err?.message ? String(err.message) : 'Unknown processing error.';
   const likelyNetwork = /network|fetch|timeout|http_/i.test(msg);
@@ -2736,6 +2766,9 @@ function beginSession() {
     self_critique_log: [{ stage: 'data_integrity', issue: 'Insufficient turns at session start.', action: 'Collect at least 3 responses for trend stability.' }]
   });
   sessionActive = true;
+  document.getElementById('user-input').disabled = false;
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('popup-input-btn').disabled = false;
   if (!wiringCheck.ok) {
     addMsg('sys', `Wiring check warning. Missing IDs: ${wiringCheck.missingDomIds.join(', ') || 'none'} · Missing accumulators: ${wiringCheck.missingAccumulators.join(', ') || 'none'}`);
   }
@@ -2759,6 +2792,7 @@ async function send() {
   input.value = '';
   input.style.height = 'auto';
   document.getElementById('send-btn').disabled = true;
+  document.getElementById('popup-input-btn').disabled = true;
 
   addMsg('user', escapeHTML(text));
   showThinking('Queued. Preparing your response for analysis…');
@@ -2804,6 +2838,8 @@ async function send() {
       try {
         return await runStage(stageLabel, handler, options);
       } catch (err) {
+        logPipelineError(stageLabel, err, { fallback_applied: true });
+        return fallbackFactory(err, null);
         const logged = logPipelineError(stageLabel, err, { fallback_applied: true });
         addMsg('sys', `Notice: ${stageLabel} degraded gracefully (ref: ${logged.id}).`);
         return fallbackFactory(err, logged);
@@ -2887,6 +2923,7 @@ async function send() {
         setTimeout(() => showReveal(), 1400);
       }, 600);
       document.getElementById('send-btn').disabled = false;
+      document.getElementById('popup-input-btn').disabled = false;
       return;
     }
 
@@ -2895,6 +2932,7 @@ async function send() {
     setTimeout(() => {
       addMsg('ai', next.text);
       document.getElementById('send-btn').disabled = false;
+      document.getElementById('popup-input-btn').disabled = false;
       document.getElementById('user-input').focus();
     }, 180);
   } catch (err) {
@@ -2907,6 +2945,7 @@ async function send() {
     removeThinking();
     addMsg('sys', `Processing error detected. ${formatProcessingError(activeStage, err)} (ref: ${logged.id})`);
     document.getElementById('send-btn').disabled = false;
+    document.getElementById('popup-input-btn').disabled = false;
   }
 }
 
@@ -2986,6 +3025,9 @@ function restartSession() {
   document.getElementById('chat-messages').innerHTML = '';
   profile = initProfile();
   sessionActive = true;
+  document.getElementById('user-input').disabled = false;
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('popup-input-btn').disabled = false;
   updateCharts(profile);
   renderScorePanel(profile);
   updateStatus(profile);
@@ -3024,6 +3066,10 @@ document.getElementById('user-input').addEventListener('input', function () {
 document.getElementById('popup-user-input').addEventListener('keydown', e => {
   if (e.key === 'Escape') closeChatInputPopup();
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') applyPopupDraft(true);
+});
+
+document.getElementById('chat-input-popup').addEventListener('click', e => {
+  if (e.target?.id === 'chat-input-popup') closeChatInputPopup();
 });
 
 
