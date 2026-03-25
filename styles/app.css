@@ -486,6 +486,40 @@ body {
   color: var(--amber);
   font-weight: 400;
 }
+.mm-loader {
+  margin-top: 8px;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--text-dim);
+}
+.mm-loader.visible { display: flex; }
+.mm-loader-wheel {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1px solid var(--border-mid);
+  border-top-color: var(--amber);
+  animation: mm-spin 0.8s linear infinite;
+}
+.mm-loader-track {
+  width: 150px;
+  height: 5px;
+  border: 1px solid var(--border-mid);
+  background: var(--bg2);
+}
+.mm-loader-fill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--amber-lo), var(--amber));
+  transition: width 220ms ease;
+}
+@keyframes mm-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 
 #diag-content {
   flex: 1; overflow-y: auto; display: flex;
