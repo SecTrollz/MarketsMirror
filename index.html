@@ -102,6 +102,7 @@ body {
   background: none; border: 1px solid var(--amber-lo);
   padding: 14px 28px; cursor: pointer;
   transition: var(--transition); width: fit-content;
+  touch-action: manipulation;
 }
 .intro-begin:hover {
   background: var(--amber-dim);
@@ -256,6 +257,7 @@ body {
   letter-spacing: 0.3em; padding: 10px 16px; cursor: pointer;
   transition: var(--transition); white-space: nowrap;
   text-transform: uppercase; height: 44px;
+  touch-action: manipulation;
 }
 #send-btn:hover { background: var(--amber-lo); border-color: var(--amber); }
 #send-btn:disabled { opacity: 0.4; pointer-events: none; }
@@ -553,9 +555,28 @@ body {
   padding: 10px 20px 9px;
   border-top: 1px solid var(--border);
   cursor: default;
-  transition: background var(--transition);
+  --score-hue: 36;
+  transition: background-color 420ms ease, border-color 420ms ease, box-shadow 420ms ease;
+  border-left: 1px solid transparent;
+  background: linear-gradient(
+    90deg,
+    hsl(var(--score-hue) 70% 45% / 0.10) 0%,
+    transparent 38%
+  );
 }
-.fw-dim:hover { background: var(--bg2); }
+.fw-dim:hover {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--score-hue) 70% 45% / 0.16) 0%,
+    transparent 46%
+  );
+  border-left-color: hsl(var(--score-hue) 72% 52% / 0.55);
+}
+@keyframes score-fade-in {
+  from { opacity: 0.65; filter: saturate(0.86); }
+  to { opacity: 1; filter: saturate(1); }
+}
+.fw-dim.score-updated { animation: score-fade-in 620ms ease; }
 
 .fw-dim-row {
   display: flex; align-items: center; gap: 10px; margin-bottom: 5px;
@@ -571,18 +592,24 @@ body {
   position: relative; overflow: hidden;
 }
 .fw-bar {
-  height: 100%; background: var(--amber);
-  transition: width 600ms cubic-bezier(0.4, 0, 0.2, 1);
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    hsl(var(--score-hue) 75% 42%) 0%,
+    hsl(var(--score-hue) 78% 58%) 100%
+  );
+  transition: width 600ms cubic-bezier(0.4, 0, 0.2, 1), background-color 420ms ease, filter 420ms ease;
   position: relative;
 }
 .fw-bar::after {
   content: ''; position: absolute; right: 0; top: -2px;
-  width: 1px; height: 7px; background: var(--amber);
+  width: 1px; height: 7px; background: hsl(var(--score-hue) 82% 72%);
   opacity: 0.6;
 }
 .fw-score {
   font-family: var(--mono); font-size: 9px;
-  color: var(--amber); width: 32px; text-align: right;
+  color: hsl(var(--score-hue) 80% 67%); width: 32px; text-align: right;
+  transition: color 420ms ease;
 }
 .fw-conf {
   font-family: var(--mono); font-size: 8px;
@@ -700,6 +727,7 @@ body {
   letter-spacing: 0.25em; text-transform: uppercase;
   padding: 12px 24px; cursor: pointer;
   transition: var(--transition); border: 1px solid;
+  touch-action: manipulation;
 }
 .reveal-btn.primary {
   background: var(--amber-dim); border-color: var(--amber-lo); color: var(--amber);
@@ -709,6 +737,28 @@ body {
   background: none; border-color: var(--border); color: var(--text-dim);
 }
 .reveal-btn.secondary:hover { background: var(--bg2); border-color: var(--border-mid); }
+
+#ui-feedback {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 140;
+  max-width: min(92vw, 460px);
+  padding: 10px 12px;
+  border: 1px solid var(--border-mid);
+  background: var(--bg1);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity 220ms ease, transform 220ms ease, border-color 220ms ease;
+}
+#ui-feedback.visible { opacity: 1; transform: translateY(0); }
+#ui-feedback.error { border-color: var(--red-hi); }
+#ui-feedback.ok { border-color: var(--green-hi); }
 
 @media (min-width: 1101px) {
   #diag-content {
@@ -1361,6 +1411,7 @@ body.mobile-optimized .reveal-inner {
     </div>
   </div>
 </div>
+<div id="ui-feedback" role="status" aria-live="polite"></div>
 
 
 
@@ -1743,6 +1794,9 @@ function renderScorePanel(profile) {
 
       const row = document.createElement('div');
       row.className = 'fw-dim';
+      const hue = Math.round(8 + (pct * 1.16)); // red→amber→green across 0-100
+      row.style.setProperty('--score-hue', `${Math.max(8, Math.min(124, hue))}`);
+      row.classList.add('score-updated');
 
       const topRow = document.createElement('div');
       topRow.className = 'fw-dim-row';
@@ -2726,16 +2780,26 @@ function renderLinguaInsightReport(report) {
 
 function copyLinguaInsightJson() {
   const payload = window.latestLinguaInsightReport || profile?.latestLinguaInsightReport;
-  if (!payload) return;
+  if (!payload) {
+    flashUIFeedback('No JSON is available yet. Complete at least one analyzed turn.');
+    return;
+  }
   const text = JSON.stringify(payload, null, 2);
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).catch(() => {});
+    navigator.clipboard.writeText(text)
+      .then(() => flashUIFeedback('JSON copied to clipboard.', 'ok'))
+      .catch(() => flashUIFeedback('Clipboard copy failed in this browser context.'));
+  } else {
+    flashUIFeedback('Clipboard API is unavailable in this browser context.');
   }
 }
 
 function downloadLinguaInsightJson() {
   const payload = window.latestLinguaInsightReport || profile?.latestLinguaInsightReport;
-  if (!payload) return;
+  if (!payload) {
+    flashUIFeedback('No JSON is available yet. Complete at least one analyzed turn.');
+    return;
+  }
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -2744,6 +2808,7 @@ function downloadLinguaInsightJson() {
   a.click();
   a.remove();
   URL.revokeObjectURL(a.href);
+  flashUIFeedback('JSON download started.', 'ok');
 }
 
 /* ─── STATUS BAR UPDATE ─────────────────────────────────── */
@@ -2887,6 +2952,32 @@ function normalizeReportShape(report = {}) {
 let profile = null;
 let sessionActive = false;
 let lastFeatures = null;
+let feedbackTimer = null;
+
+function flashUIFeedback(message, type = 'error') {
+  const el = document.getElementById('ui-feedback');
+  if (!el) return;
+  el.textContent = message;
+  el.classList.remove('error', 'ok', 'visible');
+  el.classList.add(type === 'ok' ? 'ok' : 'error');
+  void el.offsetWidth;
+  el.classList.add('visible');
+  if (feedbackTimer) clearTimeout(feedbackTimer);
+  feedbackTimer = setTimeout(() => el.classList.remove('visible'), 1700);
+}
+
+function setSendButtonState(busy) {
+  const btn = document.getElementById('send-btn');
+  if (!btn) return;
+  btn.disabled = !!busy;
+  btn.textContent = busy ? 'Thinking…' : 'Send';
+}
+
+async function beginSession() {
+  if (sessionActive) {
+    flashUIFeedback('Session is already active.', 'ok');
+    return;
+  }
 
 async function beginSession() {
   document.getElementById('intro').classList.add('fading');
@@ -2920,6 +3011,7 @@ async function beginSession() {
     self_critique_log: [{ stage: 'data_integrity', issue: 'Insufficient turns at session start.', action: 'Collect at least 3 responses for trend stability.' }]
   });
   sessionActive = true;
+  setSendButtonState(false);
   if (!wiringCheck.ok) {
     addMsg('sys', `Wiring check warning. Missing IDs: ${wiringCheck.missingDomIds.join(', ') || 'none'} · Missing accumulators: ${wiringCheck.missingAccumulators.join(', ') || 'none'}`);
   }
@@ -2936,11 +3028,18 @@ async function beginSession() {
 async function send() {
   const input = document.getElementById('user-input');
   const text = input.value.trim();
-  if (!text || !sessionActive) return;
+  if (!sessionActive) {
+    flashUIFeedback('Start the session first to send responses.');
+    return;
+  }
+  if (!text) {
+    flashUIFeedback('Response is empty. Please type before sending.');
+    return;
+  }
 
   input.value = '';
   input.style.height = 'auto';
-  document.getElementById('send-btn').disabled = true;
+  setSendButtonState(true);
 
   addMsg('user', escapeHTML(text));
   showThinking();
@@ -2988,6 +3087,7 @@ async function send() {
         addMsg('sys', 'Phase I complete. Generating full profile...');
         setTimeout(() => showReveal(), 1400);
       }, 600);
+      setSendButtonState(false);
       document.getElementById('send-btn').disabled = false;
       return;
     }
@@ -2996,6 +3096,7 @@ async function send() {
     const next = selectNextQuestion(profile, result.features);
     setTimeout(() => {
       addMsg('ai', next.text);
+      setSendButtonState(false);
       document.getElementById('send-btn').disabled = false;
       document.getElementById('user-input').focus();
     }, 180);
@@ -3003,11 +3104,17 @@ async function send() {
     console.error('Send pipeline failed:', err);
     removeThinking();
     addMsg('sys', 'Processing error detected. Pipeline kept state intact; please try sending again.');
+    flashUIFeedback('Unable to process that response right now.');
+    setSendButtonState(false);
     document.getElementById('send-btn').disabled = false;
   }
 }
 
 function continueSession() {
+  if (!profile) {
+    flashUIFeedback('No active profile. Start a new session first.');
+    return;
+  }
   document.getElementById('reveal').classList.remove('visible');
   sessionActive = true;
   document.getElementById('phase-label').textContent = 'Phase II — Uncertainty Reduction';
@@ -3079,6 +3186,7 @@ function showReveal() {
 }
 
 function restartSession() {
+  flashUIFeedback('Starting a new session.', 'ok');
   document.getElementById('reveal').classList.remove('visible');
   document.getElementById('chat-messages').innerHTML = '';
   profile = initProfile();
@@ -5059,25 +5167,77 @@ function selectNextQuestionWarm(profile) {
   renderScorePanel = function(profile){
     const panel = document.getElementById('scores-col');
     if (!panel) return;
-    const groups = FRAMEWORKS.map(fw => {
-      const rows = fw.dims.map(d => {
+    const sectionHead = panel.querySelector('.viz-zone-head');
+    panel.innerHTML = '';
+    if (sectionHead) panel.appendChild(sectionHead);
+    const fragment = document.createDocumentFragment();
+
+    FRAMEWORKS.forEach(fw => {
+      const group = document.createElement('div');
+      group.className = 'fw-group';
+
+      const header = document.createElement('div');
+      header.className = 'fw-group-header';
+      header.textContent = fw.label;
+      group.appendChild(header);
+
+      fw.dims.forEach(d => {
         const a = profile.accumulators[d.k];
         const pct = Math.round(a.mean * 100);
         const conf = Math.round(a.confidence * 100);
+
+        const row = document.createElement('div');
+        row.className = 'fw-dim score-updated';
+        const hue = Math.round(8 + (pct * 1.16)); // red→amber→green across 0-100
+        row.style.setProperty('--score-hue', `${Math.max(8, Math.min(124, hue))}`);
+
+        const topRow = document.createElement('div');
+        topRow.className = 'fw-dim-row';
+
+        const dimName = document.createElement('span');
+        dimName.className = 'fw-dim-name';
+        dimName.textContent = d.label;
+
+        const barWrap = document.createElement('div');
+        barWrap.className = 'fw-bar-wrap';
+        const bar = document.createElement('div');
+        bar.className = 'fw-bar';
+        bar.style.width = `${pct}%`;
+        barWrap.appendChild(bar);
+
+        const score = document.createElement('span');
+        score.className = 'fw-score';
+        score.textContent = `${pct}`;
+
+        const confEl = document.createElement('span');
+        confEl.className = 'fw-conf';
+        confEl.textContent = `${conf}%`;
+
+        topRow.append(dimName, barWrap, score, confEl);
+
+        const evRow = document.createElement('div');
+        evRow.className = 'fw-evidence';
         const evidence = (a.words || []).slice(0, 5);
-        return `<div class="fw-dim">
-          <div class="fw-dim-row">
-            <span class="fw-dim-name">${d.label}</span>
-            <div class="fw-bar-wrap"><div class="fw-bar" style="width:${pct}%"></div></div>
-            <span class="fw-score">${pct}</span>
-            <span class="fw-conf">${conf}%</span>
-          </div>
-          <div class="fw-evidence">${evidence.length ? `Evidence: ${evidence.map(w => `<em>${w}</em>`).join(', ')}` : 'Hover for evidence — no signals yet.'}</div>
-        </div>`;
-      }).join('');
-      return `<div class="fw-group"><div class="fw-group-header">${fw.label}</div>${rows}</div>`;
-    }).join('');
-    panel.innerHTML = groups;
+        if (evidence.length) {
+          evRow.append('Evidence: ');
+          evidence.forEach((w, idx) => {
+            const em = document.createElement('em');
+            em.textContent = w;
+            evRow.appendChild(em);
+            if (idx < evidence.length - 1) evRow.append(', ');
+          });
+        } else {
+          evRow.textContent = 'Hover for evidence — no signals yet.';
+        }
+
+        row.append(topRow, evRow);
+        group.appendChild(row);
+      });
+
+      fragment.appendChild(group);
+    });
+
+    panel.appendChild(fragment);
   };
 })();
 </script>
