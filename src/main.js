@@ -2737,6 +2737,7 @@ function normalizeReportShape(report = {}) {
 let profile = null;
 let sessionActive = false;
 let lastFeatures = null;
+let inputAutoSelectTimer = null;
 
 function beginSession() {
   document.getElementById('intro').classList.add('fading');
@@ -2779,6 +2780,7 @@ function beginSession() {
     profile.questionHistory.push({ t: opener.t, fw: null });
     addMsg('ai', opener.t);
     document.getElementById('user-input').focus();
+    scheduleInputAutoSelect();
   }, 500);
   document.getElementById('popup-input-btn').disabled = false;
 }
@@ -2934,12 +2936,16 @@ async function send() {
       document.getElementById('send-btn').disabled = false;
       document.getElementById('popup-input-btn').disabled = false;
       document.getElementById('user-input').focus();
+      scheduleInputAutoSelect();
     }, 180);
   } catch (err) {
     clearInterval(progressHeartbeat);
     logPipelineError(activeStage, err, { fatal: true, input_length: text.length });
     console.error('Send pipeline failed:', err);
     removeThinking();
+    document.getElementById('send-btn').disabled = false;
+    document.getElementById('popup-input-btn').disabled = false;
+    scheduleInputAutoSelect();
     const logged = logPipelineError(activeStage, err, { fatal: true, input_length: text.length });
     console.error('Send pipeline failed:', err);
     removeThinking();
@@ -3039,6 +3045,7 @@ function restartSession() {
   setTimeout(() => {
     addMsg('ai', opener.t);
     document.getElementById('user-input').focus();
+    scheduleInputAutoSelect();
   }, 200);
   document.getElementById('popup-input-btn').disabled = false;
 }
@@ -3049,6 +3056,19 @@ function escapeHTML(str) {
   return d.innerHTML;
 }
 
+function scheduleInputAutoSelect() {
+  if (inputAutoSelectTimer) clearTimeout(inputAutoSelectTimer);
+  inputAutoSelectTimer = setTimeout(() => {
+    const input = document.getElementById('user-input');
+    const popup = document.getElementById('chat-input-popup');
+    if (!sessionActive || !input || input.disabled) return;
+    if (popup?.classList.contains('visible')) return;
+    input.focus({ preventScroll: true });
+    const len = input.value.length;
+    input.setSelectionRange(len, len);
+  }, 15000);
+}
+
 /* ─── INPUT BEHAVIOR ────────────────────────────────────── */
 
 document.getElementById('user-input').addEventListener('keydown', e => {
@@ -3056,11 +3076,35 @@ document.getElementById('user-input').addEventListener('keydown', e => {
     e.preventDefault();
     send();
   }
+  scheduleInputAutoSelect();
 });
 
 document.getElementById('user-input').addEventListener('input', function () {
   this.style.height = 'auto';
   this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  scheduleInputAutoSelect();
+});
+
+document.getElementById('user-input').addEventListener('click', function () {
+  this.focus({ preventScroll: true });
+  const len = this.value.length;
+  this.setSelectionRange(len, len);
+  scheduleInputAutoSelect();
+});
+
+document.getElementById('user-input').addEventListener('touchstart', function () {
+  this.focus({ preventScroll: true });
+  scheduleInputAutoSelect();
+}, { passive: true });
+
+document.getElementById('popup-user-input').addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeChatInputPopup();
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') applyPopupDraft(true);
+  scheduleInputAutoSelect();
+});
+
+document.getElementById('chat-input-popup').addEventListener('click', e => {
+  if (e.target?.id === 'chat-input-popup') closeChatInputPopup();
 });
 
 document.getElementById('popup-user-input').addEventListener('keydown', e => {
