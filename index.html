@@ -299,13 +299,13 @@ body {
 }
 .status-val { color: var(--amber); }
 
-.price-wrapper {
+.insight-controls {
   width: min(440px, 100%);
   border: 1px solid var(--border);
   background: var(--bg1);
   padding: 10px 12px;
 }
-.price-head {
+.insight-head {
   font-family: var(--mono);
   font-size: 8px;
   letter-spacing: 0.3em;
@@ -313,18 +313,18 @@ body {
   color: var(--text-dim);
   margin-bottom: 8px;
 }
-.price-grid {
+.insight-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 8px;
 }
-.price-cell {
+.insight-cell {
   padding: 8px;
   border: 1px solid var(--border);
   background: var(--bg2);
 }
-.price-label {
+.insight-label {
   display: block;
   font-family: var(--mono);
   font-size: 7px;
@@ -333,16 +333,13 @@ body {
   color: var(--text-muted);
   margin-bottom: 4px;
 }
-.price-value {
+.insight-value {
   font-family: var(--serif);
   font-size: 16px;
   font-style: italic;
   color: var(--text);
 }
-.price-value.signal-buy { color: var(--green-hi); }
-.price-value.signal-hold { color: var(--amber); }
-.price-value.signal-risk { color: var(--red-hi); }
-.price-note {
+.insight-note {
   font-family: var(--mono);
   font-size: 9px;
   line-height: 1.4;
@@ -416,6 +413,40 @@ body {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+.report-panel {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  padding: 10px;
+}
+.report-title {
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 8px;
+}
+.report-arc {
+  font-family: var(--serif);
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.55;
+  margin-bottom: 8px;
+}
+.report-meta {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+.report-critique {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  white-space: pre-wrap;
 }
 .ci-item {
   border: 1px solid var(--border);
@@ -918,11 +949,11 @@ body.mobile-optimized .reveal-inner {
     gap: 8px;
   }
 
-  .price-wrapper {
+  .insight-controls {
     width: 100%;
   }
 
-  .price-grid {
+  .insight-grid {
     grid-template-columns: 1fr;
     gap: 6px;
   }
@@ -1148,23 +1179,17 @@ body.mobile-optimized .reveal-inner {
           <span class="status-item">sentiment: <span class="status-val" id="stat-sentiment">—</span></span>
           <span class="status-item">volatility: <span class="status-val" id="stat-volatility">—</span></span>
         </div>
-        <div class="price-wrapper" id="price-wrapper">
-          <div class="price-head">Intent-Aligned Price Envelope</div>
-          <div class="price-grid">
-            <div class="price-cell">
-              <span class="price-label">Entry</span>
-              <span class="price-value" id="price-entry">$0.00</span>
-            </div>
-            <div class="price-cell">
-              <span class="price-label">Target</span>
-              <span class="price-value" id="price-target">$0.00</span>
-            </div>
-            <div class="price-cell">
-              <span class="price-label">Risk Floor</span>
-              <span class="price-value" id="price-floor">$0.00</span>
-            </div>
+        <div class="insight-controls" id="insight-controls">
+          <div class="insight-head">LinguaInsight Controls</div>
+          <div class="insight-note">Modes: choose one or many. Learning mode adds plain-language teaching notes.</div>
+          <div class="insight-grid">
+            <label class="insight-cell"><span class="insight-label">Mode A</span><input type="checkbox" id="mode-a" checked> Cognitive</label>
+            <label class="insight-cell"><span class="insight-label">Mode B</span><input type="checkbox" id="mode-b" checked> Emotion</label>
+            <label class="insight-cell"><span class="insight-label">Mode C</span><input type="checkbox" id="mode-c" checked> Cohesion</label>
           </div>
-          <div class="price-note" id="price-note">Signal will adapt after first response.</div>
+          <div class="insight-note">
+            <label><input type="checkbox" id="learning-mode" checked> Learning mode</label>
+          </div>
           <div class="mm-status" id="mm-status">MM emotion: <strong>initializing</strong> · mode: text-only · suite loading</div>
         </div>
       </div>
@@ -1199,6 +1224,12 @@ body.mobile-optimized .reveal-inner {
         <button class="reveal-btn secondary" type="button" onclick="downloadLinguaInsightJson()">Download JSON</button>
       </div>
       <div id="customer-insights-grid"></div>
+      <div class="report-panel" id="linguainsight-report-panel">
+        <div class="report-title">LinguaInsight Session Arc</div>
+        <div class="report-arc" id="report-arc">Awaiting enough responses to build educational arc.</div>
+        <div class="report-meta" id="report-meta">Modes: A, B, C · ONNX: pending</div>
+        <div class="report-critique" id="report-critique">Self-critique log will appear here.</div>
+      </div>
     </div>
   </div>
 
@@ -3419,6 +3450,17 @@ function buildGlossary() {
   ];
 }
 
+function getSelectedModesFromUI() {
+  const modeA = document.getElementById('mode-a')?.checked;
+  const modeB = document.getElementById('mode-b')?.checked;
+  const modeC = document.getElementById('mode-c')?.checked;
+  const selected = [];
+  if (modeA) selected.push('A');
+  if (modeB) selected.push('B');
+  if (modeC) selected.push('C');
+  return selected.length ? selected : ['A', 'B', 'C'];
+}
+
 async function generateLinguaInsightReport(profile, cognitiveProfile, mmScores, modes = LINGUA_MODES) {
   const turns = extractSubjectTurns();
   const modeA = modeAFromTurns(turns, cognitiveProfile);
@@ -3427,7 +3469,16 @@ async function generateLinguaInsightReport(profile, cognitiveProfile, mmScores, 
   const transitionAnalytics = buildTransitionAnalytics(turns, profile);
   const educationalInsights = buildEducationalInsights(modeA, modeB, modeC, transitionAnalytics);
   const onnxUsed = !(cognitiveProfile?.feature_vectors?.onnx_logits?.cognitive_load === null);
-  const sessionArc = `The session shows a ${modeA.cognitive_load_trend} cognitive-load trajectory with ${modeB.volatility_index} emotional volatility. *Why this matters:* shifts in load and emotion can reflect recall pressure, uncertainty, or threat sensitivity. Cohesion is ${modeC.cohesion_score}/100 with defensiveness marked as ${modeC.defensiveness_indicator}.`;
+  const learningMode = !!document.getElementById('learning-mode')?.checked;
+  const sessionArc = learningMode
+    ? `The session shows a ${modeA.cognitive_load_trend} cognitive-load trajectory with ${modeB.volatility_index} emotional volatility. *Why this matters:* shifts in load and emotion can reflect recall pressure, uncertainty, or threat sensitivity. Cohesion is ${modeC.cohesion_score}/100 with defensiveness marked as ${modeC.defensiveness_indicator}.`
+    : `Session trend: cognitive load ${modeA.cognitive_load_trend}, emotional volatility ${modeB.volatility_index}, cohesion ${modeC.cohesion_score}/100.`;
+  const selfCritiqueLog = [];
+  if (turns.length < 3) selfCritiqueLog.push({ stage: 'data_integrity', issue: 'Fewer than 3 subject turns.', action: 'Trend confidence reduced; recommend longer sample.' });
+  if (!multimodal.session) selfCritiqueLog.push({ stage: 'onnx_reliability', issue: 'ONNX model unavailable.', action: 'JS heuristics + fallback used.' });
+  if (cognitiveProfile?.feature_vectors?.status === 'insufficient_data_for_onnx_inference') {
+    selfCritiqueLog.push({ stage: 'onnx_reliability', issue: 'Current response under token threshold.', action: 'Applied heuristic-dominant scoring for this turn.' });
+  }
 
   const metrics = {};
   if (modes.includes('A')) metrics.mode_a = modeA;
@@ -3445,8 +3496,20 @@ async function generateLinguaInsightReport(profile, cognitiveProfile, mmScores, 
       available: !!multimodal.session,
       responses_processed: turns.length,
       fallback_used: !onnxUsed
-    }
+    },
+    self_critique_log: selfCritiqueLog
   };
+}
+
+function renderLinguaInsightReport(report) {
+  const arcEl = document.getElementById('report-arc');
+  const metaEl = document.getElementById('report-meta');
+  const critiqueEl = document.getElementById('report-critique');
+  if (!arcEl || !metaEl || !critiqueEl || !report) return;
+  arcEl.innerHTML = report.session_arc || 'No arc generated yet.';
+  metaEl.textContent = `Modes: ${(report.modes_selected || []).join(', ') || 'none'} · ONNX available: ${report.onnx_status?.available ? 'yes' : 'no'} · Fallback: ${report.onnx_status?.fallback_used ? 'yes' : 'no'}`;
+  const critiques = (report.self_critique_log || []).map(c => `• [${c.stage}] ${c.issue} → ${c.action}`).join('\n');
+  critiqueEl.textContent = critiques || 'No major critique flags for this turn.';
 }
 
 function copyLinguaInsightJson() {
@@ -3486,49 +3549,10 @@ function updateStatus(profile) {
   document.getElementById('stat-volatility').textContent = vol.toFixed(2);
   document.getElementById('turn-counter').textContent =
     `Turn ${profile.turn} / ${profile.turn < 17 ? 17 : '∞'}`;
-  updatePriceEnvelope(profile, lastCompound, vol);
   renderCustomerInsights(profile);
 
   const phaseLabel = document.getElementById('phase-label');
   if (profile.turn >= 17) phaseLabel.textContent = 'Phase II — Uncertainty Reduction';
-}
-
-function updatePriceEnvelope(profile, sentiment, volatility) {
-  const entryEl = document.getElementById('price-entry');
-  const targetEl = document.getElementById('price-target');
-  const floorEl = document.getElementById('price-floor');
-  const noteEl = document.getElementById('price-note');
-  if (!entryEl || !targetEl || !floorEl || !noteEl) return;
-
-  const base = 100;
-  const readiness = clamp(profile.readiness || 0, 0, 1);
-  const sentimentBias = clamp((sentiment + 1) / 2, 0, 1);
-  const conviction = clamp((readiness * 0.65) + (sentimentBias * 0.35), 0, 1);
-  const riskPenalty = clamp((volatility || 0) * 0.65, 0, 0.45);
-
-  const entry = base * (1 + (conviction - 0.5) * 0.2);
-  const target = entry * (1.05 + conviction * 0.18 - riskPenalty * 0.2);
-  const floor = entry * (0.88 - riskPenalty * 0.35);
-  const upside = ((target - entry) / entry) * 100;
-  const downside = ((entry - floor) / entry) * 100;
-
-  const fmt = n => `$${n.toFixed(2)}`;
-  entryEl.textContent = fmt(entry);
-  targetEl.textContent = fmt(target);
-  floorEl.textContent = fmt(floor);
-
-  targetEl.classList.remove('signal-buy', 'signal-hold', 'signal-risk');
-  if (upside >= 10 && volatility < 0.33) targetEl.classList.add('signal-buy');
-  else if (upside >= 4) targetEl.classList.add('signal-hold');
-  else targetEl.classList.add('signal-risk');
-
-  const regime = upside >= 10 && volatility < 0.33
-    ? 'accumulate bias'
-    : upside >= 4
-      ? 'hold / selective adds'
-      : 'defensive posture';
-  noteEl.textContent =
-    `Regime: ${regime} · Upside ${upside.toFixed(1)}% · Drawdown band ${downside.toFixed(1)}%.`;
 }
 
 function buildSessionPoint(profile, key) {
@@ -3639,6 +3663,12 @@ function beginSession() {
   });
   renderScorePanel(profile);
   renderCustomerInsights(profile);
+  renderLinguaInsightReport({
+    modes_selected: getSelectedModesFromUI(),
+    session_arc: 'Awaiting enough responses to derive a personalized linguistic arc.',
+    onnx_status: { available: !!multimodal.session, fallback_used: true },
+    self_critique_log: [{ stage: 'data_integrity', issue: 'Insufficient turns at session start.', action: 'Collect at least 3 responses for trend stability.' }]
+  });
   sessionActive = true;
 
   // First question — slight delay for atmosphere
@@ -3671,11 +3701,12 @@ async function send() {
   lastFeatures = result.features;
   const mmScores = await updateMultimodalEmotion(text, result.sentiment);
   const cognitiveProfile = await runCognitiveLinguistV2(text, profile, result.sentiment, mmScores);
-  const linguaInsightReport = await generateLinguaInsightReport(profile, cognitiveProfile, mmScores, LINGUA_MODES);
+  const linguaInsightReport = await generateLinguaInsightReport(profile, cognitiveProfile, mmScores, getSelectedModesFromUI());
   profile.latestCognitiveProfile = cognitiveProfile;
   profile.latestLinguaInsightReport = linguaInsightReport;
   window.latestCognitiveProfile = cognitiveProfile;
   window.latestLinguaInsightReport = linguaInsightReport;
+  renderLinguaInsightReport(linguaInsightReport);
 
   // Expose to console for auditing
   console.group(`%cLinguistic Insight Profiler — Turn ${profile.turn}`, 'color:#c8922a;font-family:monospace');
