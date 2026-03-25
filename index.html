@@ -62,11 +62,11 @@
         <span id="phase-label">Phase I — Evidence-Gathering</span>
       </span>
     </div>
-    <div id="chat-messages"></div>
+    <div id="chat-messages" aria-live="polite" aria-atomic="false"></div>
     <div class="chat-input-wrap">
       <div class="chat-input-row">
-        <textarea id="user-input" rows="1" placeholder="Respond naturally. There are no right answers."></textarea>
-        <button id="send-btn" onclick="send()">Send</button>
+        <textarea id="user-input" rows="1" placeholder="Respond naturally. There are no right answers." disabled></textarea>
+        <button id="send-btn" onclick="send()" disabled>Send</button>
       </div>
       <div class="turn-counter" id="turn-counter">Turn 0 / 17</div>
     </div>
