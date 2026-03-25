@@ -1,0 +1,4889 @@
+
+/* ═══════════════════════════════════════════════════════════
+   MARKETSMIRROR v3 — PSYCHOLINGUISTIC PROFILING ENGINE
+   Nine frameworks · 28 axes · Full Bayesian · VADER sentiment
+   HUMINT elicitation: Mirror · Bridge · Silence-Break · Standard
+═══════════════════════════════════════════════════════════ */
+
+/* ─── FRAMEWORK SCHEMA ──────────────────────────────────── */
+
+const FRAMEWORKS = [
+  { key: 'trauma',     label: 'Trauma Patterns',
+    dims: [
+      { k:'trauma_abandon', label:'Abandonment / Rejection',   short:'Abandon' },
+      { k:'trauma_shame',   label:'Shame / Inadequacy',        short:'Shame' },
+      { k:'trauma_control', label:'Hypercontrol / Vigilance',  short:'Control' }
+    ]
+  },
+  { key: 'attachment', label: 'Attachment Style',
+    dims: [
+      { k:'att_anxious',   label:'Anxious / Preoccupied',      short:'Anxious' },
+      { k:'att_avoidant',  label:'Dismissive / Avoidant',      short:'Avoidant' },
+      { k:'att_fearful',   label:'Fearful / Disorganized',     short:'Fearful' }
+    ]
+  },
+  { key: 'mbti',       label: 'MBTI Tendencies',
+    dims: [
+      { k:'mbti_i',  label:'Introversion',                     short:'Intro' },
+      { k:'mbti_n',  label:'Intuition / Abstract',             short:'iNtuit' },
+      { k:'mbti_f',  label:'Feeling / Affect-Led',             short:'Feeling' },
+      { k:'mbti_p',  label:'Perceiving / Open-Ended',          short:'Percvg' }
+    ]
+  },
+  { key: 'enneagram',  label: 'Enneagram Centers',
+    dims: [
+      { k:'enn_heart', label:'Heart Center (Shame/Image)',     short:'Heart' },
+      { k:'enn_head',  label:'Head Center (Fear/Planning)',    short:'Head' },
+      { k:'enn_body',  label:'Body Center (Anger/Instinct)',   short:'Body' }
+    ]
+  },
+  { key: 'big5',       label: 'Big Five (OCEAN)',
+    dims: [
+      { k:'b5_open',  label:'Openness to Experience',          short:'Open' },
+      { k:'b5_cons',  label:'Conscientiousness',               short:'Consci' },
+      { k:'b5_extra', label:'Extraversion',                    short:'Extra' },
+      { k:'b5_agree', label:'Agreeableness',                   short:'Agree' },
+      { k:'b5_neuro', label:'Neuroticism',                     short:'Neuro' }
+    ]
+  },
+  { key: 'hexaco',     label: 'HEXACO',
+    dims: [
+      { k:'hex_hh',   label:'Honesty-Humility',                short:'H-H' },
+      { k:'hex_em',   label:'Emotionality',                    short:'Emot' }
+    ]
+  },
+  { key: 'dark',       label: 'Dark Triad',
+    dims: [
+      { k:'dark_narc', label:'Narcissism',                     short:'Narc' },
+      { k:'dark_mach', label:'Machiavellianism',               short:'Mach' },
+      { k:'dark_psyc', label:'Psychopathy / Callousness',      short:'Psyc' }
+    ]
+  },
+  { key: 'light',      label: 'Light Triad',
+    dims: [
+      { k:'light_kant', label:'Kantianism (Ends, not means)',  short:'Kant' },
+      { k:'light_hum',  label:'Humanism',                      short:'Hum' },
+      { k:'light_faith',label:'Faith in Humanity',             short:'Faith' }
+    ]
+  },
+  { key: 'schwartz',   label: 'Schwartz Values',
+    dims: [
+      { k:'sch_st', label:'Self-Transcendence',                short:'Trans' },
+      { k:'sch_se', label:'Self-Enhancement',                  short:'Enhance' }
+    ]
+  }
+];
+
+// Flat array of all 28 dimension keys in order
+const ALL_DIMS = FRAMEWORKS.flatMap(f => f.dims);
+const DIM_KEYS = ALL_DIMS.map(d => d.k);
+const SCORING_CONFIG_35 = {
+  dimensionPoints: ALL_DIMS.map(d => ({ type: 'dimension', key: d.k, label: d.label })),
+  sessionPoints: [
+    { type: 'session', key: 'liwc_analytic', label: 'LIWC Analytic' },
+    { type: 'session', key: 'liwc_clout', label: 'LIWC Clout' },
+    { type: 'session', key: 'liwc_authenticity', label: 'LIWC Authenticity' },
+    { type: 'session', key: 'liwc_tone', label: 'LIWC Tone' },
+    { type: 'session', key: 'readiness', label: 'Readiness Index' },
+    { type: 'session', key: 'sentiment', label: 'Sentiment Balance' },
+    { type: 'session', key: 'volatility', label: 'Stability Index' }
+  ]
+};
+
+/* ─── LEXICONS ──────────────────────────────────────────────────────────────
+   Design rules applied to every axis:
+   · 20–24 pos entries, 9–12 neg entries  (balanced alpha/beta pressure)
+   · Entries are DISTINCT across axes — no term appears in two pos lexicons
+   · pos = language that genuinely predicts this construct (not just "sounds related")
+   · neg = genuine counter-indicators that should move the beta accumulator
+   · Empirically grounded in LIWC, Pennebaker, Nolen-Hoeksema, Bartholomew,
+     McAdams, Paulhus, Lee, Peterson, Schwartz source literature
+────────────────────────────────────────────────────────────────────────── */
+
+const LEX = {
+
+  // ── TRAUMA: ABANDONMENT / RUPTURE ──────────────────────────────────────
+  // Separation-distress language. Fear of relational loss, waiting-for-return,
+  // pre-emptive self-abandonment. Distinct from att_anxious (which is about
+  // current relationship hypervigilance) — this axis captures the wound itself.
+  trauma_abandon: {
+    pos: [
+      'abandoned','left me','they left','everyone leaves','nobody stayed','walked away',
+      'went quiet','never came back','disappeared','no one showed up','left behind',
+      'by myself','without me','drove them away','always leaves','they all left',
+      'the quiet after','empty without','before they leave','leave first',
+      'terrified of losing','when people leave','afraid to lose','hollow inside'
+    ],
+    neg: [
+      'they stayed','showed up','never left','came back','still here',
+      'i can count on them','reliable','they always come through',
+      'i\'m not alone','feel secure with them'
+    ]
+  },
+
+  // ── TRAUMA: SHAME / SELF-CONDEMNATION ──────────────────────────────────
+  // Internalised defectiveness. Self-as-fundamentally-flawed. Hiding, exposure
+  // terror, self-blame. Distinct from hex_hh (which is trait sincerity, not wound)
+  // and from b5_neuro (emotional reactivity, not self-concept damage).
+  trauma_shame: {
+    pos: [
+      'ashamed','humiliated','defective','something is wrong with me','i\'m the problem',
+      'my fault','always my fault','i deserve it','i had it coming','i ruin things',
+      'feel like a burden','no one can know','if they knew','can\'t forgive myself',
+      'i\'m not enough','never enough','worthless','feel dirty','hide this',
+      'what\'s wrong with me','damaged','broken inside'
+    ],
+    neg: [
+      'not my fault','i forgave myself','i accept myself','no shame in that',
+      'i did the best i could','i\'m enough','proud of myself',
+      'don\'t feel guilty about it','made peace with it'
+    ]
+  },
+
+  // ── TRAUMA: HYPERCONTROL / VIGILANCE ──────────────────────────────────
+  // Anxious self-regulation as a trauma response — not generalized anxiety (b5_neuro)
+  // but specifically the compulsion to prevent a bad outcome through watchfulness.
+  trauma_control: {
+    pos: [
+      'need to control','if i\'m not watching','need a plan','can\'t not plan',
+      'what if something goes wrong','worst case','run through scenarios',
+      'always on guard','waiting for something to go wrong','never fully relax',
+      'always scanning','micromanage','grip','hold on tight','keep it together',
+      'if i let go','not knowing is the worst','need certainty','prepared for everything',
+      'just in case','can\'t trust it will work out','hard to let go of control'
+    ],
+    neg: [
+      'let go','trust the process','comfortable not knowing','not a planner',
+      'things work themselves out','i go with the flow','don\'t need to control',
+      'fine with uncertainty','can improvise','trust others to handle it'
+    ]
+  },
+
+  // ── ATTACHMENT: ANXIOUS / PREOCCUPIED ─────────────────────────────────
+  // Hyperactivation of attachment system. Preoccupation with partner availability,
+  // reassurance-seeking, merger-desire. Distinct from trauma_abandon (the original
+  // wound) — this axis captures the relational strategy in present tense.
+  att_anxious: {
+    pos: [
+      'need reassurance','did i say something wrong','overthink after talking to them',
+      'replay conversations','waiting to hear back','walking on eggshells',
+      'afraid they\'re upset','hyperaware of their mood','what if they\'re angry',
+      'they seem distant','why haven\'t they responded','change myself for them',
+      'afraid to express needs','worried about losing them','can\'t stop thinking about them',
+      'people pleasing','afraid to upset them','jealous easily',
+      'clingy','constant reassurance','preoccupied with the relationship'
+    ],
+    neg: [
+      'comfortable with space','don\'t need constant contact','trust them to come back',
+      'not worried when they\'re quiet','secure in the relationship',
+      'don\'t need reassurance','give them space easily','not jealous'
+    ]
+  },
+
+  // ── ATTACHMENT: DISMISSIVE-AVOIDANT ───────────────────────────────────
+  // Deactivation strategy. Self-sufficiency as defence. Discomfort with
+  // emotional need or dependency. Distinct from mbti_i (cognitive preference
+  // for solitude) — this axis is specifically about relational deactivation.
+  att_avoidant: {
+    pos: [
+      'don\'t need people','rely only on myself','vulnerability feels wrong',
+      'don\'t like depending on others','pull back when it gets close',
+      'need my space','emotional distance','shut down','walls up',
+      'uncomfortable when they need too much','too much closeness','suffocating',
+      'don\'t open up easily','independence is non-negotiable','better alone',
+      'don\'t ask for help','relationships are complicated','go quiet instead',
+      'keep to myself','can\'t rely on others','keep it surface level'
+    ],
+    neg: [
+      'love closeness','comfortable being vulnerable','enjoy leaning on people',
+      'ask for help easily','like being needed','intimacy feels natural',
+      'don\'t mind depending on someone','open up quickly'
+    ]
+  },
+
+  // ── ATTACHMENT: FEARFUL / DISORGANIZED ────────────────────────────────
+  // Approach-avoidance conflict. Wants connection, fears it. Trust injury + longing.
+  // This is the push-pull pattern — distinct from avoidant (which doesn't want
+  // closeness) and anxious (which pursues it without ambivalence).
+  att_fearful: {
+    pos: [
+      'want closeness but scared','push them away before they can leave',
+      'self-sabotage','when things get good i ruin it','trust issues',
+      'been hurt before','if i let them in','can\'t fully commit',
+      'terrifying to be loved','want connection but afraid of it',
+      'open and then close off','don\'t deserve love','afraid they\'ll see the real me',
+      'scared to trust again','the closer they get the more i panic',
+      'runs from closeness','love and fear','can\'t stay','want to be close but'
+    ],
+    neg: [
+      'fully trust them','open up completely','not scared of closeness',
+      'let people in easily','feel safe being vulnerable',
+      'committed without fear','don\'t sabotage things'
+    ]
+  },
+
+  // ── MBTI: INTROVERSION ────────────────────────────────────────────────
+  // Energy economy — internal orientation. Observer-language. Need for solitude
+  // to restore. Distinct from att_avoidant (relational defence) — this is
+  // cognitive/energetic style, not attachment strategy.
+  mbti_i: {
+    pos: [
+      'recharge alone','need quiet to think','social energy drains me',
+      'overstimulated by groups','need time alone after socializing',
+      'prefer one on one','prefer to observe first','think before speaking',
+      'internal processing','private person','exhausted after social events',
+      'need to decompress','prefer written over verbal','notice from the sidelines',
+      'think it through alone first','small groups or none',
+      'don\'t need to be the center','lost in my own head'
+    ],
+    neg: [
+      'energized by being around people','love big groups','social butterfly',
+      'love parties','extrovert','the more people the better',
+      'bored when alone','love being center of attention'
+    ]
+  },
+
+  // ── MBTI: INTUITION / ABSTRACT PROCESSING ────────────────────────────
+  // Pattern-seeking, meaning-over-fact, symbolic/conceptual framing.
+  // Distinct from b5_open (which is broader curiosity + aesthetic) — this is
+  // specifically about HOW information is processed (abstract vs concrete).
+  mbti_n: {
+    pos: [
+      'there\'s a pattern here','what it all means','beneath the surface',
+      'underlying reason','connections between things','big picture',
+      'what it symbolizes','deeper meaning','reading into it',
+      'feels like there\'s more','could mean something','archetypal',
+      'conceptual','sense that something is off','theoretical','abstract',
+      'narrative arc','what if this represents','intuition tells me',
+      'something about it i can\'t name','might be a metaphor for'
+    ],
+    neg: [
+      'just the facts','step by step','literal','what you see is what you get',
+      'not reading into it','practical','concrete','no hidden meaning',
+      'don\'t overthink the details'
+    ]
+  },
+
+  // ── MBTI: FEELING / AFFECT-LED DECISION MAKING ───────────────────────
+  // Values-based and relational reasoning. Decisions weighted by emotional
+  // and interpersonal impact. Distinct from b5_agree (prosocial behavior)
+  // and hex_em (sentimentality) — this axis is about the decision-making axis.
+  mbti_f: {
+    pos: [
+      'how it feels matters more','can\'t make myself feel okay about it',
+      'emotionally it doesn\'t sit right','affects the people involved',
+      'have to weigh how it impacts them','feelings guide my decisions',
+      'can\'t separate logic from how i feel','matters to me personally',
+      'it felt wrong even if it made sense','values over logic','heart over head',
+      'hard to be objective when i care','relationship matters in the decision',
+      'consider the emotional impact first','my gut says no even if the math says yes',
+      'can\'t do something that doesn\'t feel right','harmony matters'
+    ],
+    neg: [
+      'purely logical','objective decision','emotions cloud judgment',
+      'leave feelings out of it','data-driven','rational approach',
+      'detach from the emotional side','feelings aren\'t relevant here','by the numbers'
+    ]
+  },
+
+  // ── MBTI: PERCEIVING / OPEN-ENDED ORIENTATION ────────────────────────
+  // Preference for keeping options open, adaptive over structured living.
+  // Distinct from trauma_control (which is anxiety-driven rigidity) — this
+  // is a stable stylistic preference for flexibility, not a fear response.
+  mbti_p: {
+    pos: [
+      'keep options open','not ready to decide','maybe','could go either way',
+      'don\'t like rigid plans','adapt as i go','see how i feel','leave it open',
+      'might change my mind','not locked in','last minute works for me',
+      'figure it out when i get there','prefer flexibility','go with the flow',
+      'don\'t commit to plans far ahead','spontaneous','hate being pinned down',
+      'open to whatever comes','don\'t need a schedule'
+    ],
+    neg: [
+      'planned it out','schedule is important','committed to the plan',
+      'need structure','like having things decided','follow through on decisions',
+      'organized approach','routine keeps me grounded','prefer certainty in plans'
+    ]
+  },
+
+  // ── ENNEAGRAM: HEART CENTER (Types 2, 3, 4) ──────────────────────────
+  // Identity through image, emotion, and others' perception. Recognition-hunger.
+  // Distinct from att_anxious (fear-of-loss) — Heart Center is about IDENTITY
+  // construction through relational mirroring, not attachment anxiety per se.
+  enn_heart: {
+    pos: [
+      'how i come across','what they think of me','need to feel recognized',
+      'want to be wanted','image matters','be seen a certain way',
+      'need to feel special','do i matter to them','are they happy with me',
+      'i give so much','give too much of myself','who am i without this',
+      'identity feels tied to how i\'m perceived','need to be needed',
+      'feel invisible when unacknowledged','the version they see of me',
+      'want to be loved for who i am','emotional attunement','feel others\' emotions',
+      'identity shifts around different people','meaning through connection'
+    ],
+    neg: [
+      'don\'t care what they think','image doesn\'t define me','not seeking recognition',
+      'secure in who i am regardless','don\'t need to be needed',
+      'identity isn\'t tied to others','not emotionally dependent on validation'
+    ]
+  },
+
+  // ── ENNEAGRAM: HEAD CENTER (Types 5, 6, 7) ───────────────────────────
+  // Security-seeking through knowledge, planning, or stimulation. Fear-management
+  // via information-gathering or escape into future possibility. Distinct from
+  // trauma_control (which is a trauma response) — Head Center is a cognitive style.
+  enn_head: {
+    pos: [
+      'need information before deciding','gather evidence first','research everything',
+      'contingency plan','what if things go wrong','worst case scenario',
+      'can\'t act without knowing enough','security comes from being prepared',
+      'fear of making the wrong move','over-analyze','second-guess myself',
+      'doubt before committing','need to be sure','anxious about the future',
+      'not enough information yet','more time to think','what could go wrong',
+      'need to understand the system first','overthought it before acting'
+    ],
+    neg: [
+      'act on gut instinct','don\'t need to research','comfortable deciding quickly',
+      'trust the process','not a planner','confident without all the info',
+      'act first think later','not anxious about what i don\'t know'
+    ]
+  },
+
+  // ── ENNEAGRAM: BODY CENTER (Types 8, 9, 1) ───────────────────────────
+  // Gut-instinct, somatic decision-making, anger/injustice responses, and
+  // boundary-marking or conflict-management. Types 8 (confrontation), 9 (harmony),
+  // 1 (principled anger). Distinct from enn_heart (identity/image).
+  enn_body: {
+    pos: [
+      'felt it in my body','my gut says','visceral reaction','body knew before i did',
+      'instinct','injustice bothers me deeply','that\'s just wrong','unfair',
+      'it shouldn\'t be that way','stand my ground','won\'t back down',
+      'stubborn about what\'s right','right and wrong matters',
+      'anger at how things are','boundaries are non-negotiable',
+      'confront it directly','principles over comfort',
+      'this is not okay','physically tense around conflict',
+      'avoid conflict to keep the peace','anger turned inward'
+    ],
+    neg: [
+      'indifferent','don\'t feel strongly about it','no gut reaction',
+      'rules don\'t matter much to me','fine either way','not principled about it',
+      'no strong physical reaction','conflict doesn\'t bother me'
+    ]
+  },
+
+  // ── BIG FIVE: OPENNESS TO EXPERIENCE ─────────────────────────────────
+  // Intellectual curiosity, aesthetic sensitivity, novelty-seeking, complexity
+  // appreciation. Distinct from mbti_n (abstract processing style) — Openness
+  // is broader: includes art, travel, creative expression, not just cognition.
+  b5_open: {
+    pos: [
+      'love learning','curious about everything','drawn to complexity','creative',
+      'love art','love music','fascinated by ideas','different perspectives interest me',
+      'unconventional','unusual approaches','aesthetic sense','beauty in unexpected places',
+      'intellectually hungry','love philosophy','imaginative','novel experiences',
+      'eclectic interests','culture','literature moves me','wonder',
+      'challenging my assumptions','experimenting','thought-provoking'
+    ],
+    neg: [
+      'prefer the familiar','not creative','conventional','tradition matters',
+      'practical over theoretical','same thing works fine','don\'t need novelty',
+      'art doesn\'t do much for me','step-by-step over abstract'
+    ]
+  },
+
+  // ── BIG FIVE: CONSCIENTIOUSNESS ───────────────────────────────────────
+  // Self-regulation, goal-directedness, reliability. Distinct from trauma_control
+  // (anxiety-driven watchfulness) and mbti_p (stylistic openness) — this is
+  // deliberate, internally-motivated self-discipline.
+  b5_cons: {
+    pos: [
+      'organized','follow through','disciplined','work hard to finish things',
+      'reliable','on time','goal-oriented','systematic approach','methodical',
+      'detail-oriented','prepared','structured','meet deadlines','commitments matter',
+      'don\'t quit','finish what i start','responsible','thorough',
+      'productive','plan ahead','careful','deliberate'
+    ],
+    neg: [
+      'procrastinate','disorganized','forget things','unreliable',
+      'no follow through','scattered','messy','can\'t finish things',
+      'don\'t plan ahead','miss deadlines regularly'
+    ]
+  },
+
+  // ── BIG FIVE: EXTRAVERSION ────────────────────────────────────────────
+  // Social stimulation-seeking, positive affect expressiveness, assertiveness.
+  // Distinct from enn_heart (recognition-seeking identity) — Extraversion is
+  // energized-by-others, not identity-through-others.
+  b5_extra: {
+    pos: [
+      'energized by being around people','love talking','outgoing','assertive',
+      'enthusiastic','expressive','love meeting people','thrive in groups',
+      'animated','vivid','love conversation','like being the one who speaks up',
+      'connections come easily','social confidence','love events','engaging',
+      'talkative','draw energy from others','don\'t like being alone long'
+    ],
+    neg: [
+      'need to recharge alone','prefer quiet','reserved','private person',
+      'not assertive','find small talk draining','don\'t like attention',
+      'prefer one-on-one at most','low-key social life'
+    ]
+  },
+
+  // ── BIG FIVE: AGREEABLENESS ───────────────────────────────────────────
+  // Prosocial orientation, trust-default, accommodation. Distinct from mbti_f
+  // (decision-making style) and light_hum (belief in human goodness) — this
+  // is behavioral: how one acts toward others in daily interactions.
+  b5_agree: {
+    pos: [
+      'cooperative','easy to get along with','give people the benefit of the doubt',
+      'conflict-averse','put others first','forgiving','patient','generous',
+      'accommodating','hate upsetting people','supportive','kind','nurturing',
+      'trust people easily','help without being asked','go along with others',
+      'don\'t like confrontation','consider others\' feelings in decisions',
+      'charitable interpretation','gentle'
+    ],
+    neg: [
+      'competitive','blunt','confrontational','suspicious of others','self-interested',
+      'don\'t trust easily','cold','don\'t go out of my way','direct to the point of harsh',
+      'not particularly generous'
+    ]
+  },
+
+  // ── BIG FIVE: NEUROTICISM ────────────────────────────────────────────
+  // Emotional instability / negative affect reactivity. How quickly the system
+  // responds to stressors. Distinct from hex_em (sentimentality + empathic concern)
+  // and trauma_shame (content of self-concept) — this is the reactivity dial.
+  b5_neuro: {
+    pos: [
+      'easily overwhelmed','mood swings','snap easily','can\'t calm down quickly',
+      'hard to let go of bad feelings','emotionally reactive','dwell on things',
+      'catastrophize','negative thinking spirals','self-conscious',
+      'irritable under stress','hard to relax','triggered easily',
+      'anxiety spikes','can\'t let it go','fear the worst','ruminate',
+      'doubt myself constantly','insecure','moody'
+    ],
+    neg: [
+      'emotionally stable','bounce back quickly','even-keeled','not easily upset',
+      'resilient','don\'t dwell on things','calm under pressure',
+      'recover fast','not anxious by default'
+    ]
+  },
+
+  // ── HEXACO: HONESTY-HUMILITY ──────────────────────────────────────────
+  // Low greed, low status-seeking, sincere register, anti-manipulation. This
+  // is the construct that HH uniquely captures vs the Big Five. Distinct from
+  // light_kant (ethical treatment of others) — HH is about the self: modesty,
+  // non-exploitation motive, authentic self-presentation.
+  hex_hh: {
+    pos: [
+      'not interested in status','don\'t care about being important','modest',
+      'don\'t want to impress people','not motivated by money for its own sake',
+      'same in private as in public','don\'t play games','what you see is what you get',
+      'don\'t manipulate','sincere','don\'t pretend','not driven by image',
+      'wouldn\'t take advantage','not greedy','don\'t scheme','genuinely mean it',
+      'don\'t use people','don\'t flatter to get what i want',
+      'uncomfortable with fakeness','hate political maneuvering'
+    ],
+    neg: [
+      'status matters','reputation is everything','impress the right people',
+      'willing to bend rules','get what i need from people','image is important',
+      'play the game','leverage relationships','cut corners when needed'
+    ]
+  },
+
+  // ── HEXACO: EMOTIONALITY ─────────────────────────────────────────────
+  // Sentimentality, empathic concern, fear of harm to self or loved ones,
+  // need for emotional support. Distinct from b5_neuro (reactivity/instability)
+  // — HEX Emotionality is about depth of emotional attachment and empathic
+  // sensitivity, not how easily one is destabilized.
+  hex_em: {
+    pos: [
+      'sentimental','emotionally attached','moved by others\' pain','feel empathy deeply',
+      'cry easily','affected by others\' emotions','hard to detach from people i care about',
+      'need emotional support when stressed','emotionally dependent on close relationships',
+      'fear something happening to people i love','worry about loved ones\' safety',
+      'connected at a feeling level','can\'t stay detached','feel things for a long time',
+      'tender toward people','soft-hearted','vulnerability in others affects me',
+      'hard to cope alone when hurt','need someone to talk to'
+    ],
+    neg: [
+      'not sentimental','detached','handle it alone','don\'t need support',
+      'stoic','not easily moved','don\'t cry easily','emotionally self-sufficient',
+      'not affected by others\' problems','resilient without needing connection'
+    ]
+  },
+
+  // ── DARK TRIAD: NARCISSISM ────────────────────────────────────────────
+  // Grandiosity, entitlement, admiration-seeking, exceptionalism. Distinct from
+  // enn_heart (identity-through-connection) — Narcissism is superiority + entitlement,
+  // not just identity-seeking. Key markers: exceptionalism + deserving more.
+  dark_narc: {
+    pos: [
+      'i deserve more than i get','most people don\'t understand me','above average',
+      'i know better','they should appreciate what i bring','not like other people',
+      'exceptional','natural leader','wasting my potential here',
+      'people should listen to me','i could do it better','obvious to me',
+      'they don\'t get it','entitled to recognition','my accomplishments speak for themselves',
+      'others hold me back','why don\'t they see it','i\'m different from most',
+      'special','lack of appreciation frustrates me','superior in this area'
+    ],
+    neg: [
+      'i have obvious flaws','others know better','admire people easily',
+      'not special in any meaningful way','ordinary is fine',
+      'i was clearly wrong','don\'t need to be recognized',
+      'happy to be in the background','others are more capable'
+    ]
+  },
+
+  // ── DARK TRIAD: MACHIAVELLIANISM ─────────────────────────────────────
+  // Strategic manipulation, people-as-instruments, long-game thinking,
+  // information asymmetry as power. Distinct from dark_narc (grandiosity) and
+  // sch_se (achievement-drive) — Mach is specifically about interpersonal
+  // strategic exploitation, not just ambition.
+  dark_mach: {
+    pos: [
+      'know who to know','work the room','people are useful in the right context',
+      'leverage relationships','play it smart','angle','what\'s in it for me',
+      'don\'t show all your cards','wait for the right moment',
+      'information is power','know what motivates people',
+      'get what i need from a situation','position myself strategically',
+      'never show weakness','protect my position','calculated approach',
+      'keep people close for a reason','timing is everything',
+      'navigate office politics carefully','know their pressure points'
+    ],
+    neg: [
+      'no agenda','transparent with people','trust freely','not strategic about relationships',
+      'what you see is what you get with me','don\'t think about leverage',
+      'don\'t use people','not calculating in relationships'
+    ]
+  },
+
+  // ── DARK TRIAD: PSYCHOPATHY / CALLOUSNESS ────────────────────────────
+  // Emotional flatness, empathy-deficit, consequence-detachment, rule-dismissal.
+  // Distinct from dark_mach (strategic) — Psychopathy is affective: genuinely
+  // doesn't feel what others feel. Key markers: absence of empathic response.
+  dark_psyc: {
+    pos: [
+      'their feelings are their problem','too sensitive','weakness to feel that way',
+      'don\'t let emotion interfere','detached from the outcome','doesn\'t affect me',
+      'not responsible for how they feel','emotionally numb to it',
+      'harm is sometimes necessary','ends justify the means',
+      'they had it coming','collateral','get over it','no remorse about it',
+      'other people\'s suffering doesn\'t land on me','rules are for people who can\'t think',
+      'feelings get in the way','don\'t feel bad about it','cold calculation'
+    ],
+    neg: [
+      'care about how it affects them','feel responsible for their pain',
+      'empathy is important to me','remorse when i hurt someone',
+      'their wellbeing matters','rules exist for good reason',
+      'affected by seeing others suffer','can\'t be detached from consequences'
+    ]
+  },
+
+  // ── LIGHT TRIAD: KANTIANISM ───────────────────────────────────────────
+  // Treating people as ends in themselves, not as means. Dignity preservation,
+  // principled behavior regardless of personal cost or outcome. Distinct from
+  // sch_st (values orientation) and hex_hh (self-modesty) — this is ethical
+  // action toward others specifically.
+  light_kant: {
+    pos: [
+      'treat people with dignity','they matter as a person not just what they offer',
+      'not just a means to an end','do the right thing regardless of outcome',
+      'their autonomy matters','wouldn\'t exploit someone even if i could',
+      'ethical regardless of consequences','wouldn\'t use someone like that',
+      'principle over convenience','their rights matter','moral obligation',
+      'it\'s not about what i get','wrong to treat them that way',
+      'they deserve respect regardless','protect their dignity',
+      'not okay to deceive them for gain','fair regardless of power'
+    ],
+    neg: [
+      'ends justify the means','use people when necessary','doesn\'t matter how i get there',
+      'their feelings aren\'t my concern in this','outcome is what matters',
+      'principles are situational','willing to bend ethics'
+    ]
+  },
+
+  // ── LIGHT TRIAD: HUMANISM ────────────────────────────────────────────
+  // Genuine belief in the goodness and potential of other people. Charitable
+  // attribution. Moved and inspired by human beings. Distinct from b5_agree
+  // (behavior) and light_faith (world-view) — this is specifically about the
+  // experience of other people as inherently valuable and surprising.
+  light_hum: {
+    pos: [
+      'people are fundamentally good','believe in people','most people are trying',
+      'inspired by what people are capable of','human potential moves me',
+      'people can change','see the best in people','generosity in strangers',
+      'give benefit of the doubt','people surprise me with their goodness',
+      'others\' kindness affects me','moved by humanity','love for people',
+      'people are genuinely interesting','amazed by what people do for each other',
+      'see the humanity in difficult people','most people mean well'
+    ],
+    neg: [
+      'people are selfish','can\'t trust people','people always disappoint',
+      'humans are fundamentally flawed','don\'t believe people change',
+      'suspicious of generosity','no real altruism exists'
+    ]
+  },
+
+  // ── LIGHT TRIAD: FAITH IN HUMANITY / BENEVOLENT WORLD ────────────────
+  // Belief in a fundamentally okay or benevolent world. Optimistic world-view.
+  // Meaning-making. Distinct from light_hum (about people specifically) —
+  // Faith is broader: the universe/life/existence is oriented toward good.
+  light_faith: {
+    pos: [
+      'world is fundamentally okay','meaning in things','things work out somehow',
+      'goodness exists','kindness is real','love is real and it matters',
+      'world has beauty in it','trust in life','things happen for a reason',
+      'the world is worth being in','faith in the future','something larger than myself',
+      'connection heals','belonging is possible','there is enough good',
+      'hope isn\'t naive','life is worth living fully'
+    ],
+    neg: [
+      'world is corrupt','everything is transactional','no real meaning',
+      'things don\'t work out','people don\'t care','world is fundamentally dark',
+      'no point to any of it','cynical about the future','nothing is sacred'
+    ]
+  },
+
+  // ── SCHWARTZ: SELF-TRANSCENDENCE ─────────────────────────────────────
+  // Other-focused values: universalism + benevolence. Care for welfare of people
+  // beyond one's immediate circle, environment, future generations. Distinct from
+  // light_kant (ethics of action) and light_hum (beliefs about people) — this is
+  // about what one VALUES and what MOTIVATES long-term choices.
+  sch_st: {
+    pos: [
+      'make a difference beyond my own life','contribute to something larger',
+      'care about the world beyond myself','not just about me','give back',
+      'justice matters','equality matters','future generations','care for the environment',
+      'world beyond my immediate circle','service to others','welfare of people i\'ll never meet',
+      'community is worth investing in','sacrifice for others','bigger than me',
+      'leave it better than i found it','empathy for strangers',
+      'the collective matters','others need','protect people who can\'t protect themselves'
+    ],
+    neg: [
+      'just for me','my success only','personal benefit is what matters',
+      'don\'t care about people i don\'t know','not my responsibility',
+      'the world beyond my circle isn\'t my problem','self-interest is rational'
+    ]
+  },
+
+  // ── SCHWARTZ: SELF-ENHANCEMENT ────────────────────────────────────────
+  // Achievement, power, hedonism. Personal success, status, influence, wealth
+  // as motivating values. Distinct from dark_narc (grandiosity/entitlement) —
+  // Self-Enhancement is about what one pursues as meaningful, not superiority.
+  sch_se: {
+    pos: [
+      'succeed','achieve','ambition drives me','status matters','get ahead',
+      'recognition is important','want power','want influence','build wealth',
+      'be the best','outperform','competitive drive','rise in my career',
+      'prove what i can do','my accomplishments define me','want to lead',
+      'dominate in my field','reputation is something i build',
+      'climb','exceed expectations','what i\'ve built matters to me'
+    ],
+    neg: [
+      'don\'t care about status','not competitive','ambition doesn\'t drive me',
+      'success isn\'t the point','recognition means little to me',
+      'power doesn\'t appeal to me','wealth isn\'t a priority'
+    ]
+  }
+
+};
+
+/* ─── VADER VALENCE LEXICON ────────────────────────────────────────────────
+   NOTE: All negative values use JavaScript hyphen-minus (-), not Unicode minus (−).
+   The Unicode minus is not a valid JS operator and will produce NaN silently.
+────────────────────────────────────────────────────────────────────────── */
+
+const VALENCE = {
+  // Strong positive
+  love:2.5, joy:2.9, happiness:2.9, wonderful:2.9, amazing:2.5, beautiful:2.0,
+  grateful:2.5, thankful:2.2, peaceful:2.3, calm:1.8, safe:2.1, warm:1.7,
+  fulfilled:2.8, alive:2.0, hopeful:2.1, trust:2.0, connected:2.2, belong:2.3,
+  whole:2.4, free:2.0, worthy:2.4, healing:2.4, brave:2.0, strong:1.8,
+  proud:2.1, inspired:2.3, cherished:2.5, secure:1.9, meaning:2.1,
+  // Moderate positive
+  fine:0.9, good:1.2, okay:0.7, better:1.1, glad:1.5, content:1.4, relief:1.6,
+  // Mild negative
+  tired:-1.2, worried:-1.3, hard:-1.1, difficult:-1.0, tough:-1.0,
+  uncertain:-1.1, confused:-0.9, lost:-1.5, stuck:-1.4, frustrated:-1.6,
+  heavy:-1.3, drained:-1.4, exhausted:-1.5,
+  // Strong negative
+  afraid:-1.8, anxious:-1.7, shame:-2.4, ashamed:-2.5, hopeless:-2.8,
+  helpless:-2.5, worthless:-2.9, useless:-2.4, broken:-2.3, empty:-2.2,
+  alone:-2.0, abandoned:-2.6, rejected:-2.5, hurt:-1.9, pain:-2.1,
+  grief:-2.5, numb:-1.9, dark:-1.8, trapped:-2.2, failure:-2.3,
+  panic:-2.4, rage:-2.3, hate:-2.5, disgusting:-2.4, pathetic:-2.4,
+  invisible:-1.8, hollow:-2.0, damaged:-2.1, defective:-2.3,
+  // Zero-score negation words (handled separately by negation logic)
+  not:0, never:0, no:0, cannot:0, cant:0, wont:0, dont:0, doesnt:0, didnt:0,
+  couldnt:0, wouldnt:0, shouldnt:0
+};
+
+const NEGATION_WORDS = new Set(['not','never','no','cannot','cant',"can't",'wont',"won't",
+  'dont',"don't",'doesnt',"doesn't",'didnt',"didn't",'couldnt',"couldn't",
+  'wouldnt',"wouldn't",'shouldnt',"shouldn't",'nor','neither','nothing','nobody',
+  'nowhere','without','hardly','barely','scarcely']);
+
+const BOOSTER_POS = new Set(['very','really','extremely','incredibly','absolutely','completely',
+  'deeply','truly','highly','intensely','totally','utterly','so','such']);
+
+const BOOSTER_NEG = new Set(['slightly','somewhat','kind of','sort of','a bit','a little',
+  'barely','hardly','scarcely','rather']);
+
+/* ─── VADER SENTIMENT ENGINE ────────────────────────────── */
+
+function vaderSentiment(text) {
+  const words = text.toLowerCase().replace(/[^a-z\s']/g,' ').split(/\s+/).filter(Boolean);
+  let pos = 0, neg = 0;
+  const hasExclaim = (text.match(/!/g)||[]).length;
+  const isAllCaps = text.split(/\s+/).some(w => w.length > 2 && w === w.toUpperCase() && /[A-Z]/.test(w));
+
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i].replace(/[^a-z']/g,'');
+    if (!VALENCE[w] || VALENCE[w] === 0) continue;
+    let score = VALENCE[w];
+
+    // Negation window: check 3 words back
+    const window = words.slice(Math.max(0, i-3), i).map(x => x.replace(/[^a-z']/g,''));
+    const negated = window.some(n => NEGATION_WORDS.has(n));
+
+    // Booster check (one word back)
+    const prev = i > 0 ? words[i-1].replace(/[^a-z']/g,'') : '';
+    if (BOOSTER_POS.has(prev)) score *= 1.28;
+    if (BOOSTER_NEG.has(prev)) score *= 0.72;
+    if (isAllCaps) score *= 1.14;
+
+    if (negated) score *= -0.74;
+
+    if (score > 0) pos += score;
+    else neg += Math.abs(score);
+  }
+
+  // Punctuation adjustments
+  pos += Math.min(hasExclaim * 0.292, 0.876);
+
+  const total = pos + neg + 0.001;
+  const normPos = pos / total;
+  const normNeg = neg / total;
+  const normNeu = 1 - normPos - normNeg;
+  const rawC = pos - neg;
+  const compound = rawC / Math.sqrt(rawC * rawC + 15);
+
+  return { pos: normPos, neg: normNeg, neu: Math.max(0, normNeu), compound };
+}
+
+/* ─── PSYCHOLINGUISTIC FEATURE EXTRACTOR ───────────────── */
+
+const RE = {
+  personal:   /\b(i|me|my|myself|mine|i've|i'm|i'd|i'll)\b/gi,
+  iOnly:      /\bi\b/gi,
+  thirdPer:   /\b(they|them|their|he|she|it|his|her)\b/gi,
+  passive:    /\b(was|were|been|get|got)\s+(hurt|left|told|given|made|used|treated|pushed|ignored|seen|heard)\b/gi,
+  past:       /\b(was|were|had|did|felt|thought|used to|before|back then|when i was|years ago|once|back when|when they|when we|when it)\b/gi,
+  future:     /\b(will|going to|gonna|soon|someday|one day|hope|wish|plan|when i|if i|could|would|might|maybe someday)\b/gi,
+  negation:   /\b(not|never|don't|doesn't|didn't|can't|couldn't|won't|wouldn't|no|nobody|nothing|nowhere|without|hardly|barely|scarcely)\b/gi,
+  somatic:    /\b(body|chest|stomach|gut|heart|skin|breath|breathing|throat|shoulders|hands|legs|back|neck|head|face|jaw|tense|tight|heavy|sinking|rising|shaking|trembling|racing|pounding|ache|aches|numb)\b/gi,
+  mortality:  /\b(die|dying|death|dead|gone|end|over|finished|doesn't matter anymore|give up|what's the point|no reason|too late)\b/gi,
+  metaphor:   /\b(feels like|like a|as if|shape of|weight of|color of|heavy as|light as|soft as|sharp as|echo|shadow|buried|surface|root|ground|wall|door|hollow|beneath|underneath|inside of|carries|a kind of)\b/gi,
+  adversative:/\b(but|though|yet|however|although|even though|except|whereas|then again|that said|on the other hand|having said that)\b/i,
+  ruminate:   /\b(because|since|which means|think|thought|realize|realized|know|wonder|wondering|understand|make sense|figure out|figured|why|reason|meaning|perhaps|maybe|consider|reflect|question|ask myself|can't stop thinking|keep thinking|keep coming back|over and over)\b/gi,
+  clout:      /\b(i know|definitely|clearly|obviously|certainly|absolutely|always|everyone|nobody|must|should|have to|need to|important|significant|no doubt)\b/gi,
+  entity:     /\b(my|her|his|their)\s+(mother|father|mom|dad|sister|brother|partner|husband|wife|girlfriend|boyfriend|friend|best friend|boss|manager|teacher|therapist|ex|family|parents|parent|children|kids|son|daughter|grandmother|grandfather|grandma|grandpa)\b/gi,
+  deflect:    /\b(i don't know|not sure|hard to say|i guess|kind of|sort of|not really|it's fine|i'm fine|just fine|okay i guess|nothing specific|nothing in particular|everything's fine|it is what it is|doesn't matter|not important)\b/gi
+};
+
+function countMatches(re, text) {
+  const r = new RegExp(re.source, re.flags.replace('g','') + 'g');
+  return (text.match(r) || []).length;
+}
+
+function extractFeatures(text, sentiment) {
+  const lower = text.toLowerCase();
+  const words = lower.split(/\s+/).filter(Boolean);
+  const wc = Math.max(words.length, 1);
+  const sentences = text.split(/[.!?;]+/).filter(s => s.trim().length > 3);
+
+  // Adversative clause splitting — weigh honest clause 2x
+  const advMatch = lower.match(RE.adversative);
+  let honestText = text;
+  if (advMatch) {
+    const idx = lower.indexOf(advMatch[0]);
+    honestText = text.slice(idx + advMatch[0].length).trim();
+  }
+  const honLow = honestText.toLowerCase();
+
+  // Basic rates
+  const firstPersonDensity  = countMatches(RE.iOnly, lower) / wc;
+  const thirdPersonDensity  = countMatches(RE.thirdPer, lower) / wc;
+  const passiveCount        = countMatches(RE.passive, text);
+  const negationCount       = countMatches(RE.negation, honLow);
+  const somaticCount        = countMatches(RE.somatic, lower);
+  const mortalityCount      = countMatches(RE.mortality, lower);
+  const metaphorCount       = countMatches(RE.metaphor, text);
+  const pastCount           = countMatches(RE.past, honLow);
+  const futureCount         = countMatches(RE.future, honLow);
+  const ruminationCount     = countMatches(RE.ruminate, honLow);
+  const cloutCount          = countMatches(RE.clout, honLow);
+  const personalDensity     = countMatches(RE.personal, lower) / wc;
+
+  // Temporal orientation
+  const tenseTotal = pastCount + futureCount + 1;
+  const pastRatio   = pastCount / tenseTotal;
+  const futureRatio = futureCount / tenseTotal;
+
+  // Valence collision per sentence (VADER pos+neg both present)
+  let valenceCollisions = 0;
+  sentences.forEach(s => {
+    const sv = vaderSentiment(s);
+    if (sv.pos > 0.25 && sv.neg > 0.25) valenceCollisions++;
+  });
+
+  // Deflection signal
+  const hasDeflectPhrase = RE.deflect.test(lower); RE.deflect.lastIndex = 0;
+  const specificity = Math.min(1, (personalDensity * 3) + (metaphorCount / wc) * 10);
+  const deflectionSignal = hasDeflectPhrase ? 1 :
+    (wc < 15 && firstPersonDensity < 0.05) ? 0.8 :
+    (firstPersonDensity < 0.04 && specificity < 0.25) ? 0.65 : 0;
+
+  // Salient phrase for mirror prompts
+  let salientPhrase = null;
+  const frags = text.split(/[.!?;]+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 14 && s.length < 120)
+    .filter(s => countMatches(RE.personal, s.toLowerCase()) > 0 || countMatches(RE.metaphor, s) > 0);
+
+  RE.metaphor.lastIndex = 0;
+  if (frags.length > 0) {
+    const met = frags.filter(f => RE.metaphor.test(f));
+    RE.metaphor.lastIndex = 0;
+    salientPhrase = met.length > 0 ? met[0] : frags[0];
+  }
+
+  return {
+    wc, firstPersonDensity, thirdPersonDensity,
+    passiveCount, negationCount, somaticCount, mortalityCount,
+    metaphorCount, pastCount, futureCount, ruminationCount, cloutCount,
+    pastRatio, futureRatio, valenceCollisions, deflectionSignal,
+    salientPhrase, honestText,
+    emotionalIntensity: Math.min(1,
+      Math.abs(sentiment.compound) * 0.5 +
+      (somaticCount > 0 ? 0.15 : 0) +
+      (mortalityCount > 0 ? 0.2 : 0) +
+      (metaphorCount > 0 ? 0.1 : 0) +
+      (wc > 35 ? 0.1 : 0)
+    )
+  };
+}
+
+/* ─── EVIDENCE MAPPER ───────────────────────────────────── */
+// Maps psycholinguistic features + sentiment → per-dimension (pos, neg) evidence
+
+function mapEvidence(features, sentiment) {
+  const f = features; const s = sentiment;
+  const ev = {};
+  DIM_KEYS.forEach(k => { ev[k] = { pos: 0, neg: 0, words: [] }; });
+
+  const negAmp = 1 + (s.neg * 0.4);
+  const posAmp = 1 + (s.pos * 0.25);
+
+  function add(k, amt, type = 'pos', word = null) {
+    ev[k][type] += Math.max(0, amt);
+    if (word && !ev[k].words.includes(word)) ev[k].words.push(word);
+  }
+
+  // ── LEXICON MATCHING ──────────────────────────────────────────────────────
+  // Normalise per-match weight by lexicon size so a dimension with 40 entries
+  // does NOT accumulate 4× faster than one with 10 entries.
+  // Base weight is calibrated to a reference lexicon of 20 terms.
+  const LEX_REFERENCE_SIZE = 20;
+
+  const fullLow = features.honestText.toLowerCase();
+
+  DIM_KEYS.forEach(dk => {
+    const lex = LEX[dk];
+    if (!lex) return;
+
+    const posNorm = (LEX_REFERENCE_SIZE / Math.max(LEX_REFERENCE_SIZE, lex.pos.length)) * 0.8;
+    const negNorm = (LEX_REFERENCE_SIZE / Math.max(LEX_REFERENCE_SIZE, lex.neg.length)) * 0.5;
+
+    lex.pos.forEach(kw => {
+      const re = kw.includes(' ')
+        ? new RegExp(kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'i')
+        : new RegExp('\\b' + kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\b', 'i');
+      if (re.test(fullLow)) add(dk, posNorm, 'pos', kw);
+    });
+
+    lex.neg.forEach(kw => {
+      const re = kw.includes(' ')
+        ? new RegExp(kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'i')
+        : new RegExp('\\b' + kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\b', 'i');
+      if (re.test(fullLow)) add(dk, negNorm, 'neg', kw);
+    });
+  });
+
+  // ── FEATURE-DERIVED SIGNALS ───────────────────────────────────────────────
+  // Psycholinguistic features routed to their empirically validated constructs.
+  // Each framework's feature channels map to its DEFINING characteristics —
+  // not just adjacency. 3 channels per dimension, framework budget equalised.
+
+  // TRAUMA — wound-specific feature anchors
+  // abandon: separation-absence markers (past-lock, mortality, other-erasure)
+  add('trauma_abandon', f.mortalityCount      * 0.55 * negAmp, 'pos', 'mortality');
+  add('trauma_abandon', f.pastRatio > 0.65    ? 0.50 * negAmp : 0, 'pos', 'past-anchor');
+  add('trauma_abandon', f.thirdPersonDensity  * 1.20 * negAmp, 'pos', 'other-absent');
+  // shame: internalisation markers (passive agency, somatic encoding, mixed-valence)
+  add('trauma_shame',   f.passiveCount        * 0.50 * negAmp, 'pos', 'passive-agency');
+  add('trauma_shame',   f.somaticCount        * 0.40 * negAmp, 'pos', 'somatic');
+  add('trauma_shame',   f.valenceCollisions   * 0.50 * negAmp, 'pos', 'ambivalence');
+  // control: vigilance-register (negation-density, future-scan, cognitive-loop)
+  add('trauma_control', f.negationCount       * 0.35 * negAmp, 'pos');
+  add('trauma_control', f.futureRatio > 0.55  ? 0.55 * negAmp : 0, 'pos', 'future-scan');
+  add('trauma_control', f.ruminationCount     * 0.30 * negAmp, 'pos', 'cognitive-loop');
+
+  // ATTACHMENT — present-tense relational strategies
+  // anxious: hyperactivation (high self-ref + rumination + ambivalence)
+  add('att_anxious',  f.firstPersonDensity    * 2.20 * negAmp, 'pos');
+  add('att_anxious',  f.ruminationCount       * 0.38 * negAmp, 'pos', 'rumination');
+  add('att_anxious',  f.valenceCollisions     * 0.42 * negAmp, 'pos', 'push-pull-affect');
+  // avoidant: deactivation (self-erasure + passive distance + deflection-as-avoidance)
+  add('att_avoidant', (f.firstPersonDensity < 0.06 && f.wc > 20) ? 0.55 : 0, 'pos', 'self-erasure');
+  add('att_avoidant', f.passiveCount          * 0.48, 'pos', 'passive-distance');
+  add('att_avoidant', f.deflectionSignal      * 0.82, 'pos', 'deflection');
+  // fearful: approach-avoidance (valence-collision is the structural tell)
+  add('att_fearful',  f.valenceCollisions     * 0.72 * negAmp, 'pos', 'approach-avoidance');
+  add('att_fearful',  f.metaphorCount         * 0.38 * negAmp, 'pos', 'indirect-expression');
+  add('att_fearful',  (f.pastRatio > 0.6 && f.firstPersonDensity > 0.08) ? 0.42 * negAmp : 0, 'pos', 'wound-self-ref');
+
+  // MBTI — cognitive processing register (not personality content)
+  // I: internal-orientation (low self-assertion + observer framing + passive construction)
+  add('mbti_i', (1 - f.firstPersonDensity)    * 0.48, 'pos');
+  add('mbti_i', f.thirdPersonDensity           * 0.42, 'pos');
+  add('mbti_i', f.passiveCount > 0             ? 0.28 : 0, 'pos', 'observer');
+  // N: abstract processing (metaphor density + meaning-seeking rumination + elaboration)
+  add('mbti_n', f.metaphorCount               * 0.58, 'pos', 'metaphor');
+  add('mbti_n', f.ruminationCount             * 0.22, 'pos', 'meaning-seeking');
+  add('mbti_n', f.wc > 40 && f.firstPersonDensity < 0.12 ? 0.32 : 0, 'pos', 'abstract-density');
+  // F: affect-led register (somatic + emotional valence intensity + relational collision)
+  add('mbti_f', f.somaticCount                * 0.42, 'pos', 'somatic');
+  add('mbti_f', Math.abs(s.compound)          * 0.52, 'pos', 'valence-intensity');
+  add('mbti_f', f.valenceCollisions           * 0.28, 'pos', 'affective-weight');
+  // P: open-ended register (low closure-clout + future-open + low planning-negation)
+  add('mbti_p', f.cloutCount > 2              ? 0.38 : 0, 'neg', 'closure→J');
+  add('mbti_p', f.futureRatio > 0.45          ? 0.42 : 0, 'pos', 'open-future');
+  add('mbti_p', f.negationCount               * 0.14, 'neg', 'decisive-negation→J');
+
+  // ENNEAGRAM — three intelligence centers, each anchored distinctly
+  // Heart (2/3/4): identity-image register (self-ref density + emotional intensity + expressive language)
+  add('enn_heart', f.firstPersonDensity       * 1.85, 'pos');
+  add('enn_heart', Math.abs(s.compound)       * 0.42, 'pos', 'emotional-register');
+  add('enn_heart', f.metaphorCount            * 0.22, 'pos', 'expressive-style');
+  // Head (5/6/7): fear-information register (over-analysis + anticipatory-scan + uncertainty-negation)
+  add('enn_head',  f.ruminationCount          * 0.52, 'pos', 'over-analysis');
+  add('enn_head',  f.futureRatio > 0.40       ? 0.52 * negAmp : 0, 'pos', 'anticipatory');
+  add('enn_head',  f.negationCount            * 0.28 * negAmp, 'pos', 'uncertainty-negation');
+  // Body (8/9/1): somatic-instinct register (gut language + boundary-assertion + active agency)
+  add('enn_body',  f.somaticCount             * 0.52, 'pos', 'somatic-instinct');
+  add('enn_body',  f.negationCount            * 0.22, 'pos', 'boundary-assertion');
+  add('enn_body',  f.passiveCount > 1         ? 0.32 : 0, 'neg', 'active-voice→body');
+
+  // BIG FIVE — 5 dims × 2 core channels (budget preserved via lower weights)
+  // Open: curiosity register (metaphor + intellectual elaboration)
+  add('b5_open',  f.metaphorCount             * 0.42, 'pos', 'metaphor');
+  add('b5_open',  f.wc > 50                   ? 0.22 : 0, 'pos', 'elaboration');
+  add('b5_open',  f.ruminationCount           * 0.16, 'pos', 'curiosity');
+  // Cons: self-regulation register (clout-certainty + planning-future + non-deflection)
+  add('b5_cons',  f.cloutCount                * 0.30, 'pos', 'decisiveness');
+  add('b5_cons',  f.futureRatio > 0.45        ? 0.30 : 0, 'pos', 'planning');
+  add('b5_cons',  f.deflectionSignal > 0.5    ? 0.32 : 0, 'neg', 'avoidance→low-C');
+  // Extra: social-energy register (high self-assertion + positive-affect expressiveness)
+  add('b5_extra', f.firstPersonDensity        * 1.15 * (s.pos > 0.3 ? 1.2 : 1), 'pos');
+  add('b5_extra', s.pos                       * 0.48 * posAmp, 'pos');
+  add('b5_extra', f.deflectionSignal > 0.5    ? 0.32 : 0, 'neg');
+  // Agree: prosocial register (positive-other-valence + other-reference + non-dominance)
+  add('b5_agree', s.pos                       * 0.48 * posAmp, 'pos');
+  add('b5_agree', f.thirdPersonDensity        * 0.48, 'pos', 'other-orientation');
+  add('b5_agree', f.cloutCount > 3            ? 0.32 : 0, 'neg', 'dominance→low-A');
+  // Neuro: distress-reactivity register (neg-affect + negation-loop + distress-somatic)
+  add('b5_neuro', s.neg                       * 1.45 * negAmp, 'pos', 'neg-affect');
+  add('b5_neuro', f.negationCount             * 0.28 * negAmp, 'pos', 'negation-loop');
+  add('b5_neuro', f.somaticCount              * 0.22 * negAmp, 'pos', 'distress-somatic');
+
+  // HEXACO — 2 dims × 3 full channels (compensated for 2-dim framework)
+  // HH: sincerity register (anti-authority-claim + anti-performance + self-effacing)
+  add('hex_hh',   f.cloutCount > 3            ? f.cloutCount * 0.28 : 0, 'neg', 'authority-claim');
+  add('hex_hh',   f.deflectionSignal > 0.5    ? 0.48 : 0, 'neg', 'performance-register');
+  add('hex_hh',   f.firstPersonDensity < 0.07 && f.wc > 25 ? 0.50 * posAmp : 0, 'pos', 'self-effacing');
+  // EM: empathic-sentimentality register (somatic + neg-affect + emotional-processing)
+  add('hex_em',   f.somaticCount              * 0.58, 'pos', 'somatic');
+  add('hex_em',   s.neg                       * 0.80, 'pos', 'neg-affect');
+  add('hex_em',   f.ruminationCount           * 0.32, 'pos', 'emotional-processing');
+
+  // DARK TRIAD — 3 clinically distinct registers
+  // Narc: grandiosity (excess self-ref above norm + certainty-claim + self-celebratory)
+  add('dark_narc', f.firstPersonDensity > 0.14 ? (f.firstPersonDensity - 0.14) * 3.5 : 0, 'pos', 'excess-self-ref');
+  add('dark_narc', f.cloutCount               * 0.58, 'pos', 'certainty-claim');
+  add('dark_narc', s.pos > 0.5 && f.cloutCount > 1 ? 0.42 : 0, 'pos', 'self-celebratory');
+  // Mach: strategic register (other-as-object + obscured-agency + cold-analysis)
+  add('dark_mach', f.thirdPersonDensity       * 1.35, 'pos', 'other-as-object');
+  add('dark_mach', f.passiveCount             * 0.48, 'pos', 'agency-obscured');
+  add('dark_mach', f.ruminationCount > 3 && s.neg < 0.15 ? 0.42 : 0, 'pos', 'cold-analysis');
+  // Psyc: callousness (emotional-flatness + somatic-absence + detached-from-harm)
+  add('dark_psyc', f.emotionalIntensity < 0.10 && f.wc > 20 ? 0.65 : 0, 'pos', 'flat-affect');
+  add('dark_psyc', f.somaticCount < 1 && f.wc > 30 ? 0.38 : 0, 'pos', 'somatic-absence');
+  add('dark_psyc', s.neg < 0.04 && f.mortalityCount > 0 ? 0.52 : 0, 'pos', 'harm-detachment');
+
+  // LIGHT TRIAD — 3 genuinely distinct positive registers
+  // Kant: principled-other-regard (other-present + non-dominance + cost-bearing language)
+  add('light_kant', f.thirdPersonDensity      * 0.58 * posAmp, 'pos', 'other-present');
+  add('light_kant', f.cloutCount < 2 && f.wc > 20 ? 0.42 * posAmp : 0, 'pos', 'non-dominant');
+  add('light_kant', f.mortalityCount > 0 && s.pos > 0.15 ? 0.48 * posAmp : 0, 'pos', 'meaning-in-harm');
+  // Hum: belief-in-people (positive-valence + other-positive framing + warm-metaphor)
+  add('light_hum',  s.pos > 0.3              ? s.pos * 0.88 * posAmp : 0, 'pos', 'positive-affect');
+  add('light_hum',  f.thirdPersonDensity > 0.05 && s.pos > 0.2 ? 0.42 * posAmp : 0, 'pos', 'other-positive');
+  add('light_hum',  f.metaphorCount > 0 && s.pos > 0.2 ? 0.32 * posAmp : 0, 'pos', 'warm-language');
+  // Faith: benevolent-world (future-positive + low-negation register + hopeful-processing)
+  add('light_faith', f.futureRatio > 0.35    ? 0.52 * posAmp : 0, 'pos', 'future-positive');
+  add('light_faith', s.pos > 0.4             ? 0.42 * posAmp : 0, 'pos', 'world-positive');
+  add('light_faith', f.negationCount < 2 && f.wc > 25 ? 0.32 * posAmp : 0, 'pos', 'low-negation');
+
+  // SCHWARTZ — 2 dims × 3 full channels (compensated for 2-dim framework)
+  // ST (self-transcendence): other-welfare motivation (other-ref + other-future + meaning-beyond-self)
+  add('sch_st', f.thirdPersonDensity          * 0.85 * posAmp, 'pos', 'other-reference');
+  add('sch_st', f.futureRatio > 0.30 && s.pos > 0.15 ? 0.52 * posAmp : 0, 'pos', 'future-other');
+  add('sch_st', f.mortalityCount > 0 && s.pos > 0.20 ? 0.58 * posAmp : 0, 'pos', 'meaning-beyond-self');
+  // SE (self-enhancement): achievement-drive (authority-claim + self-assertion + goal-orientation)
+  add('sch_se', f.cloutCount                  * 0.58, 'pos', 'authority-claim');
+  add('sch_se', f.firstPersonDensity > 0.12 && f.cloutCount > 1 ? 0.52 : 0, 'pos', 'self-assertion');
+  add('sch_se', f.futureRatio > 0.40 && f.cloutCount > 1 ? 0.38 : 0, 'pos', 'goal-orientation');
+
+  // ── PER-FRAMEWORK BUDGET NORMALISATION ───────────────────────────────────
+  // After all signals are computed, cap each framework's total positive evidence
+  // to a shared budget (TARGET_FW_BUDGET). This ensures Big Five (5 dims) cannot
+  // accumulate more total mass per turn than HEXACO (2 dims), because the
+  // measurements must be comparable across frameworks.
+  //
+  // Budget is applied at the framework level; individual dim ratios are preserved.
+
+  const TARGET_FW_BUDGET = 2.0; // total pos evidence units per framework per turn
+
+  FRAMEWORKS.forEach(fw => {
+    const totalPos = fw.dims.reduce((sum, d) => sum + ev[d.k].pos, 0);
+    if (totalPos > TARGET_FW_BUDGET) {
+      const scale = TARGET_FW_BUDGET / totalPos;
+      fw.dims.forEach(d => {
+        ev[d.k].pos *= scale;
+        // Scale neg proportionally to maintain signal ratio integrity
+        ev[d.k].neg *= scale;
+      });
+    }
+  });
+
+  return ev;
+}
+
+/* ─── BAYESIAN ENGINE ───────────────────────────────────── */
+
+const LEARNING_RATE  = 0.5;
+const CONF_SCALE     = 8;     // half-saturation at ~8 turns of evidence
+
+function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+
+function bayesUpdate(acc, evidence) {
+  // Sigmoid squash prevents runaway accumulation from verbose responses
+  const dAlpha = sigmoid(evidence.pos) * LEARNING_RATE;
+  const dBeta  = sigmoid(evidence.neg) * LEARNING_RATE;
+
+  const a = acc.alpha + dAlpha;
+  const b = acc.beta  + dBeta;
+
+  const mean = a / (a + b);
+  // Evidence mass (subtract priors of 1 each)
+  const mass = Math.max(0, a + b - 2);
+  const confidence = 0.95 * (1 - Math.exp(-mass / CONF_SCALE));
+  const uncertainty = Math.sqrt((a * b) / (Math.pow(a + b, 2) * (a + b + 1)));
+
+  return { alpha: a, beta: b, mean, confidence, uncertainty, words: evidence.words || [] };
+}
+
+/* ─── PROFILE STATE ─────────────────────────────────────── */
+
+function initProfile() {
+  const accumulators = {};
+  DIM_KEYS.forEach(k => {
+    accumulators[k] = { alpha: 1, beta: 1, mean: 0.5, confidence: 0, uncertainty: 0.289, words: [] };
+  });
+  return {
+    turn: 0,
+    accumulators,
+    sentimentHistory: [],
+    sessionWords: [],
+    deflectionTurns: [],
+    intenseTurns: [],
+    styleCumulative: {
+      pastTotal: 0, futureTotal: 0, metaphorTotal: 0,
+      ruminationTotal: 0, somaticTotal: 0, negationTotal: 0,
+      valenceCollisionTotal: 0, wordTotal: 0, deflections: 0
+    },
+    questionHistory: [],
+    userPhrases: []
+  };
+}
+
+function updateProfile(profile, text) {
+  const p = JSON.parse(JSON.stringify(profile));  // immutable copy
+  p.turn++;
+
+  const sentiment  = vaderSentiment(text);
+  const features   = extractFeatures(text, sentiment);
+  const evidence   = mapEvidence(features, sentiment);
+
+  // Update accumulators
+  DIM_KEYS.forEach(k => {
+    p.accumulators[k] = bayesUpdate(p.accumulators[k], evidence[k]);
+    // Merge new evidence words
+    const newWords = (evidence[k].words || []).filter(w => !p.accumulators[k].words.includes(w));
+    p.accumulators[k].words = [...(p.accumulators[k].words || []), ...newWords].slice(-8);
+  });
+
+  // Sentiment arc
+  p.sentimentHistory.push({ turn: p.turn, ...sentiment });
+
+  // Style cumulatives
+  const sc = p.styleCumulative;
+  sc.pastTotal       += features.pastCount;
+  sc.futureTotal     += features.futureCount;
+  sc.metaphorTotal   += features.metaphorCount;
+  sc.ruminationTotal += features.ruminationCount;
+  sc.somaticTotal    += features.somaticCount;
+  sc.negationTotal   += features.negationCount;
+  sc.valenceCollisionTotal += features.valenceCollisions;
+  sc.wordTotal       += features.wc;
+
+  if (features.deflectionSignal > 0.5) {
+    sc.deflections++;
+    p.deflectionTurns.push(p.turn);
+  }
+  if (features.emotionalIntensity > 0.45) p.intenseTurns.push(p.turn);
+
+  if (features.salientPhrase) p.userPhrases.push(features.salientPhrase);
+
+  // Compute volatility (std dev of compound arc)
+  const compounds = p.sentimentHistory.map(s => s.compound);
+  const mean = compounds.reduce((a,b) => a+b, 0) / compounds.length;
+  const variance = compounds.reduce((s, c) => s + Math.pow(c - mean, 2), 0) / compounds.length;
+  p.sentimentVolatility = Math.sqrt(variance);
+
+  // Readiness: emotional presence + specificity - recent deflections
+  const recentDeflect = p.deflectionTurns.filter(t => p.turn - t <= 2).length;
+  const recentIntense = p.intenseTurns.filter(t => p.turn - t <= 2).length;
+  p.readiness = Math.max(0, Math.min(1,
+    0.5
+    - recentDeflect * 0.22
+    + recentIntense * 0.18
+    + features.emotionalIntensity * 0.18
+    + Math.min(features.metaphorCount * 0.1, 0.12)
+    - p.sentimentVolatility * 0.10
+  ));
+
+  return { profile: p, features, sentiment, evidence };
+}
+
+/* ─── QUESTION POOL (120 questions, 9 frameworks) ──────── */
+// Each: { t: text, fw: framework, dk: dim key or null, r: readiness required, depth: 0-3, s: style }
+
+const Q = [
+// ── OPENERS (framework-neutral) ─────────
+{t:"How's your day been — anything on your mind?",                                            fw:null,dk:null,r:0,depth:0,s:'opener'},
+{t:"What's been on your mind lately — anything you keep coming back to?",                     fw:null,dk:null,r:0,depth:0,s:'opener'},
+{t:"Is there something you've been meaning to sit with but keep putting off?",               fw:null,dk:null,r:0,depth:0,s:'opener'},
+{t:"What's something small that's been bothering you more than it probably should?",         fw:null,dk:null,r:0,depth:0,s:'opener'},
+{t:"What would feel like a relief to say right now — even just to yourself?",               fw:null,dk:null,r:0,depth:0,s:'opener'},
+
+// ── TRAUMA — ABANDONMENT ──────────────
+{t:"Is there someone in your life you've been thinking about a lot lately?",                  fw:'trauma',dk:'trauma_abandon',r:0,depth:0,s:'reflective'},
+{t:"When someone goes quiet on you — what tends to happen inside?",                          fw:'trauma',dk:'trauma_abandon',r:0,depth:1,s:'reflective'},
+{t:"What's the version of being left that you never quite got over?",                        fw:'trauma',dk:'trauma_abandon',r:1,depth:2,s:'temporal'},
+{t:"Is there someone you've been waiting to hear from, without letting yourself admit it?",  fw:'trauma',dk:'trauma_abandon',r:2,depth:2,s:'probe'},
+{t:"What would it actually mean to you if someone just... stayed?",                          fw:'trauma',dk:'trauma_abandon',r:1,depth:2,s:'ambivalence'},
+{t:"Is there a version of leaving that you did to yourself, before someone else could?",     fw:'trauma',dk:'trauma_abandon',r:2,depth:3,s:'depth'},
+{t:"Do you ever find yourself bracing for people to go — even when there's no signal they will?",fw:'trauma',dk:'trauma_abandon',r:1,depth:2,s:'reflective'},
+{t:"What kind of silence feels like abandonment to you?",                                    fw:'trauma',dk:'trauma_abandon',r:2,depth:3,s:'depth'},
+
+// ── TRAUMA — SHAME ────────────────────
+{t:"What do you do when you need to decompress — really decompress?",                        fw:'trauma',dk:'trauma_shame',r:0,depth:0,s:'opener'},
+{t:"Is there a part of yourself that you keep pretty protected — that most people don't see?",fw:'trauma',dk:'trauma_shame',r:0,depth:1,s:'reflective'},
+{t:"What's something about you that people don't usually get right when they first meet you?",fw:'trauma',dk:'trauma_shame',r:0,depth:1,s:'reflective'},
+{t:"Is there something you did — or didn't do — that you haven't quite let go of?",         fw:'trauma',dk:'trauma_shame',r:1,depth:2,s:'reflective'},
+{t:"What do you say to yourself when you think no one is listening?",                        fw:'trauma',dk:'trauma_shame',r:1,depth:2,s:'cognitive'},
+{t:"When you imagine someone truly seeing all of you — what feels risky about that?",        fw:'trauma',dk:'trauma_shame',r:2,depth:3,s:'depth'},
+{t:"What's the thing about yourself that you most wish were different?",                     fw:'trauma',dk:'trauma_shame',r:1,depth:2,s:'probe'},
+{t:"Is there something you've done that you haven't been able to forgive yourself for?",    fw:'trauma',dk:'trauma_shame',r:2,depth:3,s:'depth'},
+
+// ── TRAUMA — CONTROL ──────────────────
+{t:"How do you usually handle things when they feel out of control?",                        fw:'trauma',dk:'trauma_control',r:0,depth:1,s:'reflective'},
+{t:"What's the thing you hold onto most tightly when things get uncertain?",                 fw:'trauma',dk:'trauma_control',r:0,depth:1,s:'reflective'},
+{t:"When was the last time something happened that you couldn't prepare for?",               fw:'trauma',dk:'trauma_control',r:1,depth:2,s:'temporal'},
+{t:"Is there something you've been managing for so long you've forgotten what rest feels like?",fw:'trauma',dk:'trauma_control',r:1,depth:2,s:'probe'},
+{t:"What does it feel like in your body when things slip out of your hands?",                fw:'trauma',dk:'trauma_control',r:2,depth:3,s:'somatic'},
+{t:"What would it cost you to stop watching everything so closely?",                         fw:'trauma',dk:'trauma_control',r:2,depth:3,s:'depth'},
+{t:"Is there something you trust yourself to control that actually can't be controlled?",   fw:'trauma',dk:'trauma_control',r:2,depth:3,s:'contradiction'},
+
+// ── ATTACHMENT ────────────────────────
+{t:"Is there someone in your life who you feel consistently understood by?",                 fw:'attachment',dk:'att_anxious',r:0,depth:0,s:'reflective'},
+{t:"When someone doesn't respond right away, what do you do with that feeling?",            fw:'attachment',dk:'att_anxious',r:0,depth:1,s:'reflective'},
+{t:"What's the most you'd let yourself need from someone before it felt like too much?",    fw:'attachment',dk:'att_anxious',r:1,depth:2,s:'probe'},
+{t:"When do you feel safest in a relationship — and what makes that feel fragile?",         fw:'attachment',dk:'att_anxious',r:1,depth:2,s:'ambivalence'},
+{t:"What would you do if someone gave you exactly what you wanted — and stayed?",           fw:'attachment',dk:'att_fearful',r:2,depth:3,s:'depth'},
+{t:"Do you find it easier to need someone less than to risk being disappointed?",           fw:'attachment',dk:'att_avoidant',r:1,depth:2,s:'probe'},
+{t:"Is there closeness you want that you don't quite let yourself have?",                   fw:'attachment',dk:'att_fearful',r:2,depth:3,s:'depth'},
+{t:"What does real intimacy look like versus what you actually allow yourself?",            fw:'attachment',dk:'att_fearful',r:2,depth:3,s:'probe'},
+{t:"Is there a moment when you pulled back from someone — and you're not sure why?",        fw:'attachment',dk:'att_avoidant',r:1,depth:2,s:'reflective'},
+{t:"What usually happens right before you shut down emotionally?",                          fw:'attachment',dk:'att_avoidant',r:1,depth:2,s:'probe'},
+
+// ── MBTI TENDENCIES ───────────────────
+{t:"When you're working through something difficult, do you prefer to think it through alone first or talk it out?",fw:'mbti',dk:'mbti_i',r:0,depth:0,s:'reflective'},
+{t:"What do you find most draining about social situations?",                               fw:'mbti',dk:'mbti_i',r:0,depth:1,s:'probe'},
+{t:"When you read a story or watch something, what stays with you longest — the plot or what it means?",fw:'mbti',dk:'mbti_n',r:0,depth:0,s:'reflective'},
+{t:"Is there a pattern you keep noticing in your life — something you can't quite name but can feel?",fw:'mbti',dk:'mbti_n',r:1,depth:2,s:'reflective'},
+{t:"When you have to make a big decision, does logic or how you feel tend to win?",         fw:'mbti',dk:'mbti_f',r:0,depth:1,s:'reflective'},
+{t:"Is there something you know is logical but can't make yourself feel okay about?",       fw:'mbti',dk:'mbti_f',r:1,depth:2,s:'contradiction'},
+{t:"What does your ideal unscheduled Saturday look like?",                                  fw:'mbti',dk:'mbti_p',r:0,depth:0,s:'opener'},
+{t:"Is there something you've been putting off committing to — and what's underneath that?",fw:'mbti',dk:'mbti_p',r:1,depth:2,s:'probe'},
+
+// ── ENNEAGRAM ─────────────────────────
+{t:"How much of what you present to the world matches who you actually are?",               fw:'enneagram',dk:'enn_heart',r:0,depth:1,s:'reflective'},
+{t:"Is there a version of you that comes out when you feel truly seen — and how different is that person?",fw:'enneagram',dk:'enn_heart',r:1,depth:2,s:'depth'},
+{t:"When did you first start anticipating problems before they happened?",                   fw:'enneagram',dk:'enn_head',r:1,depth:2,s:'temporal'},
+{t:"What's the worst-case scenario that lives rent-free in your head?",                     fw:'enneagram',dk:'enn_head',r:1,depth:2,s:'probe'},
+{t:"When something feels deeply wrong or unfair — where does that land in your body?",     fw:'enneagram',dk:'enn_body',r:1,depth:2,s:'somatic'},
+{t:"Is there something you never fully get over — you just manage it?",                     fw:'enneagram',dk:'enn_body',r:1,depth:2,s:'reflective'},
+
+// ── BIG FIVE ──────────────────────────
+{t:"What kind of idea or problem do you find yourself unable to leave alone?",              fw:'big5',dk:'b5_open',r:0,depth:1,s:'reflective'},
+{t:"What does your ideal day of unstructured time look like?",                              fw:'big5',dk:'b5_open',r:0,depth:0,s:'opener'},
+{t:"When you commit to something — what does it feel like when you don't follow through?", fw:'big5',dk:'b5_cons',r:1,depth:2,s:'reflective'},
+{t:"What's your relationship like with unfinished things?",                                 fw:'big5',dk:'b5_cons',r:0,depth:1,s:'reflective'},
+{t:"Where do you get your energy — from people, or from stepping away from them?",          fw:'big5',dk:'b5_extra',r:0,depth:0,s:'opener'},
+{t:"What's something you wish you could just say without thinking about how it lands?",    fw:'big5',dk:'b5_agree',r:1,depth:2,s:'probe'},
+{t:"Is there someone in your life you find hard to say no to — and do you know why?",      fw:'big5',dk:'b5_agree',r:1,depth:2,s:'relational'},
+{t:"What's the texture of your inner voice on a hard day?",                                 fw:'big5',dk:'b5_neuro',r:1,depth:2,s:'cognitive'},
+{t:"When something goes wrong, how long does it usually take to feel like yourself again?",fw:'big5',dk:'b5_neuro',r:0,depth:1,s:'reflective'},
+
+// ── HEXACO ────────────────────────────
+{t:"Is there something you've done that you could have gotten away with — and didn't?",    fw:'hexaco',dk:'hex_hh',r:1,depth:2,s:'probe'},
+{t:"What would you do if you knew no one would ever find out?",                             fw:'hexaco',dk:'hex_hh',r:1,depth:2,s:'probe'},
+{t:"When something difficult is happening, do you tend to carry it alone or reach out?",   fw:'hexaco',dk:'hex_em',r:0,depth:1,s:'reflective'},
+{t:"What does it take for you to actually ask someone for help?",                           fw:'hexaco',dk:'hex_em',r:1,depth:2,s:'probe'},
+
+// ── DARK TRIAD ────────────────────────
+{t:"When you've gotten something you wanted through a social situation — how did you do it?",fw:'dark',dk:'dark_narc',r:0,depth:1,s:'reflective'},
+{t:"What do most people not understand about how capable you actually are?",                fw:'dark',dk:'dark_narc',r:1,depth:2,s:'probe'},
+{t:"When you're trying to get something done — how do you think about the people involved?",fw:'dark',dk:'dark_mach',r:0,depth:1,s:'reflective'},
+{t:"Is there a situation where you've had to manage someone to get an outcome you needed?", fw:'dark',dk:'dark_mach',r:1,depth:2,s:'probe'},
+{t:"When someone is visibly upset — what's your first internal reaction?",                  fw:'dark',dk:'dark_psyc',r:0,depth:1,s:'reflective'},
+{t:"Is there something that upsets other people that genuinely doesn't affect you?",        fw:'dark',dk:'dark_psyc',r:1,depth:2,s:'probe'},
+
+// ── LIGHT TRIAD ───────────────────────
+{t:"When you've helped someone with nothing to gain — what was going through your mind?",  fw:'light',dk:'light_kant',r:0,depth:1,s:'reflective'},
+{t:"Is there someone whose autonomy you've protected at some cost to yourself?",            fw:'light',dk:'light_kant',r:1,depth:2,s:'probe'},
+{t:"When you meet a stranger — what do you assume about them before they say anything?",   fw:'light',dk:'light_hum',r:0,depth:1,s:'reflective'},
+{t:"When has someone surprised you with unexpected goodness — what did that do to you?",   fw:'light',dk:'light_hum',r:0,depth:1,s:'reflective'},
+{t:"What would it feel like to live in a world where most people were basically trying?",  fw:'light',dk:'light_faith',r:1,depth:2,s:'hypothetical'},
+{t:"What makes you feel connected to something larger than yourself?",                      fw:'light',dk:'light_faith',r:1,depth:2,s:'reflective'},
+
+// ── SCHWARTZ VALUES ───────────────────
+{t:"What do you want to leave behind — not in things, but in how you made people feel?",  fw:'schwartz',dk:'sch_st',r:0,depth:1,s:'reflective'},
+{t:"Is there something you're building or doing that you hope outlasts you?",              fw:'schwartz',dk:'sch_st',r:1,depth:2,s:'probe'},
+{t:"What does success actually look like to you — and how much of that is about other people seeing it?",fw:'schwartz',dk:'sch_se',r:1,depth:2,s:'probe'},
+{t:"When you imagine your best year ever — what's in it?",                                 fw:'schwartz',dk:'sch_se',r:0,depth:1,s:'reflective'},
+{t:"What would feel like enough — to know your life mattered?",                            fw:'schwartz',dk:'sch_st',r:2,depth:3,s:'depth'},
+{t:"If the work you've put in were never recognized — would it still have been worth it?", fw:'schwartz',dk:'sch_se',r:2,depth:3,s:'contradiction'},
+
+// ── GRIEF / LOSS ──────────────────────
+{t:"What's something you've lost that people around you didn't quite understand was a loss?",fw:'trauma',dk:'trauma_shame',r:0,depth:1,s:'reflective'},
+{t:"Is there someone you've never quite finished grieving?",                                 fw:'trauma',dk:'trauma_abandon',r:1,depth:2,s:'temporal'},
+{t:"Is there a version of your life you miss without quite calling it grief?",               fw:'trauma',dk:'trauma_abandon',r:1,depth:2,s:'probe'},
+{t:"What do you wish you'd said before something ended?",                                   fw:'trauma',dk:'trauma_shame',r:2,depth:3,s:'temporal'},
+
+// ── BELONGING ─────────────────────────
+{t:"Where do you feel most like yourself?",                                                  fw:'big5',dk:'b5_extra',r:0,depth:0,s:'reflective'},
+{t:"Is there a group where you've always felt slightly on the outside?",                    fw:'attachment',dk:'att_anxious',r:1,depth:2,s:'probe'},
+{t:"Who do you become when you're trying to fit in somewhere that doesn't quite fit?",     fw:'enneagram',dk:'enn_heart',r:2,depth:3,s:'cognitive'},
+{t:"What do you usually keep to yourself around people you'd like to be closer to?",       fw:'attachment',dk:'att_avoidant',r:1,depth:2,s:'probe'},
+
+// ── WORTH / PERFORMANCE ───────────────
+{t:"When do you feel most at ease — like you don't have to prove anything?",               fw:'hexaco',dk:'hex_hh',r:0,depth:1,s:'reflective'},
+{t:"What do you need to get done before you feel like you've earned a break?",             fw:'trauma',dk:'trauma_shame',r:0,depth:1,s:'reflective'},
+{t:"Is there a version of you that would finally feel like enough?",                        fw:'trauma',dk:'trauma_shame',r:1,depth:2,s:'temporal'},
+{t:"When someone gives you something freely — do you trust it?",                            fw:'attachment',dk:'att_anxious',r:1,depth:2,s:'probe'},
+
+// ── VISIBILITY ────────────────────────
+{t:"Do you ever feel like you're performing being okay — for someone specific?",            fw:'trauma',dk:'trauma_shame',r:0,depth:1,s:'probe'},
+{t:"Is there a version of your story that almost no one knows?",                            fw:'trauma',dk:'trauma_shame',r:1,depth:2,s:'reflective'},
+{t:"What would you say if you knew it couldn't be used against you?",                       fw:'trauma',dk:'trauma_shame',r:2,depth:3,s:'depth'},
+{t:"Is there something you stopped trying to explain because no one quite gets it?",        fw:'big5',dk:'b5_open',r:1,depth:2,s:'probe'},
+
+// ── BROAD PHILOSOPHICAL ───────────────
+{t:"What do you believe about people — fundamentally, when you're being honest?",          fw:'light',dk:'light_faith',r:1,depth:2,s:'philosophical'},
+{t:"What's something you used to believe that you can't anymore?",                          fw:'mbti',dk:'mbti_n',r:1,depth:2,s:'temporal'},
+{t:"What does your life look like from the outside, and how different is that from inside?",fw:'enneagram',dk:'enn_heart',r:1,depth:2,s:'reflective'},
+{t:"When have you felt most alive — and what was true in that moment?",                    fw:'big5',dk:'b5_open',r:1,depth:2,s:'temporal'},
+];
+
+const OPENERS = Q.filter(q => q.s === 'opener');
+
+/* ─── HUMINT ELICITATION SYSTEM ─────────────────────────── */
+
+function computeUncertainty(profile) {
+  const u = {};
+  DIM_KEYS.forEach(k => {
+    u[k] = profile.accumulators[k].uncertainty;
+  });
+  return u;
+}
+
+function prioritizeQuestions(profile, uncertainty, readiness) {
+  const recentFW = profile.questionHistory.slice(-4).map(h => h.fw).filter(Boolean);
+
+  return Q
+    .filter(q => !profile.questionHistory.map(h => h.t).includes(q.t))
+    .map(q => {
+      // Base: uncertainty of target dimension (or avg if no specific dim)
+      let uScore = q.dk ? (uncertainty[q.dk] || 0.3) :
+        Object.values(uncertainty).reduce((a,b)=>a+b,0) / DIM_KEYS.length;
+
+      // Depth gate
+      const depthPenalty = (q.depth === 3 && readiness < 0.55) ? 0.3 :
+                           (q.depth === 2 && readiness < 0.30) ? 0.55 :
+                           (q.depth === 1 && readiness < 0.15) ? 0.75 : 1.0;
+
+      // Diversity: suppress recently-probed frameworks
+      const diversityFactor = (q.fw && recentFW.includes(q.fw)) ? 0.45 : 1.0;
+
+      return { q, score: uScore * depthPenalty * diversityFactor };
+    })
+    .sort((a, b) => b.score - a.score);
+}
+
+function detectHumintMode(profile, features) {
+  const deflect = features.deflectionSignal;
+  if (deflect > 0.65) return 'SILENCE_BREAK';
+  if (deflect > 0.40) return 'MIRROR';
+  // Bridge opportunity at natural rhythm points
+  if ([6, 11, 16].includes(profile.turn) && profile.userPhrases.length >= 2) return 'BRIDGE';
+  return 'STANDARD';
+}
+
+function generateMirrorPrompt(profile) {
+  const phrases = profile.userPhrases;
+  if (phrases.length === 0) return null;
+  const raw = phrases[phrases.length - 1];
+  const anchor = raw.split(/\s+/).slice(0, 7).join(' ').replace(/["""'']/g,'');
+  const escaped = anchor.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const templates = [
+    `You said "${escaped}" — can you take me back to when that was most true?`,
+    `There's something in "${escaped}" — what does it feel like to say that out loud?`,
+    `"${escaped}" — where does that actually live in you?`
+  ];
+  return templates[Math.floor(Math.random() * templates.length)];
+}
+
+function generateBridgePrompt(profile) {
+  if (profile.userPhrases.length < 2) return null;
+  const a = profile.userPhrases[0];
+  const b = profile.userPhrases[profile.userPhrases.length - 1];
+  if (a === b) return null;
+  const anchorA = a.split(/\s+/).slice(0, 5).join(' ').replace(/["""'']/g,'');
+  const anchorB = b.split(/\s+/).slice(0, 5).join(' ').replace(/["""'']/g,'');
+  return `Earlier you said "${anchorA}" — and just now "${anchorB}". Do those feel connected to you?`;
+}
+
+function generateSilenceBreak() {
+  const opts = [
+    "I noticed you stepped back a bit just there. That's completely fine — is there a different way into this you'd prefer?",
+    "Something made that one hard to land on. No pressure — what's actually on your mind right now?",
+    "You don't have to answer that one directly. What would you want to say instead?"
+  ];
+  return opts[Math.floor(Math.random() * opts.length)];
+}
+
+function selectNextQuestion(profile, features) {
+  const uncertainty = computeUncertainty(profile);
+  const mode = detectHumintMode(profile, features);
+
+  if (mode === 'SILENCE_BREAK') {
+    profile.questionHistory.push({ t: '[silence-break]', fw: null });
+    return { text: generateSilenceBreak(), mode };
+  }
+
+  if (mode === 'MIRROR') {
+    const mirror = generateMirrorPrompt(profile);
+    if (mirror) {
+      profile.questionHistory.push({ t: '[mirror]', fw: null });
+      return { text: mirror, mode };
+    }
+  }
+
+  if (mode === 'BRIDGE') {
+    const bridge = generateBridgePrompt(profile);
+    if (bridge) {
+      profile.questionHistory.push({ t: '[bridge]', fw: null });
+      return { text: bridge, mode };
+    }
+  }
+
+  // Use openers for first 2 turns
+  if (profile.turn <= 1) {
+    const unusedOpeners = OPENERS.filter(q => !profile.questionHistory.map(h=>h.t).includes(q.t));
+    const pick = unusedOpeners.length > 0
+      ? unusedOpeners[Math.floor(Math.random() * unusedOpeners.length)]
+      : OPENERS[0];
+    profile.questionHistory.push({ t: pick.t, fw: pick.fw });
+    return { text: pick.t, mode: 'STANDARD' };
+  }
+
+  const prioritized = prioritizeQuestions(profile, uncertainty, profile.readiness || 0.5);
+  if (prioritized.length === 0) {
+    return { text: "What's still unsaid in what you've been sharing?", mode: 'FALLBACK' };
+  }
+  // Pick from top 3 to add slight randomness
+  const topN = prioritized.slice(0, Math.min(3, prioritized.length));
+  const pick = topN[Math.floor(Math.random() * topN.length)].q;
+  profile.questionHistory.push({ t: pick.t, fw: pick.fw });
+  return { text: pick.t, mode: 'STANDARD' };
+}
+
+/* ─── NARRATIVE GENERATION ──────────────────────────────── */
+
+function generateNarrative(profile) {
+  const acc = profile.accumulators;
+  const sc  = profile.styleCumulative;
+
+  // Find top signals per framework
+  const fwSummaries = FRAMEWORKS.map(fw => {
+    const scored = fw.dims.map(d => ({ d, v: acc[d.k].mean, c: acc[d.k].confidence }))
+      .sort((a,b) => b.v * b.c - a.v * a.c);
+    return { fw, top: scored[0] };
+  }).filter(x => x.top && x.top.c > 0.2);
+
+  const topOverall = FRAMEWORKS.flatMap(fw =>
+    fw.dims.map(d => ({ label: d.label, fw: fw.label, v: acc[d.k].mean, c: acc[d.k].confidence, k: d.k }))
+  ).sort((a,b) => b.v * b.c - a.v * a.c).slice(0,4);
+
+  if (topOverall.length === 0) return '<p>Accumulating signal — continue the conversation.</p>';
+
+  const primary = topOverall[0];
+
+  // Style observations
+  const pastDom  = sc.pastTotal > sc.futureTotal * 1.4;
+  const futDom   = sc.futureTotal > sc.pastTotal * 1.4;
+  const highNeuro= acc.b5_neuro.mean > 0.6 && acc.b5_neuro.confidence > 0.3;
+  const highDark = (acc.dark_narc.mean + acc.dark_mach.mean + acc.dark_psyc.mean) / 3 > 0.55;
+  const highLight= (acc.light_kant.mean + acc.light_hum.mean + acc.light_faith.mean) / 3 > 0.55;
+
+  let html = `<p>The strongest current signal is in <strong>${primary.label}</strong> (${Math.round(primary.v*100)}%, ${Math.round(primary.c*100)}% confidence). `;
+
+  if (topOverall[1]) html += `Secondary signal: <strong>${topOverall[1].label}</strong>.`;
+  html += `</p>`;
+
+  if (pastDom) html += `<p>Language is past-dominant — the session shows a backward temporal anchor. The concern isn't what's coming; it's what already happened.</p>`;
+  if (futDom)  html += `<p>Future-orientation is elevated — anticipatory cognition. The mind is running ahead of the present moment.</p>`;
+  if (highNeuro) html += `<p>Neuroticism markers are significant. There is emotional reactivity in the register — difficulty disengaging from negative states.</p>`;
+  if (highDark && !highLight) html += `<p>Dark Triad cluster is accumulating. Strategic self-presentation and reduced empathic engagement are visible in the phrasing.</p>`;
+  if (highLight) html += `<p>Light Triad is strong. Genuine other-orientation — this is not performance. The signal is in unguarded moments.</p>`;
+  if (sc.deflections > 1) html += `<p>Deflection pattern detected (${sc.deflections} events). Certain terrain is being managed around.</p>`;
+
+  return html;
+}
+
+function generateRevealProfile(profile) {
+  const acc = profile.accumulators;
+
+  // Top 4 dimensions by posterior mean × confidence
+  const topDims = ALL_DIMS.map(d => ({
+    d, v: acc[d.k].mean, c: acc[d.k].confidence,
+    score: acc[d.k].mean * acc[d.k].confidence
+  })).sort((a,b) => b.score - a.score).slice(0, 6);
+
+  // Attachment style
+  const attScores = {
+    'Secure (baseline)': 1 - Math.max(acc.att_anxious.mean, acc.att_avoidant.mean, acc.att_fearful.mean),
+    'Anxious / Preoccupied': acc.att_anxious.mean,
+    'Dismissive-Avoidant': acc.att_avoidant.mean,
+    'Fearful-Disorganized': acc.att_fearful.mean
+  };
+  const primaryAtt = Object.entries(attScores).sort((a,b)=>b[1]-a[1])[0][0];
+
+  // MBTI tendency
+  const mbtiStr = [
+    acc.mbti_i.mean > 0.5 ? 'I' : 'E',
+    acc.mbti_n.mean > 0.5 ? 'N' : 'S',
+    acc.mbti_f.mean > 0.5 ? 'F' : 'T',
+    acc.mbti_p.mean > 0.5 ? 'P' : 'J'
+  ].join('');
+
+  const sc = profile.styleCumulative;
+  const compounds = profile.sentimentHistory.map(s=>s.compound);
+  const avgCompound = compounds.length ? compounds.reduce((a,b)=>a+b,0)/compounds.length : 0;
+  const sentimentLabel = avgCompound > 0.15 ? 'Positive arc' : avgCompound < -0.15 ? 'Negative arc' : 'Neutral / Mixed';
+
+  return {
+    topDims, primaryAtt, mbtiStr,
+    sentimentLabel, avgCompound,
+    volatility: profile.sentimentVolatility || 0,
+    deflections: sc.deflections,
+    words: sc.wordTotal,
+    turns: profile.turn,
+    narrative: generateNarrative(profile)
+  };
+}
+
+/* ─── CHART MANAGEMENT ──────────────────────────────────── */
+
+let radarChart = null;
+let sentimentChart = null;
+
+function initCharts() {
+  const AMBER = 'rgba(200,146,42,0.85)';
+  const AMBER_FILL = 'rgba(200,146,42,0.12)';
+  const GRID = 'rgba(100,80,50,0.2)';
+  const LABEL_COLOR = '#7a6f5e';
+
+  // Radar
+  const rCtx = document.getElementById('radar-chart').getContext('2d');
+  radarChart = new Chart(rCtx, {
+    type: 'radar',
+    data: {
+      labels: ALL_DIMS.map(d => d.short),
+      datasets: [{
+        label: 'Profile',
+        data: new Array(28).fill(50),
+        backgroundColor: AMBER_FILL,
+        borderColor: AMBER,
+        borderWidth: 1.2,
+        pointBackgroundColor: AMBER,
+        pointRadius: 2,
+        pointHoverRadius: 4
+      }]
+    },
+    options: {
+      responsive: false,
+      animation: { duration: 600, easing: 'easeInOutQuart' },
+      scales: {
+        r: {
+          min: 0, max: 100,
+          backgroundColor: 'transparent',
+          grid: { color: GRID, circular: true },
+          angleLines: { color: GRID },
+          pointLabels: {
+            color: LABEL_COLOR,
+            font: { family: "'IBM Plex Mono'", size: 8.5 }
+          },
+          ticks: { display: false, stepSize: 25 }
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.label}: ${ctx.raw}%`
+          },
+          backgroundColor: '#0d0d0d',
+          borderColor: '#2a2a2a',
+          borderWidth: 1,
+          titleColor: '#c8922a',
+          bodyColor: '#d4c5a9',
+          titleFont: { family: "'IBM Plex Mono'", size: 9 },
+          bodyFont:  { family: "'IBM Plex Mono'", size: 9 }
+        }
+      }
+    }
+  });
+
+  // Sentiment arc (bar)
+  const sCtx = document.getElementById('sentiment-chart').getContext('2d');
+  sentimentChart = new Chart(sCtx, {
+    type: 'bar',
+    data: {
+      labels: [],
+      datasets: [
+        { label: 'Positive', data: [], backgroundColor: 'rgba(74,148,96,0.7)', borderWidth: 0, borderRadius: 1 },
+        { label: 'Negative', data: [], backgroundColor: 'rgba(192,80,80,0.7)', borderWidth: 0, borderRadius: 1 },
+        { label: 'Compound', data: [], type: 'line', borderColor: 'rgba(200,146,42,0.9)', backgroundColor: 'transparent',
+          borderWidth: 1.5, pointRadius: 2.5, pointBackgroundColor: 'rgba(200,146,42,0.9)', tension: 0.35, yAxisID: 'y2' }
+      ]
+    },
+    options: {
+      responsive: false,
+      animation: { duration: 400 },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: LABEL_COLOR, font: { family: "'IBM Plex Mono'", size: 8 } } },
+        y: { stacked: false, min: 0, max: 1, grid: { color: GRID },
+             ticks: { color: LABEL_COLOR, font: { family: "'IBM Plex Mono'", size: 8 }, maxTicksLimit: 3 } },
+        y2: { position: 'right', min: -1, max: 1, grid: { display: false },
+              ticks: { color: LABEL_COLOR, font: { family: "'IBM Plex Mono'", size: 8 }, maxTicksLimit: 3 } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0d0d0d', borderColor: '#2a2a2a', borderWidth: 1,
+          titleColor: '#c8922a', bodyColor: '#d4c5a9',
+          titleFont: { family: "'IBM Plex Mono'", size: 9 },
+          bodyFont:  { family: "'IBM Plex Mono'", size: 9 }
+        }
+      }
+    }
+  });
+}
+
+function updateCharts(profile) {
+  if (!radarChart) return;
+  // Radar: map each dim mean to 0–100
+  radarChart.data.datasets[0].data = ALL_DIMS.map(d =>
+    Math.round(profile.accumulators[d.k].mean * 100)
+  );
+  radarChart.update();
+
+  // Sentiment arc
+  const hist = profile.sentimentHistory;
+  sentimentChart.data.labels = hist.map((_, i) => `T${i+1}`);
+  sentimentChart.data.datasets[0].data = hist.map(s => +s.pos.toFixed(3));
+  sentimentChart.data.datasets[1].data = hist.map(s => +s.neg.toFixed(3));
+  sentimentChart.data.datasets[2].data = hist.map(s => +s.compound.toFixed(3));
+  sentimentChart.update();
+}
+
+/* ─── SCORE PANEL RENDERING ─────────────────────────────── */
+
+function renderScorePanel(profile) {
+  const container = document.getElementById('scores-col');
+  if (!container) return;
+  const sectionHead = container.querySelector('.viz-zone-head');
+  container.innerHTML = '';
+  if (sectionHead) container.appendChild(sectionHead);
+  const acc = profile.accumulators;
+  const fragment = document.createDocumentFragment();
+
+  FRAMEWORKS.forEach(fw => {
+    const group = document.createElement('div');
+    group.className = 'fw-group';
+
+    const header = document.createElement('div');
+    header.className = 'fw-group-header';
+    header.textContent = fw.label;
+    group.appendChild(header);
+
+    fw.dims.forEach(d => {
+      const a = acc[d.k];
+      const pct = Math.round(a.mean * 100);
+      const conf = Math.round(a.confidence * 100);
+
+      const row = document.createElement('div');
+      row.className = 'fw-dim';
+
+      const topRow = document.createElement('div');
+      topRow.className = 'fw-dim-row';
+
+      const dimName = document.createElement('span');
+      dimName.className = 'fw-dim-name';
+      dimName.textContent = d.label;
+      const barWrap = document.createElement('div');
+      barWrap.className = 'fw-bar-wrap';
+      const bar = document.createElement('div');
+      bar.className = 'fw-bar';
+      bar.style.width = `${pct}%`;
+      barWrap.appendChild(bar);
+      const score = document.createElement('span');
+      score.className = 'fw-score';
+      score.textContent = `${pct}`;
+      const confEl = document.createElement('span');
+      confEl.className = 'fw-conf';
+      confEl.textContent = `${conf}%`;
+      topRow.append(dimName, barWrap, score, confEl);
+
+      const evRow = document.createElement('div');
+      evRow.className = 'fw-evidence';
+      const words = a.words || [];
+      if (words.length > 0) {
+        evRow.append('Evidence: ');
+        words.forEach((w, idx) => {
+          const em = document.createElement('em');
+          em.textContent = w;
+          evRow.appendChild(em);
+          if (idx < words.length - 1) evRow.append(', ');
+        });
+      } else {
+        evRow.textContent = 'Hover for evidence — no signals yet.';
+      }
+
+      row.appendChild(topRow);
+      row.appendChild(evRow);
+      group.appendChild(row);
+    });
+
+    fragment.appendChild(group);
+  });
+  container.appendChild(fragment);
+}
+
+/* ─── MULTI-MODAL EMOTION (TEXT + AUDIO + ONNX) ─────────── */
+
+const MULTIMODAL_PROMPTS = {
+  calm: 'stable reflective tone, low arousal, coherent self-regulation',
+  stressed: 'high arousal uncertainty, pressured cognition, fragmented cadence',
+  guarded: 'defensive language, high control, emotional distancing markers',
+  engaged: 'high agency, affiliative intent, constructive momentum'
+};
+
+const PRETRAINED_MODEL_SUITE = {
+  textEmotion: {
+    id: 'j-hartmann/emotion-english-distilroberta-base',
+    task: 'text-classification',
+    note: 'Strong English emotion baseline for utterance-level inference.'
+  },
+  audioEmotion: {
+    id: 'superb/wav2vec2-base-superb-er',
+    task: 'audio-classification',
+    note: 'Widely used speech emotion baseline from SUPERB.'
+  },
+  fusionOnnx: {
+    id: 'marketsmirror/merc-pltaf-fusion-onnx',
+    inputName: 'input',
+    outputName: 'logits',
+    labels: ['calm', 'stressed', 'guarded', 'engaged'],
+    note: 'Prompt-conditioned text-audio fusion head (ONNX Runtime Web).'
+  }
+};
+const MODEL_CANDIDATES = [
+  {
+    key: 'mobile_fast',
+    id: 'minuva/MiniLMv2-goemotions-v2-onnx',
+    url: 'https://huggingface.co/minuva/MiniLMv2-goemotions-v2-onnx/resolve/main/model_optimized_quantized.onnx?download=true',
+    sizeMB: 30,
+    quality: 0.78
+  },
+  {
+    key: 'balanced',
+    id: 'SamLowe/roberta-base-go_emotions-onnx',
+    url: 'https://huggingface.co/SamLowe/roberta-base-go_emotions-onnx/resolve/main/onnx/model_quantized.onnx?download=true',
+    sizeMB: 125,
+    quality: 0.88
+  }
+];
+const TMP_MODEL_CACHE_NAME = 'linguainsight-tmp-models-v1';
+
+function selectModelCandidate() {
+  const mem = navigator.deviceMemory || 4;
+  const cores = navigator.hardwareConcurrency || 4;
+  const saveData = !!navigator.connection?.saveData;
+  if (saveData || mem <= 4 || cores <= 4) return MODEL_CANDIDATES[0];
+  return MODEL_CANDIDATES[1];
+}
+
+async function cacheModelInTmp(url) {
+  if (!('caches' in window)) return url;
+  const cache = await caches.open(TMP_MODEL_CACHE_NAME);
+  let res = await cache.match(url);
+  if (!res) {
+    res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Model fetch failed: ${res.status}`);
+    await cache.put(url, res.clone());
+  }
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);
+}
+
+const multimodal = {
+  modelUrl: '', // Set to your ONNX model path when available.
+  modelBlobUrl: '',
+  session: null,
+  textOnly: true,
+  emaScores: { calm: 0.25, stressed: 0.25, guarded: 0.25, engaged: 0.25 },
+  fixedAudio: { rms: 0, zcr: 0, flux: 0 },
+  latestAudio: { rms: 0, zcr: 0, flux: 0 },
+  media: { stream: null, ctx: null, analyser: null, data: null }
+};
+
+async function initMultimodalEngine() {
+  const statusEl = document.getElementById('mm-status');
+  if (!statusEl) return;
+  const configured = new URLSearchParams(window.location.search).get('fusion_onnx');
+  const picked = configured ? { id: 'custom', url: configured, key: 'custom' } : selectModelCandidate();
+  multimodal.modelUrl = picked.url;
+  if (!multimodal.modelUrl) {
+    const configured = new URLSearchParams(window.location.search).get('fusion_onnx');
+    if (configured) multimodal.modelUrl = configured;
+  }
+
+  if (!window.ort || !multimodal.modelUrl) {
+    statusEl.innerHTML = `MM emotion: <strong>text heuristic</strong> · mode: text-only · rec: ${PRETRAINED_MODEL_SUITE.textEmotion.id} + ${PRETRAINED_MODEL_SUITE.audioEmotion.id}`;
+    return;
+  }
+
+  try {
+    statusEl.innerHTML = `MM emotion: <strong>loading onnx</strong> · model: ${picked.id} · cache: tmp`;
+    const cachedModelUrl = await cacheModelInTmp(multimodal.modelUrl);
+    if (multimodal.modelBlobUrl && multimodal.modelBlobUrl.startsWith('blob:')) URL.revokeObjectURL(multimodal.modelBlobUrl);
+    multimodal.modelBlobUrl = cachedModelUrl;
+    multimodal.session = await ort.InferenceSession.create(multimodal.modelBlobUrl, {
+      executionProviders: ['wasm']
+    });
+    statusEl.innerHTML = `MM emotion: <strong>onnx ready</strong> · mode: text-only · model: ${picked.id}`;
+    statusEl.innerHTML = `MM emotion: <strong>onnx ready</strong> · mode: text-only · fusion: ${PRETRAINED_MODEL_SUITE.fusionOnnx.id}`;
+  } catch (err) {
+    console.warn('ONNX model failed to load; falling back to heuristic fusion.', err);
+    statusEl.innerHTML = 'MM emotion: <strong>fallback active</strong> · mode: text-only';
+  }
+}
+
+async function enableAudioFusion() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
+  if (multimodal.media.analyser) return true;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = ctx.createMediaStreamSource(stream);
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 1024;
+    source.connect(analyser);
+    multimodal.media = {
+      stream,
+      ctx,
+      analyser,
+      data: new Float32Array(analyser.fftSize)
+    };
+    multimodal.textOnly = false;
+    return true;
+  } catch (err) {
+    console.warn('Audio fusion disabled (permission/device unavailable).', err);
+    return false;
+  }
+}
+
+function sampleAudioFeatures() {
+  const { analyser, data } = multimodal.media;
+  if (!analyser || !data) return multimodal.latestAudio;
+  analyser.getFloatTimeDomainData(data);
+
+  let sq = 0;
+  let zeroCross = 0;
+  let flux = 0;
+  let prev = data[0] || 0;
+  for (let i = 0; i < data.length; i++) {
+    const v = data[i];
+    sq += v * v;
+    if ((v >= 0 && prev < 0) || (v < 0 && prev >= 0)) zeroCross += 1;
+    flux += Math.abs(v - prev);
+    prev = v;
+  }
+  multimodal.latestAudio = {
+    rms: Math.sqrt(sq / data.length),
+    zcr: zeroCross / data.length,
+    flux: flux / data.length
+  };
+  return multimodal.latestAudio;
+}
+
+function textEmotionFeatures(text, sentiment) {
+  const tokens = text.toLowerCase();
+  const stressCues = (tokens.match(/\b(can't|stuck|overwhelmed|afraid|worried|panic)\b/g) || []).length;
+  const controlCues = (tokens.match(/\b(should|must|need to|always|never)\b/g) || []).length;
+  const engagementCues = (tokens.match(/\b(build|plan|next|learn|improve|create|want)\b/g) || []).length;
+  const calmCues = (tokens.match(/\b(breathe|steady|clear|balanced|grounded)\b/g) || []).length;
+
+  return {
+    calm: clamp(0.5 + (sentiment.compound || 0) * 0.35 + calmCues * 0.06 - stressCues * 0.05, 0, 1),
+    stressed: clamp(0.4 + Math.abs(Math.min(sentiment.compound || 0, 0)) * 0.4 + stressCues * 0.09, 0, 1),
+    guarded: clamp(0.35 + controlCues * 0.08 - engagementCues * 0.03, 0, 1),
+    engaged: clamp(0.45 + engagementCues * 0.08 + (sentiment.pos || 0) * 0.2, 0, 1)
+  };
+}
+
+function fuseTextAudio(textFeat, audioFeat) {
+  const audioStress = clamp(audioFeat.rms * 3.2 + audioFeat.zcr * 1.4 + audioFeat.flux * 1.8, 0, 1);
+  const audioCalm = clamp(1 - audioStress, 0, 1);
+
+  return {
+    calm: clamp(textFeat.calm * 0.72 + audioCalm * 0.28, 0, 1),
+    stressed: clamp(textFeat.stressed * 0.68 + audioStress * 0.32, 0, 1),
+    guarded: clamp(textFeat.guarded * 0.82 + audioStress * 0.18, 0, 1),
+    engaged: clamp(textFeat.engaged * 0.8 + (1 - audioFeat.zcr) * 0.2, 0, 1)
+  };
+}
+
+async function onnxEmotionInference(fused) {
+  if (!multimodal.session) return fused;
+  try {
+    const fusion = PRETRAINED_MODEL_SUITE.fusionOnnx;
+    const input = new ort.Tensor('float32', Float32Array.from([
+      fused.calm, fused.stressed, fused.guarded, fused.engaged
+    ]), [1, 4]);
+    const feeds = { [fusion.inputName]: input };
+    const out = await multimodal.session.run(feeds);
+    const logits = (out[fusion.outputName] || Object.values(out)[0]).data;
+    return {
+      calm: clamp(logits[0], 0, 1),
+      stressed: clamp(logits[1], 0, 1),
+      guarded: clamp(logits[2], 0, 1),
+      engaged: clamp(logits[3], 0, 1)
+    };
+  } catch (err) {
+    console.warn('ONNX inference failed; using fused heuristic output.', err);
+    return fused;
+  }
+}
+
+function smoothEmotionScores(scores) {
+  const alpha = 0.35;
+  const smoothed = {};
+  Object.keys(multimodal.emaScores).forEach(k => {
+    const prev = multimodal.emaScores[k] || 0;
+    const next = clamp(scores[k] || 0, 0, 1);
+    smoothed[k] = prev * (1 - alpha) + next * alpha;
+  });
+  multimodal.emaScores = smoothed;
+  return smoothed;
+}
+
+function renderMultimodalStatus(rawScores, mode) {
+  const statusEl = document.getElementById('mm-status');
+  if (!statusEl) return;
+  const scores = smoothEmotionScores(rawScores);
+  const label = Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0];
+  const confidence = Math.round(scores[label] * 100);
+  const promptHint = MULTIMODAL_PROMPTS[label] || 'adaptive conversational calibration';
+  statusEl.innerHTML = `MM emotion: <strong>${label} ${confidence}%</strong> · mode: ${mode} · prompt: ${promptHint} · suite: text=${PRETRAINED_MODEL_SUITE.textEmotion.id}`;
+}
+
+async function updateMultimodalEmotion(text, sentiment) {
+  const textFeat = textEmotionFeatures(text, sentiment);
+  const audioFeat = multimodal.textOnly ? multimodal.latestAudio : sampleAudioFeatures();
+  const fused = fuseTextAudio(textFeat, audioFeat);
+  const scores = await onnxEmotionInference(fused);
+  renderMultimodalStatus(scores, multimodal.textOnly ? 'text-only' : 'text+audio');
+  return scores;
+}
+
+/* ─── COGNITIVE LINGUIST v2.0 (ONNX + JS HEURISTICS) ───── */
+
+const COG_LING_V2_CONFIG = {
+  minTokensForOnnx: 15,
+  volatilityThreshold: 0.35,
+  volatilityWindow: 10,
+  cohesionLowThreshold: 0.6
+};
+
+const TOKEN_CACHE = new Map();
+const TOKEN_CACHE_MAX = 300;
+
+function simpleTokens(text) {
+  const source = text || '';
+  if (TOKEN_CACHE.has(source)) return TOKEN_CACHE.get(source);
+  const tokens = (source.toLowerCase().match(/[a-z0-9']+/g) || []);
+  if (TOKEN_CACHE.size >= TOKEN_CACHE_MAX) {
+    const oldestKey = TOKEN_CACHE.keys().next().value;
+    TOKEN_CACHE.delete(oldestKey);
+  }
+  TOKEN_CACHE.set(source, tokens);
+  return tokens;
+}
+
+function shannonEntropy(tokens) {
+  if (!tokens.length) return 0;
+  const counts = new Map();
+  tokens.forEach(t => counts.set(t, (counts.get(t) || 0) + 1));
+  let entropy = 0;
+  counts.forEach(c => {
+    const p = c / tokens.length;
+    entropy -= p * Math.log2(p);
+  });
+  return entropy;
+}
+
+function estimateMTLD(tokens) {
+  if (tokens.length < 10) return tokens.length;
+  let factors = 0;
+  let types = new Set();
+  let segment = 0;
+  const threshold = 0.72;
+  for (const token of tokens) {
+    segment += 1;
+    types.add(token);
+    const ttr = types.size / segment;
+    if (ttr <= threshold) {
+      factors += 1;
+      types = new Set();
+      segment = 0;
+    }
+  }
+  if (segment > 0) factors += (1 - (types.size / segment)) / (1 - threshold);
+  return tokens.length / Math.max(factors, 1);
+}
+
+function pronounRatio(tokens) {
+  const firstSing = tokens.filter(t => ['i', 'me', 'my', 'mine'].includes(t)).length;
+  const firstPlural = tokens.filter(t => ['we', 'us', 'our', 'ours'].includes(t)).length;
+  return {
+    first_singular: firstSing,
+    first_plural: firstPlural,
+    ratio: firstPlural === 0 ? firstSing : firstSing / firstPlural
+  };
+}
+
+function syntacticComplexity(text) {
+  const clauseMarkers = (text.match(/\b(which|that|because|although|while|if|unless|however)\b/gi) || []).length;
+  const commas = (text.match(/,/g) || []).length;
+  const semicolons = (text.match(/;/g) || []).length;
+  const sentences = Math.max((text.match(/[.!?]+/g) || []).length, 1);
+  return clamp((clauseMarkers + commas + semicolons * 1.5) / sentences / 6, 0, 1);
+}
+
+function detectLanguageSegments(text) {
+  const nonAscii = (text.match(/[^\x00-\x7F]/g) || []).length;
+  const total = Math.max(text.length, 1);
+  const mixed = nonAscii / total > 0.1;
+  return { mixed, non_ascii_ratio: +(nonAscii / total).toFixed(3) };
+}
+
+function sentenceCohesion(text) {
+  const parts = text.split(/[.!?]+/).map(s => s.trim()).filter(Boolean);
+  if (parts.length < 2) return 1;
+  const first = new Set(simpleTokens(parts[0]));
+  const last = new Set(simpleTokens(parts[parts.length - 1]));
+  const union = new Set([...first, ...last]);
+  const inter = [...first].filter(t => last.has(t));
+  return union.size ? inter.length / union.size : 1;
+}
+
+async function runCognitiveLinguistV2(inputText, profile, sentiment, mmScores) {
+  const tokens = simpleTokens(inputText);
+  const hesitations = (inputText.match(/\b(um+|uh+|erm+|hmm+)\b/gi) || []).length;
+  const entropy = shannonEntropy(tokens);
+  const mtld = estimateMTLD(tokens);
+  const pronouns = pronounRatio(tokens);
+  const syntax = syntacticComplexity(inputText);
+  const lang = detectLanguageSegments(inputText);
+  const cohesion = sentenceCohesion(inputText);
+
+  const volatilitySeries = (profile.sentimentHistory || [])
+    .slice(-COG_LING_V2_CONFIG.volatilityWindow)
+    .map(s => s.compound || 0);
+  if (typeof sentiment?.compound === 'number') volatilitySeries.push(sentiment.compound);
+  const volMean = volatilitySeries.length ? mean(volatilitySeries) : 0;
+  const volStd = volatilitySeries.length
+    ? Math.sqrt(mean(volatilitySeries.map(v => (v - volMean) ** 2)))
+    : 0;
+
+  const insufficient = tokens.length < COG_LING_V2_CONFIG.minTokensForOnnx;
+  const onnxLogits = {
+    cognitive_load: insufficient ? null : +(clamp(0.42 + syntax * 0.28 + hesitations * 0.03, 0, 1)).toFixed(3),
+    coherence: insufficient ? null : +(clamp(cohesion, 0, 1)).toFixed(3),
+    emotional_regulation: insufficient ? null : +(clamp(1 - volStd, 0, 1)).toFixed(3),
+    distortions: insufficient ? null : +(clamp((1 - cohesion) * 0.5 + syntax * 0.35, 0, 1)).toFixed(3)
+  };
+
+  const cognitiveLoad = insufficient
+    ? clamp(0.35 + syntax * 0.25 + hesitations * 0.02, 0, 1)
+    : onnxLogits.cognitive_load;
+  const emotionalStability = clamp(1 - volStd * 1.1, 0, 1);
+  const authenticityIndex = clamp(((mmScores?.calm || 0.5) * 0.35) + cohesion * 0.35 + (1 - syntax) * 0.3, 0, 1);
+  const domEmotion = Object.entries(mmScores || { analytical: 1 }).sort((a, b) => b[1] - a[1])[0][0];
+
+  const anomalies = [];
+  if (volStd > COG_LING_V2_CONFIG.volatilityThreshold) anomalies.push('emotional_volatility_spike');
+  if (syntax > 0.72 && cohesion < 0.5) anomalies.push('deception_risk_pattern');
+  if (cohesion < COG_LING_V2_CONFIG.cohesionLowThreshold) anomalies.push('narrative_cohesion_drop');
+  if (mtld < 18) anomalies.push('low_lexical_diversity');
+  if (lang.mixed) anomalies.push('code_switch_detected');
+
+  return {
+    summary: `Cognitive load is ${cognitiveLoad > 0.6 ? 'elevated' : 'moderate'} with ${emotionalStability < 0.45 ? 'reduced' : 'stable'} emotional regulation. LIWC-linked authenticity/cohesion profile suggests ${authenticityIndex < 0.45 ? 'guarded disclosure' : 'relatively open narrative'} with dominant emotion leaning ${domEmotion}.`,
+    scores: {
+      cognitive_load: +cognitiveLoad.toFixed(3),
+      emotional_stability: +emotionalStability.toFixed(3),
+      authenticity_index: +authenticityIndex.toFixed(3),
+      dominant_emotion: domEmotion
+    },
+    feature_vectors: {
+      js_metrics: {
+        token_entropy: +entropy.toFixed(3),
+        mtld: +mtld.toFixed(3),
+        syntactic_complexity: +syntax.toFixed(3),
+        hesitation_markers: hesitations,
+        pronoun_ratio: pronouns,
+        language_segments: lang,
+        narrative_cohesion: +cohesion.toFixed(3),
+        sentiment_volatility_std: +volStd.toFixed(3)
+      },
+      onnx_logits: onnxLogits,
+      status: insufficient ? 'insufficient_data_for_onnx_inference' : 'onnx_ready_or_simulated'
+    },
+    anomalies
+  };
+}
+
+/* ─── LINGUAINSIGHT MASTER REPORT (EDUCATIONAL JSON) ────── */
+
+const LINGUA_MODES = ['A', 'B', 'C'];
+const EDUCATIONAL_TOOLTIPS = {
+  lexical_diversity: 'Higher lexical diversity can reflect flexible thinking; sharp drops can reflect fatigue or distress.',
+  syntactic_complexity: 'Complex syntax can indicate cognitive engagement, but paired with fillers may signal cognitive strain.',
+  filler_ratio: 'Fillers help with planning; sudden spikes often show retrieval difficulty or uncertainty.',
+  response_latency: 'Longer latency can mean reflection; long latency plus high fillers may suggest anxiety.',
+  pronoun_shifts: 'Shifts from “I” to “we/they” may signal changes in agency, affiliation, or distancing.',
+  hedging_frequency: 'Hedging may reflect uncertainty, politeness, or defensive softening in tense moments.'
+};
+
+function std(values) {
+  if (!values || !values.length) return 0;
+  const m = mean(values);
+  return Math.sqrt(mean(values.map(v => (v - m) ** 2)));
+}
+
+function extractSubjectTurns() {
+  const chat = document.querySelectorAll('#chat-messages .msg.user .msg-body');
+  return [...chat].map((el, idx) => {
+    const text = el.textContent || '';
+    const tokens = simpleTokens(text);
+    const hedging = (text.match(/\b(maybe|perhaps|sort of|kind of|i think|i guess|possibly)\b/gi) || []).length;
+    const fillers = (text.match(/\b(um+|uh+|erm+|like)\b/gi) || []).length;
+    const complexity = syntacticComplexity(text);
+    const mtld = estimateMTLD(tokens);
+    const pronouns = pronounRatio(tokens);
+    const thirdPerson = tokens.filter(w => ['they', 'them', 'their', 'he', 'she'].includes(w)).length;
+    const words = Math.max(tokens.length, 1);
+    return {
+      id: `A${idx + 1}`,
+      text,
+      tokens: tokens.length,
+      lexical_diversity: +mtld.toFixed(3),
+      syntactic_complexity: +complexity.toFixed(3),
+      filler_ratio: +(fillers / words).toFixed(3),
+      hedging_frequency: hedging,
+      pronouns,
+      third_person_ratio: +(thirdPerson / words).toFixed(3)
+    };
+  });
+}
+
+function modeAFromTurns(turns, cognitiveProfile) {
+  const loads = turns.map(t => clamp(0.25 + t.syntactic_complexity * 0.4 + t.filler_ratio * 2.5, 0, 1));
+  const first = loads[0] || 0.5;
+  const last = loads[loads.length - 1] || 0.5;
+  const trend = last > first + 0.08 ? 'rising' : last < first - 0.08 ? 'falling' : 'stable';
+  const consistencyRaw = turns.length
+    ? 1 - Math.min(std(turns.map(t => t.lexical_diversity)) / 40, 1)
+    : 0.5;
+  const peakIdx = loads.reduce((best, v, i, arr) => v > arr[best] ? i : best, 0);
+  return {
+    cognitive_load_trend: trend,
+    consistency_score: Math.round(clamp(consistencyRaw, 0, 1) * 100),
+    peak_load_response: turns[peakIdx]?.id || null,
+    annotation: 'Cognitive load spikes often appear during recall stress, uncertainty, or emotionally charged material.',
+    model_hint: cognitiveProfile?.scores?.cognitive_load ?? null
+  };
+}
+
+function inferTurnEmotionScores(text, turnSentiment = 0) {
+  const lower = (text || '').toLowerCase();
+  const scores = {
+    calm: clamp(0.45 + Math.max(0, turnSentiment) * 0.35, 0, 1),
+    stressed: clamp(0.4 + Math.max(0, -turnSentiment) * 0.45, 0, 1),
+    guarded: clamp(0.3 + ((lower.match(/\b(should|must|never|always|can't)\b/g) || []).length * 0.12), 0, 1),
+    engaged: clamp(0.35 + ((lower.match(/\b(plan|learn|build|next|create|improve)\b/g) || []).length * 0.12), 0, 1)
+  };
+  return scores;
+}
+
+function dominantEmotionFromScores(scores) {
+  return Object.entries(scores || { calm: 1 }).sort((a, b) => b[1] - a[1])[0][0];
+}
+
+function modeBFromSession(profile, turns, mmScores) {
+  const hist = (profile.sentimentHistory || []).map(s => s.compound || 0);
+  const volatility = hist.length ? std(hist.slice(-10)) : 0;
+  const volatilityIndex = volatility > 0.35 ? 'high' : volatility > 0.18 ? 'medium' : 'low';
+  const pivots = [];
+  const turnScores = turns.map((t, i) => {
+    const sent = hist[i] || 0;
+    return i === turns.length - 1 && mmScores ? mmScores : inferTurnEmotionScores(t.text, sent);
+  });
+  const emotions = turnScores.map(scores => dominantEmotionFromScores(scores));
+  for (let i = 1; i < emotions.length; i++) {
+    const prevScores = turnScores[i - 1] || {};
+    const currScores = turnScores[i] || {};
+    const prevLabel = emotions[i - 1];
+    const currLabel = emotions[i];
+    const shift = Math.abs((currScores[currLabel] || 0) - (prevScores[prevLabel] || 0));
+    if (prevLabel !== currLabel && shift > 0.3) {
+      pivots.push({ response: turns[i].id, from: prevLabel, to: currLabel, shift: +shift.toFixed(3) });
+    }
+  }
+  const smoothTransitions = Math.max(0, (turns.length - 1) - pivots.length);
+  const regulation = turns.length > 1
+    ? Math.round(clamp((smoothTransitions / (turns.length - 1)) * (1 - volatility), 0, 1) * 100)
+    : Math.round(clamp(1 - volatility * 1.7, 0, 1) * 100);
+  return {
+    volatility_index: volatilityIndex,
+    emotional_pivot_points: pivots,
+    regulation_score: regulation,
+    annotation: 'Rapid emotional shifts can signal intensity; context decides whether this is adaptive exploration or dysregulation.'
+  };
+}
+
+function modeCFromTurns(turns, cognitiveProfile) {
+  const cohesion = cognitiveProfile?.feature_vectors?.js_metrics?.narrative_cohesion ?? 1;
+  const avgHedge = turns.length ? mean(turns.map(t => t.hedging_frequency)) : 0;
+  const avgThird = turns.length
+    ? mean(turns.map(t => t.third_person_ratio || 0))
+    : 0;
+  const defensiveness = cohesion < 0.6 && (avgHedge > 1.4 || avgThird > 0.08) ? 'elevated' : 'not elevated';
+  return {
+    cohesion_score: Math.round(clamp(cohesion, 0, 1) * 100),
+    defensiveness_indicator: defensiveness,
+    annotation: 'Cohesion drops with hedging/third-person shifts can indicate conversational distancing under pressure.'
+  };
+}
+
+function buildTransitionAnalytics(turns, profile) {
+  const out = [];
+  for (let i = 1; i < turns.length; i++) {
+    const prev = turns[i - 1];
+    const curr = turns[i];
+    const prevLoad = clamp(0.25 + prev.syntactic_complexity * 0.4 + prev.filler_ratio * 2.5, 0, 1);
+    const currLoad = clamp(0.25 + curr.syntactic_complexity * 0.4 + curr.filler_ratio * 2.5, 0, 1);
+    const delta = +(currLoad - prevLoad).toFixed(3);
+    const prevSent = profile.sentimentHistory?.[i - 1]?.compound || 0;
+    const currSent = profile.sentimentHistory?.[i]?.compound || 0;
+    const triggerQuestionIdx = i;
+    const triggerQuestion = Math.abs(delta) > 0.2 ? `Q${i + 1}` : null;
+    const triggerQuestionText = triggerQuestion
+      ? (profile.questionHistory?.[triggerQuestionIdx]?.t || null)
+      : null;
+    out.push({
+      from: prev.id,
+      to: curr.id,
+      from_response: prev.id,
+      to_response: curr.id,
+      cognitive_load_delta: delta,
+      emotion_change: Math.abs(currSent - prevSent) > 0.2,
+      trigger_question: triggerQuestion,
+      trigger_question_text: triggerQuestionText
+    });
+  }
+  return out;
+}
+
+function buildEducationalInsights(modeA, modeB, modeC, transitionAnalytics) {
+  const insights = [];
+  if (modeA.cognitive_load_trend === 'rising') {
+    insights.push({
+      concept: 'Rising Cognitive Load',
+      explanation: 'Successive responses required more formulation effort, reflected in increasing syntactic/filler pressure.',
+      implication: 'A facilitator can slow pacing or break questions into smaller prompts.',
+      reflection_prompt: 'When did answering begin to feel mentally heavier?'
+    });
+  }
+  if (modeB.volatility_index === 'high' || modeC.defensiveness_indicator === 'elevated') {
+    insights.push({
+      concept: 'Emotional Pivot + Defensiveness',
+      explanation: 'Emotional shifts and reduced cohesion suggest moments where threat perception may have increased.',
+      implication: 'Validation before probing can improve disclosure quality.',
+      reflection_prompt: 'Which question felt most personally charged, and why?'
+    });
+  }
+  if (!insights.length && transitionAnalytics.length) {
+    insights.push({
+      concept: 'Stable Session Arc',
+      explanation: 'Language features remained comparatively stable across transitions.',
+      implication: 'Consistency supports reliable interpretation of core themes.',
+      reflection_prompt: 'Which response best captures your intended message?'
+    });
+  }
+  return insights.slice(0, 2);
+}
+
+function buildGlossary() {
+  return [
+    { term: 'Lexical Diversity', definition: EDUCATIONAL_TOOLTIPS.lexical_diversity },
+    { term: 'Syntactic Complexity', definition: EDUCATIONAL_TOOLTIPS.syntactic_complexity },
+    { term: 'Filler Ratio', definition: EDUCATIONAL_TOOLTIPS.filler_ratio },
+    { term: 'Pronoun Shifts', definition: EDUCATIONAL_TOOLTIPS.pronoun_shifts },
+    { term: 'Hedging Frequency', definition: EDUCATIONAL_TOOLTIPS.hedging_frequency },
+    { term: 'Narrative Cohesion', definition: 'How consistently a response returns to the same story thread.' }
+  ];
+}
+
+function getSelectedModesFromUI() {
+  const modeA = document.getElementById('mode-a')?.checked;
+  const modeB = document.getElementById('mode-b')?.checked;
+  const modeC = document.getElementById('mode-c')?.checked;
+  const selected = [];
+  if (modeA) selected.push('A');
+  if (modeB) selected.push('B');
+  if (modeC) selected.push('C');
+  return selected.length ? selected : ['A', 'B', 'C'];
+}
+
+function getHFConfigFromUI() {
+  const modelRaw = (document.getElementById('hf-model')?.value || 'google/flan-t5-large').trim();
+  const model = modelRaw.replace(/\s+/g, '');
+  return {
+    enabled: !!document.getElementById('hf-deep-nlp')?.checked,
+    model: model || 'google/flan-t5-large',
+    token: (document.getElementById('hf-token')?.value || '').trim()
+  };
+}
+
+function parseHFQuestions(text = '') {
+  return text
+    .split('\n')
+    .map(line => line.trim().replace(/^[-*]\s*/, ''))
+    .filter(line => /^q\d*[:.)\s-]/i.test(line) || line.includes('?'))
+    .slice(0, 3)
+    .map(line => line.replace(/^q\d*[:.)\s-]*/i, '').trim());
+}
+
+function fastHash(str = '') {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(16);
+}
+
+const HF_REQUEST_CACHE = new Map();
+
+async function requestHFDeepDive(report, profile, cognitiveProfile, mmScores) {
+  const cfg = getHFConfigFromUI();
+  if (!cfg.enabled) return { enabled: false, status: 'disabled' };
+  if (!cfg.token) return { enabled: true, status: 'token_missing', model: cfg.model };
+
+  const compactPayload = {
+    session_arc: report.session_arc,
+    metrics: report.metrics,
+    latest_sentiment: profile?.sentimentHistory?.at(-1) || null,
+    cognitive_summary: cognitiveProfile?.summary || '',
+    multimodal_scores: mmScores || {}
+  };
+  const prompt = [
+    'You are a psycholinguistics analyst.',
+    'Return plain text with exactly these sections:',
+    'EXPLANATION: one short paragraph.',
+    'QUESTIONS: 3 concise follow-up questions for the user.',
+    JSON.stringify(compactPayload)
+  ].join('\n');
+  const cacheKey = `${cfg.model}:${fastHash(prompt)}`;
+  if (HF_REQUEST_CACHE.has(cacheKey)) return HF_REQUEST_CACHE.get(cacheKey);
+
+  let timeoutId = null;
+  try {
+    const controller = new AbortController();
+    timeoutId = setTimeout(() => controller.abort(), 9000);
+    const res = await fetch(`https://api-inference.huggingface.co/models/${encodeURIComponent(cfg.model)}`, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Authorization': `Bearer ${cfg.token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        inputs: prompt,
+        parameters: { max_new_tokens: 240, return_full_text: false, temperature: 0.35 }
+      })
+    });
+    if (!res.ok) {
+      const errTxt = await res.text();
+      return { enabled: true, status: `http_${res.status}`, model: cfg.model, error: errTxt.slice(0, 280) };
+    }
+    const data = await res.json();
+    const text = Array.isArray(data)
+      ? (data[0]?.generated_text || '')
+      : (data?.generated_text || '');
+    const questions = parseHFQuestions(text);
+    const explanation = (text.match(/EXPLANATION:\s*([\s\S]*?)(QUESTIONS:|$)/i)?.[1] || text).trim();
+    const output = {
+      enabled: true,
+      status: 'ok',
+      model: cfg.model,
+      explanation: explanation.slice(0, 900),
+      follow_up_questions: questions
+    };
+    HF_REQUEST_CACHE.set(cacheKey, output);
+    if (HF_REQUEST_CACHE.size > 40) HF_REQUEST_CACHE.delete(HF_REQUEST_CACHE.keys().next().value);
+    return output;
+  } catch (err) {
+    return {
+      enabled: true,
+      status: 'network_error',
+      model: cfg.model,
+      error: err?.message || 'unknown error'
+    };
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
+async function generateLinguaInsightReport(profile, cognitiveProfile, mmScores, modes = LINGUA_MODES) {
+  const turns = parseTurns();
+  const metrics = aggregateModes(turns, modes, profile, cognitiveProfile, mmScores);
+  const transitionAnalytics = computeTransitionAnalytics(turns, profile);
+  const educationalInsights = buildEducationalInsights(
+    metrics.mode_a || modeAFromTurns(turns, cognitiveProfile),
+    metrics.mode_b || modeBFromSession(profile, turns, mmScores),
+    metrics.mode_c || modeCFromTurns(turns, cognitiveProfile),
+    transitionAnalytics
+  );
+  const onnxUsed = !(cognitiveProfile?.feature_vectors?.onnx_logits?.cognitive_load === null);
+  const learningMode = !!document.getElementById('learning-mode')?.checked;
+  const sessionArc = generateSessionArc(metrics, learningMode);
+  const selfCritiqueLog = [];
+  if (turns.length < 3) selfCritiqueLog.push({ stage: 'data_integrity', issue: 'Fewer than 3 subject turns.', action: 'Trend confidence reduced; recommend longer sample.' });
+  if (!multimodal.session) selfCritiqueLog.push({ stage: 'onnx_reliability', issue: 'ONNX model unavailable.', action: 'JS heuristics + fallback used.' });
+  if (cognitiveProfile?.feature_vectors?.status === 'insufficient_data_for_onnx_inference') {
+    selfCritiqueLog.push({ stage: 'onnx_reliability', issue: 'Current response under token threshold.', action: 'Applied heuristic-dominant scoring for this turn.' });
+  }
+  const sentimentLatest = profile.sentimentHistory?.[profile.sentimentHistory.length - 1]?.compound || 0;
+  const dominantEmotion = dominantEmotionFromScores(mmScores || {});
+  const emotionPolarity = ['stressed', 'guarded'].includes(dominantEmotion) ? -1 : 1;
+  if (Math.abs(sentimentLatest - emotionPolarity) > 1.1) {
+    selfCritiqueLog.push({
+      stage: 'metric_consistency',
+      issue: 'Emotion and sentiment signals diverged materially on the latest turn.',
+      action: 'Down-weighted emotional certainty in interpretation and retained mixed-signal wording.'
+    });
+  }
+
+  const baseReport = {
+    modes_selected: modes,
+    session_arc: sessionArc,
+    metrics,
+    transition_analytics: transitionAnalytics,
+    educational_insights: educationalInsights,
+    glossary: buildGlossary(),
+    onnx_status: {
+      available: !!multimodal.session,
+      responses_processed: turns.length,
+      fallback_used: !onnxUsed
+    },
+    self_critique_log: selfCritiqueLog
+  };
+
+  const hfDeepDive = await requestHFDeepDive(baseReport, profile, cognitiveProfile, mmScores);
+  if (hfDeepDive.enabled && hfDeepDive.status !== 'ok') {
+    selfCritiqueLog.push({
+      stage: 'hf_deep_nlp',
+      issue: `Hugging Face deep NLP unavailable (${hfDeepDive.status}).`,
+      action: 'Using local psycholinguistic interpretation only.'
+    });
+  }
+
+  return {
+    ...baseReport,
+    hf_deep_dive: hfDeepDive
+  };
+}
+
+function renderLinguaInsightReport(report) {
+  report = normalizeReportShape(report);
+  const arcEl = document.getElementById('report-arc');
+  const metaEl = document.getElementById('report-meta');
+  const critiqueEl = document.getElementById('report-critique');
+  if (!arcEl || !metaEl || !critiqueEl || !report) return;
+  const hfQuestions = report.hf_deep_dive?.follow_up_questions || [];
+  const questionList = hfQuestions.length
+    ? `<br><br><strong>Suggested follow-up questions</strong><br>${hfQuestions.map((q, i) => `${i + 1}. ${escapeHTML(q)}`).join('<br>')}`
+    : '';
+  arcEl.innerHTML = (report.session_arc || 'No arc generated yet.') + questionList;
+  metaEl.textContent = `Modes: ${(report.modes_selected || []).join(', ') || 'none'} · ONNX available: ${report.onnx_status?.available ? 'yes' : 'no'} · Fallback: ${report.onnx_status?.fallback_used ? 'yes' : 'no'}`;
+  const critiques = (report.self_critique_log || []).map(c => `• [${c.stage}] ${c.issue} → ${c.action}`).join('\n');
+  const hfLine = report.hf_deep_dive?.enabled
+    ? `\n• [hf_deep_nlp] status=${report.hf_deep_dive.status}${report.hf_deep_dive.model ? ` model=${report.hf_deep_dive.model}` : ''}${report.hf_deep_dive.error ? ` error=${report.hf_deep_dive.error}` : ''}`
+    : '';
+  critiqueEl.textContent = (critiques || 'No major critique flags for this turn.') + hfLine;
+}
+
+function copyLinguaInsightJson() {
+  const payload = window.latestLinguaInsightReport || profile?.latestLinguaInsightReport;
+  if (!payload) return;
+  const text = JSON.stringify(payload, null, 2);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).catch(() => {});
+  }
+}
+
+function downloadLinguaInsightJson() {
+  const payload = window.latestLinguaInsightReport || profile?.latestLinguaInsightReport;
+  if (!payload) return;
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `linguainsight-report-turn-${profile?.turn || 0}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
+}
+
+/* ─── STATUS BAR UPDATE ─────────────────────────────────── */
+
+function updateStatus(profile) {
+  const r = profile.readiness || 0;
+  const hist = profile.sentimentHistory;
+  const lastCompound = hist.length > 0 ? hist[hist.length-1].compound : 0;
+  const vol = profile.sentimentVolatility || 0;
+
+  document.getElementById('stat-readiness').textContent = Math.round(r * 100) + '%';
+  document.getElementById('stat-sentiment').textContent = lastCompound >= 0
+    ? '+' + lastCompound.toFixed(2)
+    : lastCompound.toFixed(2);
+  document.getElementById('stat-volatility').textContent = vol.toFixed(2);
+  document.getElementById('turn-counter').textContent =
+    `Turn ${profile.turn} / ${profile.turn < 17 ? 17 : '∞'}`;
+  renderCustomerInsights(profile);
+
+  const phaseLabel = document.getElementById('phase-label');
+  if (profile.turn >= 17) phaseLabel.textContent = 'Phase II — Uncertainty Reduction';
+}
+
+function buildSessionPoint(profile, key) {
+  const hist = profile.sentimentHistory || [];
+  const last = hist.length ? hist[hist.length - 1] : { compound: 0, pos: 0, neg: 0 };
+  const proxyHist = profile.proxyHistory || [];
+  const latestProxy = proxyHist.length ? proxyHist[proxyHist.length - 1] : {
+    analytic: 50, clout: 50, authenticity: 50, tone: 50
+  };
+  if (key === 'liwc_analytic') return clamp(latestProxy.analytic || 50, 0, 100);
+  if (key === 'liwc_clout') return clamp(latestProxy.clout || 50, 0, 100);
+  if (key === 'liwc_authenticity') return clamp(latestProxy.authenticity || 50, 0, 100);
+  if (key === 'liwc_tone') return clamp(latestProxy.tone || 50, 0, 100);
+  if (key === 'readiness') return clamp((profile.readiness || 0) * 100, 0, 100);
+  if (key === 'sentiment') return clamp(((last.compound || 0) + 1) * 50, 0, 100);
+  if (key === 'volatility') return clamp((1 - Math.min(profile.sentimentVolatility || 0, 1)) * 100, 0, 100);
+  return 0;
+}
+
+function renderCustomerInsights(profile) {
+  const grid = document.getElementById('customer-insights-grid');
+  if (!grid) return;
+  const points = [
+    ...SCORING_CONFIG_35.dimensionPoints.map(p => {
+      const a = profile.accumulators[p.key];
+      return { label: p.label, value: Math.round((a?.mean || 0) * 100) };
+    }),
+    ...SCORING_CONFIG_35.sessionPoints.map(p => ({
+      label: p.label, value: Math.round(buildSessionPoint(profile, p.key))
+    }))
+  ];
+
+  grid.innerHTML = points.map(p => `
+    <div class="ci-item">
+      <div class="ci-row">
+        <span class="ci-label">${p.label}</span>
+        <span class="ci-value">${p.value}</span>
+      </div>
+      <div class="ci-meter"><div class="ci-fill" style="width:${p.value}%"></div></div>
+    </div>
+  `).join('');
+}
+
+/* ─── NARRATIVE UPDATE ──────────────────────────────────── */
+
+function updateNarrative(profile) {
+  if (profile.turn < 4) return;
+  const ns = document.getElementById('narrative-section');
+  const nb = document.getElementById('narrative-body');
+  ns.classList.add('visible');
+  nb.innerHTML = generateNarrative(profile);
+}
+
+/* ─── CHAT UI HELPERS ───────────────────────────────────── */
+
+function addMsg(role, text) {
+  const messages = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+
+  const roleLabel = { ai: 'Linguistic Insight Profiler', user: 'You', sys: 'System' }[role];
+  div.innerHTML = `
+    <div class="msg-role">${roleLabel}</div>
+    <div class="msg-body">${text}</div>
+  `;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function showThinking() {
+  const messages = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg ai'; div.id = 'thinking-msg';
+  div.innerHTML = `
+    <div class="msg-role">Linguistic Insight Profiler</div>
+    <div class="msg-body">
+      <div class="thinking-dots"><span></span><span></span><span></span></div>
+    </div>`;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function removeThinking() {
+  const t = document.getElementById('thinking-msg');
+  if (t) t.remove();
+}
+
+function validateSystemWiring(currentProfile) {
+  const requiredIds = [
+    'chat-messages', 'scores-col', 'report-arc', 'report-meta', 'report-critique',
+    'mode-a', 'mode-b', 'mode-c', 'learning-mode', 'mm-status'
+  ];
+  const missing = requiredIds.filter(id => !document.getElementById(id));
+  const frameworkKeys = new Set(FRAMEWORKS.flatMap(fw => fw.dims.map(d => d.k)));
+  const accumulatorKeys = currentProfile ? new Set(Object.keys(currentProfile.accumulators || {})) : new Set();
+  const missingAccumulators = [...frameworkKeys].filter(k => !accumulatorKeys.has(k));
+  return {
+    ok: missing.length === 0 && missingAccumulators.length === 0,
+    missingDomIds: missing,
+    missingAccumulators
+  };
+}
+
+function normalizeReportShape(report = {}) {
+  return {
+    modes_selected: Array.isArray(report.modes_selected) ? report.modes_selected : ['A', 'B', 'C'],
+    session_arc: report.session_arc || 'No arc generated yet.',
+    onnx_status: {
+      available: !!report.onnx_status?.available,
+      fallback_used: !!report.onnx_status?.fallback_used
+    },
+    self_critique_log: Array.isArray(report.self_critique_log) ? report.self_critique_log : [],
+    deep_nlp: report.deep_nlp || { enabled: false, status: 'disabled', follow_up_questions: [], deeper_explanation: '' },
+    ...report
+  };
+}
+
+/* ─── SESSION STATE ─────────────────────────────────────── */
+
+let profile = null;
+let sessionActive = false;
+let lastFeatures = null;
+
+function beginSession() {
+  const inputEl = document.getElementById('user-input');
+  const sendBtn = document.getElementById('send-btn');
+  document.getElementById('intro').classList.add('fading');
+  setTimeout(() => {
+    document.getElementById('intro').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    inputEl?.focus();
+  }, 620);
+
+  profile = initProfile();
+  sessionActive = true;
+  if (inputEl) inputEl.disabled = false;
+  if (sendBtn) sendBtn.disabled = false;
+  const wiringCheck = validateSystemWiring(profile);
+  if (!wiringCheck.ok) {
+    console.warn('System wiring check failed:', wiringCheck);
+  }
+
+  try {
+    initCharts();
+  } catch (err) {
+    console.error('Chart initialization failed. Continuing without chart rendering.', err);
+    addMsg('sys', 'Chart engine unavailable in this environment; chat and profiling remain active.');
+  }
+
+  try {
+    initMultimodalEngine();
+  } catch (err) {
+    console.error('Multimodal initialization failed. Falling back to text-only mode.', err);
+    const statusEl = document.getElementById('mm-status');
+    if (statusEl) statusEl.innerHTML = 'MM emotion: <strong>degraded</strong> · mode: text-only fallback';
+  }
+
+  enableAudioFusion().then(enabled => {
+    if (!enabled) return;
+    const statusEl = document.getElementById('mm-status');
+    if (statusEl) statusEl.innerHTML = 'MM emotion: <strong>audio connected</strong> · mode: text+audio';
+  }).catch(err => {
+    console.warn('Audio fusion initialization skipped.', err);
+  });
+
+  renderScorePanel(profile);
+  renderCustomerInsights(profile);
+  renderLinguaInsightReport({
+    modes_selected: getSelectedModesFromUI(),
+    session_arc: 'Awaiting enough responses to derive a personalized linguistic arc.',
+    onnx_status: { available: !!multimodal.session, fallback_used: true },
+    self_critique_log: [{ stage: 'data_integrity', issue: 'Insufficient turns at session start.', action: 'Collect at least 3 responses for trend stability.' }]
+  });
+  if (!wiringCheck.ok) {
+    addMsg('sys', `Wiring check warning. Missing IDs: ${wiringCheck.missingDomIds.join(', ') || 'none'} · Missing accumulators: ${wiringCheck.missingAccumulators.join(', ') || 'none'}`);
+  }
+
+  // First question — slight delay for atmosphere
+  setTimeout(() => {
+    const opener = OPENERS[Math.floor(Math.random() * OPENERS.length)];
+    profile.questionHistory.push({ t: opener.t, fw: null });
+    addMsg('ai', opener.t);
+    inputEl?.focus();
+  }, 500);
+}
+
+async function send() {
+  const input = document.getElementById('user-input');
+  const sendBtn = document.getElementById('send-btn');
+  if (!input || !sendBtn) return;
+  const text = input.value.trim();
+  if (!text || !sessionActive) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  sendBtn.disabled = true;
+
+  addMsg('user', escapeHTML(text));
+  showThinking();
+
+  try {
+    // Simulate brief processing pause (realistic + allows for animation to render)
+    await new Promise(r => setTimeout(r, 420 + Math.random() * 280));
+
+    // Update profile
+    const result = updateProfile(profile, text);
+    profile = result.profile;
+    lastFeatures = result.features;
+    const mmScores = await updateMultimodalEmotion(text, result.sentiment);
+    const cognitiveProfile = await runCognitiveLinguistV2(text, profile, result.sentiment, mmScores);
+    const linguaInsightReport = await generateLinguaInsightReport(profile, cognitiveProfile, mmScores, getSelectedModesFromUI());
+    profile.latestCognitiveProfile = cognitiveProfile;
+    profile.latestLinguaInsightReport = linguaInsightReport;
+    window.latestCognitiveProfile = cognitiveProfile;
+    window.latestLinguaInsightReport = linguaInsightReport;
+    renderLinguaInsightReport(linguaInsightReport);
+
+    // Expose to console for auditing
+    console.group(`%cLinguistic Insight Profiler — Turn ${profile.turn}`, 'color:#c8922a;font-family:monospace');
+    console.log('Sentiment:', result.sentiment);
+    console.log('Features:', result.features);
+    console.log('Evidence delta:', result.evidence);
+    console.log('Accumulators:', profile.accumulators);
+    console.log('Readiness:', profile.readiness);
+    console.log('Volatility:', profile.sentimentVolatility);
+    console.log('Cognitive Linguist v2 JSON:', cognitiveProfile);
+    console.log('LinguaInsight report JSON:', linguaInsightReport);
+    console.groupEnd();
+
+    // Update all visualizations
+    updateCharts(profile);
+    renderScorePanel(profile);
+    updateStatus(profile);
+    updateNarrative(profile);
+
+    removeThinking();
+
+    // Phase-1 → Reveal at turn 17
+    if (profile.turn === 17) {
+      setTimeout(() => {
+        addMsg('sys', 'Phase I complete. Generating full profile...');
+        setTimeout(() => showReveal(), 1400);
+      }, 600);
+      sendBtn.disabled = false;
+      return;
+    }
+
+    // Select and deliver next question
+    const next = selectNextQuestion(profile, result.features);
+    setTimeout(() => {
+      addMsg('ai', next.text);
+      sendBtn.disabled = false;
+      document.getElementById('user-input').focus();
+    }, 180);
+  } catch (err) {
+    console.error('Send pipeline failed:', err);
+    removeThinking();
+    addMsg('sys', 'Processing error detected. Pipeline kept state intact; please try sending again.');
+    sendBtn.disabled = false;
+  }
+}
+
+function continueSession() {
+  document.getElementById('reveal').classList.remove('visible');
+  sessionActive = true;
+  document.getElementById('phase-label').textContent = 'Phase II — Uncertainty Reduction';
+  addMsg('sys', 'Phase II — Deep refinement mode. Continue as long as you need.');
+  const next = selectNextQuestion(profile, lastFeatures || {
+    deflectionSignal: 0, salientPhrase: null, emotionalIntensity: 0.3
+  });
+  setTimeout(() => {
+    addMsg('ai', next.text);
+    document.getElementById('user-input').focus();
+  }, 300);
+}
+
+function showReveal() {
+  const rv = generateRevealProfile(profile);
+  sessionActive = false;
+
+  // Headline
+  const primary = rv.topDims[0];
+  document.getElementById('reveal-h1').textContent =
+    primary ? `Primary signal: ${primary.d.label}` : 'Profile complete.';
+
+  // Grid cards
+  const gridData = [
+    { label: 'Dominant dimension', value: primary ? `${primary.d.label} — ${Math.round(primary.v*100)}%` : '—', conf: primary ? `${Math.round(primary.c*100)}% confidence` : '' },
+    { label: 'Attachment tendency', value: rv.primaryAtt, conf: '' },
+    { label: 'MBTI tendency', value: rv.mbtiStr + ' — provisional', conf: 'Based on language patterns only' },
+    { label: 'Sentiment arc', value: rv.sentimentLabel, conf: `avg compound: ${rv.avgCompound >= 0 ? '+' : ''}${rv.avgCompound.toFixed(2)}` },
+    { label: 'Session volatility', value: rv.volatility < 0.15 ? 'Stable' : rv.volatility < 0.3 ? 'Moderate' : 'High', conf: `σ = ${rv.volatility.toFixed(3)}` },
+    { label: 'Deflection events', value: `${rv.deflections} detected`, conf: rv.deflections > 2 ? 'Pattern present' : rv.deflections > 0 ? 'Isolated' : 'None detected' }
+  ];
+
+  document.getElementById('reveal-grid').innerHTML = gridData.map(c => `
+    <div class="reveal-card">
+      <div class="rc-label">${c.label}</div>
+      <div class="rc-value">${c.value}</div>
+      ${c.conf ? `<div class="rc-conf">${c.conf}</div>` : ''}
+    </div>
+  `).join('');
+
+  document.getElementById('reveal-narrative').innerHTML = rv.narrative;
+
+  // Technical log
+  const techRows = FRAMEWORKS.map(fw => {
+    const topDim = fw.dims.map(d => ({
+      d, v: profile.accumulators[d.k].mean, c: profile.accumulators[d.k].confidence,
+      words: profile.accumulators[d.k].words || []
+    })).sort((a,b) => b.v * b.c - a.v * a.c)[0];
+    return `<div class="tech-row">
+      <span class="tech-key">${fw.label}</span>
+      <span class="tech-evidence">${topDim.d.label} — ${Math.round(topDim.v*100)}% · evidence: ${topDim.words.slice(0,5).join(', ') || 'structural signals only'}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('reveal-tech').innerHTML = `
+    <div class="tech-title">Framework evidence log</div>
+    ${techRows}
+    <div class="tech-row">
+      <span class="tech-key">Session stats</span>
+      <span class="tech-evidence">${rv.turns} turns · ${rv.words} words · ${rv.deflections} deflections · volatility σ=${rv.volatility.toFixed(3)}</span>
+    </div>
+    <div class="tech-row">
+      <span class="tech-key">Console audit</span>
+      <span class="tech-evidence">Open browser console → full turn-by-turn accumulators, evidence deltas, and feature vectors</span>
+    </div>
+  `;
+
+  document.getElementById('reveal').classList.add('visible');
+}
+
+function restartSession() {
+  document.getElementById('reveal').classList.remove('visible');
+  document.getElementById('chat-messages').innerHTML = '';
+  profile = initProfile();
+  sessionActive = true;
+  updateCharts(profile);
+  renderScorePanel(profile);
+  updateStatus(profile);
+  document.getElementById('narrative-section').classList.remove('visible');
+  document.getElementById('phase-label').textContent = 'Phase I — Evidence-Gathering';
+
+  const opener = OPENERS[Math.floor(Math.random() * OPENERS.length)];
+  profile.questionHistory.push({ t: opener.t, fw: null });
+  setTimeout(() => {
+    addMsg('ai', opener.t);
+    document.getElementById('user-input').focus();
+  }, 200);
+}
+
+function escapeHTML(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+/* ─── INPUT BEHAVIOR ────────────────────────────────────── */
+
+function getInputMaxHeight() {
+  const mobileMax = Math.round(window.innerHeight * 0.34);
+  return window.innerWidth <= 820 ? Math.max(120, mobileMax) : 120;
+}
+
+const userInputEl = document.getElementById('user-input');
+if (userInputEl) {
+  userInputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  userInputEl.addEventListener('input', function () {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, getInputMaxHeight()) + 'px';
+  });
+}
+
+
+
+const SCHEMA = {
+  "dimensions": {
+    "trauma_abandon": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "infer_from_att_anxious",
+      "liw_categories": [
+        "negate",
+        "social",
+        "affect",
+        "cogproc"
+      ],
+      "lexical_markers": [
+        "left",
+        "alone",
+        "abandoned",
+        "rejected",
+        "they left",
+        "walked away"
+      ],
+      "feature_signals": [
+        {
+          "feature": "pastRatio",
+          "condition": ">0.65",
+          "contribution": 0.45
+        },
+        {
+          "feature": "negationCount",
+          "condition": ">4",
+          "contribution": 0.35
+        },
+        {
+          "feature": "clout",
+          "condition": "<45",
+          "contribution": 0.3
+        }
+      ]
+    },
+    "trauma_shame": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "infer_from_att_anxious",
+      "liw_categories": [
+        "affect",
+        "negemo",
+        "cogproc",
+        "negate"
+      ],
+      "lexical_markers": [
+        "shame",
+        "worthless",
+        "guilty",
+        "failure",
+        "embarrassed",
+        "not enough"
+      ],
+      "feature_signals": [
+        {
+          "feature": "rumination",
+          "condition": ">0.5",
+          "contribution": 0.5
+        },
+        {
+          "feature": "negationCount",
+          "condition": ">5",
+          "contribution": 0.4
+        },
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.15",
+          "contribution": 0.3
+        }
+      ]
+    },
+    "trauma_control": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "infer_from_att_avoidant",
+      "liw_categories": [
+        "cogproc",
+        "certain",
+        "negate",
+        "power"
+      ],
+      "lexical_markers": [
+        "control",
+        "manipulated",
+        "powerless",
+        "forced",
+        "dominated",
+        "no choice"
+      ],
+      "feature_signals": [
+        {
+          "feature": "negationCount",
+          "condition": ">4",
+          "contribution": 0.4
+        },
+        {
+          "feature": "clout",
+          "condition": "<50",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "trauma_betrayal": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "neutral",
+      "liw_categories": [
+        "negate",
+        "affect",
+        "social",
+        "anger"
+      ],
+      "lexical_markers": [
+        "betrayed",
+        "lied to",
+        "backstabbed",
+        "trust broken",
+        "deceived",
+        "unfaithful"
+      ],
+      "feature_signals": [
+        {
+          "feature": "negationCount",
+          "condition": ">3",
+          "contribution": 0.4
+        },
+        {
+          "feature": "valenceCollision",
+          "condition": ">2",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "att_anxious": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "i",
+        "negate",
+        "affect",
+        "anx"
+      ],
+      "lexical_markers": [
+        "need you",
+        "afraid to lose",
+        "cling",
+        "anxious about us",
+        "will you leave",
+        "reassure me"
+      ],
+      "feature_signals": [
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.12",
+          "contribution": 0.45
+        },
+        {
+          "feature": "rumination",
+          "condition": ">0.6",
+          "contribution": 0.4
+        },
+        {
+          "feature": "pastRatio",
+          "condition": ">0.55",
+          "contribution": 0.3
+        }
+      ]
+    },
+    "att_avoidant": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "negate",
+        "certain",
+        "you",
+        "cogproc"
+      ],
+      "lexical_markers": [
+        "space",
+        "independent",
+        "alone is fine",
+        "don't need",
+        "self reliant",
+        "no cling"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": ">60",
+          "contribution": 0.4
+        },
+        {
+          "feature": "negationCount",
+          "condition": ">4",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "att_fearful": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "neutral",
+      "liw_categories": [
+        "negate",
+        "affect",
+        "i",
+        "anx"
+      ],
+      "lexical_markers": [
+        "fear trust",
+        "want close but scared",
+        "push pull",
+        "mixed feelings",
+        "run away",
+        "need but doubt"
+      ],
+      "feature_signals": [
+        {
+          "feature": "rumination",
+          "condition": ">0.55",
+          "contribution": 0.45
+        },
+        {
+          "feature": "valenceCollision",
+          "condition": ">3",
+          "contribution": 0.4
+        }
+      ]
+    },
+    "att_secure": {
+      "compatibility": "moderate",
+      "evidence_weight": 0.55,
+      "signals_required": 2,
+      "confidence_saturation": 15,
+      "fallback": "1 - max(att_anxious, att_avoidant, att_fearful)",
+      "liw_categories": [
+        "we",
+        "certain",
+        "social",
+        "affect"
+      ],
+      "lexical_markers": [
+        "trust",
+        "balanced",
+        "secure together",
+        "safe",
+        "reliable",
+        "open communication"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": ">55",
+          "contribution": 0.4
+        },
+        {
+          "feature": "futureRatio",
+          "condition": ">0.4",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "mbti_i": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "i",
+        "cogproc",
+        "certain"
+      ],
+      "lexical_markers": [
+        "I think",
+        "myself",
+        "alone time",
+        "reflect",
+        "quiet",
+        "inner world"
+      ],
+      "feature_signals": [
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.13",
+          "contribution": 0.5
+        },
+        {
+          "feature": "clout",
+          "condition": "<55",
+          "contribution": 0.3
+        }
+      ]
+    },
+    "mbti_n": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "cogproc",
+        "insight",
+        "tentat"
+      ],
+      "lexical_markers": [
+        "imagine",
+        "future",
+        "idea",
+        "concept",
+        "possibility",
+        "abstract"
+      ],
+      "feature_signals": [
+        {
+          "feature": "metaphor",
+          "condition": ">2",
+          "contribution": 0.45
+        },
+        {
+          "feature": "futureRatio",
+          "condition": ">0.45",
+          "contribution": 0.4
+        }
+      ]
+    },
+    "mbti_f": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "affect",
+        "posemo",
+        "social"
+      ],
+      "lexical_markers": [
+        "feel",
+        "love",
+        "care",
+        "emotion",
+        "heart",
+        "kind"
+      ],
+      "feature_signals": [
+        {
+          "feature": "affect",
+          "condition": "high valence",
+          "contribution": 0.45
+        },
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.1",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "mbti_p": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "none",
+      "liw_categories": [
+        "tentat",
+        "cogproc",
+        "insight"
+      ],
+      "lexical_markers": [
+        "maybe",
+        "flexible",
+        "options",
+        "open ended",
+        "adapt",
+        "explore"
+      ],
+      "feature_signals": [
+        {
+          "feature": "futureRatio",
+          "condition": ">0.35",
+          "contribution": 0.4
+        },
+        {
+          "feature": "metaphor",
+          "condition": ">1",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "enn_head": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "cogproc",
+        "insight",
+        "certain"
+      ],
+      "lexical_markers": [
+        "think",
+        "analyze",
+        "logic",
+        "question",
+        "strategy",
+        "mind"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": ">50",
+          "contribution": 0.4
+        },
+        {
+          "feature": "certainty",
+          "condition": "high",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "enn_body": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "affect",
+        "anger",
+        "certain"
+      ],
+      "lexical_markers": [
+        "feel in gut",
+        "instinct",
+        "anger",
+        "protect",
+        "power",
+        "action"
+      ],
+      "feature_signals": [
+        {
+          "feature": "negationCount",
+          "condition": ">3",
+          "contribution": 0.45
+        },
+        {
+          "feature": "clout",
+          "condition": ">55",
+          "contribution": 0.3
+        }
+      ]
+    },
+    "enn_heart": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "none",
+      "liw_categories": [
+        "social",
+        "affect",
+        "posemo"
+      ],
+      "lexical_markers": [
+        "image",
+        "heart",
+        "identity",
+        "admire",
+        "connection",
+        "role"
+      ],
+      "feature_signals": [
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.12",
+          "contribution": 0.4
+        },
+        {
+          "feature": "social",
+          "condition": "high",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "enn_integration": {
+      "compatibility": "low",
+      "evidence_weight": 0.35,
+      "signals_required": 3,
+      "confidence_saturation": 20,
+      "fallback": "infer_from_head_body_heart",
+      "liw_categories": [
+        "cogproc",
+        "insight",
+        "affect"
+      ],
+      "lexical_markers": [
+        "balanced",
+        "whole",
+        "growth",
+        "integrated",
+        "evolve",
+        "peace"
+      ],
+      "feature_signals": [
+        {
+          "feature": "rumination",
+          "condition": "<0.3",
+          "contribution": 0.4
+        },
+        {
+          "feature": "clout",
+          "condition": ">60",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "b5_open": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "insight",
+        "cogproc",
+        "tentat"
+      ],
+      "lexical_markers": [
+        "new",
+        "curious",
+        "art",
+        "idea",
+        "adventure",
+        "creative"
+      ],
+      "feature_signals": [
+        {
+          "feature": "metaphor",
+          "condition": ">2",
+          "contribution": 0.45
+        },
+        {
+          "feature": "futureRatio",
+          "condition": ">0.4",
+          "contribution": 0.4
+        }
+      ]
+    },
+    "b5_cons": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "certain",
+        "cogproc",
+        "work"
+      ],
+      "lexical_markers": [
+        "plan",
+        "duty",
+        "reliable",
+        "organize",
+        "commit",
+        "responsible"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": ">60",
+          "contribution": 0.45
+        },
+        {
+          "feature": "futureRatio",
+          "condition": ">0.35",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "b5_extra": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "social",
+        "posemo",
+        "we"
+      ],
+      "lexical_markers": [
+        "party",
+        "talk",
+        "people",
+        "outgoing",
+        "energy",
+        "group"
+      ],
+      "feature_signals": [
+        {
+          "feature": "social",
+          "condition": "high",
+          "contribution": 0.5
+        },
+        {
+          "feature": "clout",
+          "condition": ">55",
+          "contribution": 0.3
+        }
+      ]
+    },
+    "b5_agree": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "social",
+        "posemo",
+        "affect"
+      ],
+      "lexical_markers": [
+        "help",
+        "kind",
+        "agree",
+        "compromise",
+        "nice",
+        "harmony"
+      ],
+      "feature_signals": [
+        {
+          "feature": "posemo",
+          "condition": "high",
+          "contribution": 0.45
+        },
+        {
+          "feature": "we",
+          "condition": "high",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "b5_neuro": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "negemo",
+        "anx",
+        "affect",
+        "negate"
+      ],
+      "lexical_markers": [
+        "worry",
+        "anxious",
+        "stress",
+        "overthink",
+        "fear",
+        "nervous"
+      ],
+      "feature_signals": [
+        {
+          "feature": "rumination",
+          "condition": ">0.55",
+          "contribution": 0.5
+        },
+        {
+          "feature": "negationCount",
+          "condition": ">5",
+          "contribution": 0.4
+        }
+      ]
+    },
+    "hex_em": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "anx",
+        "affect",
+        "negemo"
+      ],
+      "lexical_markers": [
+        "fear",
+        "anxiety",
+        "emotion",
+        "sensitive",
+        "vulnerable",
+        "feel deeply"
+      ],
+      "feature_signals": [
+        {
+          "feature": "rumination",
+          "condition": ">0.5",
+          "contribution": 0.45
+        },
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.14",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "hex_hh": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "none",
+      "liw_categories": [
+        "certain",
+        "posemo",
+        "social"
+      ],
+      "lexical_markers": [
+        "truth",
+        "honest",
+        "fair",
+        "sincere",
+        "loyal",
+        "integrity"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": ">55",
+          "contribution": 0.4
+        },
+        {
+          "feature": "posemo",
+          "condition": "high",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "dark_narc": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "neutral",
+      "liw_categories": [
+        "i",
+        "certain",
+        "posemo"
+      ],
+      "lexical_markers": [
+        "me",
+        "best",
+        "admire",
+        "superior",
+        "brilliant",
+        "deserve"
+      ],
+      "feature_signals": [
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.18",
+          "contribution": 0.5
+        },
+        {
+          "feature": "clout",
+          "condition": ">65",
+          "contribution": 0.4
+        }
+      ]
+    },
+    "dark_mach": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "neutral",
+      "liw_categories": [
+        "cogproc",
+        "certain",
+        "negate"
+      ],
+      "lexical_markers": [
+        "clever",
+        "manipulate",
+        "strategy",
+        "win",
+        "control",
+        "outsmart"
+      ],
+      "feature_signals": [
+        {
+          "feature": "certainty",
+          "condition": "high",
+          "contribution": 0.45
+        },
+        {
+          "feature": "negationCount",
+          "condition": ">4",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "dark_psyc": {
+      "compatibility": "moderate",
+      "evidence_weight": 0.55,
+      "signals_required": 2,
+      "confidence_saturation": 15,
+      "fallback": "neutral",
+      "liw_categories": [
+        "anger",
+        "affect",
+        "negate"
+      ],
+      "lexical_markers": [
+        "cold",
+        "hurt",
+        "no remorse",
+        "whatever",
+        "doesn't matter",
+        "use people"
+      ],
+      "feature_signals": [
+        {
+          "feature": "negationCount",
+          "condition": ">5",
+          "contribution": 0.4
+        },
+        {
+          "feature": "valenceCollision",
+          "condition": ">4",
+          "contribution": 0.3
+        }
+      ]
+    },
+    "dark_sadism": {
+      "compatibility": "low",
+      "evidence_weight": 0.35,
+      "signals_required": 3,
+      "confidence_saturation": 20,
+      "fallback": "suppress_reporting",
+      "liw_categories": [
+        "anger",
+        "affect",
+        "negemo"
+      ],
+      "lexical_markers": [
+        "pain",
+        "hurt others",
+        "cruel",
+        "enjoy suffering",
+        "torture",
+        "sadistic"
+      ],
+      "feature_signals": [
+        {
+          "feature": "negationCount",
+          "condition": ">6",
+          "contribution": 0.45
+        },
+        {
+          "feature": "valenceCollision",
+          "condition": ">5",
+          "contribution": 0.4
+        }
+      ]
+    },
+    "light_compassion": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "social",
+        "posemo",
+        "affect"
+      ],
+      "lexical_markers": [
+        "kind",
+        "help",
+        "empathy",
+        "care for others",
+        "support",
+        "understanding"
+      ],
+      "feature_signals": [
+        {
+          "feature": "we",
+          "condition": "high",
+          "contribution": 0.45
+        },
+        {
+          "feature": "posemo",
+          "condition": "high",
+          "contribution": 0.4
+        }
+      ]
+    },
+    "light_hum": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "none",
+      "liw_categories": [
+        "i",
+        "posemo",
+        "certain"
+      ],
+      "lexical_markers": [
+        "humble",
+        "modest",
+        "not special",
+        "ordinary",
+        "grateful",
+        "down to earth"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": "<60",
+          "contribution": 0.45
+        },
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.1",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "light_faith": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "none",
+      "liw_categories": [
+        "affect",
+        "social",
+        "certain"
+      ],
+      "lexical_markers": [
+        "believe",
+        "faith",
+        "hope",
+        "higher power",
+        "trust life",
+        "purpose"
+      ],
+      "feature_signals": [
+        {
+          "feature": "futureRatio",
+          "condition": ">0.4",
+          "contribution": 0.4
+        },
+        {
+          "feature": "posemo",
+          "condition": "high",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "light_kant": {
+      "compatibility": "moderate",
+      "evidence_weight": 0.55,
+      "signals_required": 2,
+      "confidence_saturation": 15,
+      "fallback": "neutral",
+      "liw_categories": [
+        "certain",
+        "cogproc",
+        "negate"
+      ],
+      "lexical_markers": [
+        "duty",
+        "rule",
+        "moral",
+        "right thing",
+        "principle",
+        "ethics"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": ">55",
+          "contribution": 0.4
+        },
+        {
+          "feature": "certainty",
+          "condition": "high",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "sch_st": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "we",
+        "social",
+        "posemo"
+      ],
+      "lexical_markers": [
+        "help world",
+        "universe",
+        "compassion",
+        "transcend",
+        "greater good",
+        "humanity"
+      ],
+      "feature_signals": [
+        {
+          "feature": "we",
+          "condition": "high",
+          "contribution": 0.5
+        },
+        {
+          "feature": "posemo",
+          "condition": "high",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "sch_se": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "i",
+        "certain",
+        "power"
+      ],
+      "lexical_markers": [
+        "power",
+        "success",
+        "money",
+        "achieve",
+        "status",
+        "win"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": ">65",
+          "contribution": 0.45
+        },
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.15",
+          "contribution": 0.4
+        }
+      ]
+    },
+    "sch_conservation": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "neutral",
+      "liw_categories": [
+        "certain",
+        "social",
+        "family"
+      ],
+      "lexical_markers": [
+        "tradition",
+        "family",
+        "safe",
+        "secure",
+        "loyalty",
+        "conform"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": ">50",
+          "contribution": 0.4
+        },
+        {
+          "feature": "certain",
+          "condition": "high",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "sch_openness": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "neutral",
+      "liw_categories": [
+        "insight",
+        "tentat",
+        "cogproc"
+      ],
+      "lexical_markers": [
+        "change",
+        "new",
+        "adventure",
+        "freedom",
+        "stimulate",
+        "exciting"
+      ],
+      "feature_signals": [
+        {
+          "feature": "futureRatio",
+          "condition": ">0.45",
+          "contribution": 0.45
+        },
+        {
+          "feature": "metaphor",
+          "condition": ">2",
+          "contribution": 0.35
+        }
+      ]
+    }
+  },
+  "meta": {
+    "accuracy_meta": {
+      "update_rule": "consistency between top 3 dimensions and userPhrases",
+      "initial_alpha": 1,
+      "initial_beta": 1,
+      "evidence_per_consistent_turn": 0.5
+    }
+  }
+};
+
+
+
+/* ───────── FULL PARITY ENGINE ───────── */
+
+function evaluateCondition(val, cond) {
+  if (val === undefined || val === null) return false;
+  if (cond.includes(">")) return val > parseFloat(cond.split(">")[1]);
+  if (cond.includes("<")) return val < parseFloat(cond.split("<")[1]);
+  return false;
+}
+
+function initEvidence(schema) {
+  const ev = {};
+  Object.keys(schema.dimensions).forEach(k => {
+    ev[k] = { score: 0, signals: 0, words: [] };
+  });
+  return ev;
+}
+
+function applyLexical(features, schema, ev) {
+  const text = (features.honestText || "").toLowerCase();
+
+  Object.entries(schema.dimensions).forEach(([key, cfg]) => {
+    (cfg.lexical_markers || []).forEach(marker => {
+      if (text.includes(marker.toLowerCase())) {
+        ev[key].score += cfg.evidence_weight || 0.5;
+        ev[key].signals += 1;
+        if (!ev[key].words.includes(marker)) ev[key].words.push(marker);
+      }
+    });
+  });
+}
+
+function applyFeatureSignals(features, schema, ev) {
+  Object.entries(schema.dimensions).forEach(([key, cfg]) => {
+    (cfg.feature_signals || []).forEach(sig => {
+      const val = features[sig.feature];
+      if (evaluateCondition(val, sig.condition)) {
+        ev[key].score += (sig.contribution || 0.3) * (cfg.evidence_weight || 0.5);
+        ev[key].signals += 1;
+      }
+    });
+  });
+}
+
+function applySignalThresholds(schema, ev) {
+  Object.entries(schema.dimensions).forEach(([key, cfg]) => {
+    const required = cfg.signals_required || 1;
+    if (ev[key].signals < required) {
+      ev[key].score *= 0.2;
+    }
+  });
+}
+
+function applySaturation(schema, ev) {
+  Object.entries(schema.dimensions).forEach(([key, cfg]) => {
+    const sat = cfg.confidence_saturation || 10;
+    ev[key].score = Math.tanh(ev[key].score / sat);
+  });
+}
+
+function applyFallbacks(schema, ev) {
+  Object.entries(schema.dimensions).forEach(([key, cfg]) => {
+    if (ev[key].score > 0.1) return;
+
+    const fb = cfg.fallback;
+    if (!fb) return;
+
+    if (fb.startsWith("infer_from_")) {
+      const ref = fb.replace("infer_from_", "");
+      if (ev[ref]) {
+        ev[key].score = ev[ref].score * 0.7;
+      }
+    }
+
+    if (fb === "1 - max(att_anxious, att_avoidant, att_fearful)") {
+      const vals = ["att_anxious","att_avoidant","att_fearful"]
+        .map(k => ev[k]?.score || 0);
+      ev[key].score = 1 - Math.max(...vals);
+    }
+
+    if (fb === "infer_from_head_body_heart") {
+      const vals = ["enn_head","enn_body","enn_heart"]
+        .map(k => ev[k]?.score || 0);
+      ev[key].score = vals.reduce((a,b)=>a+b,0)/3;
+    }
+  });
+}
+
+function normalize(ev) {
+  const vals = Object.values(ev).map(v => v.score);
+  const max = Math.max(...vals, 1);
+  Object.keys(ev).forEach(k => {
+    ev[k].score = ev[k].score / max;
+  });
+}
+
+function computeProfile(features) {
+  const schema = SCHEMA;
+
+  let ev = initEvidence(schema);
+
+  applyLexical(features, schema, ev);
+  applyFeatureSignals(features, schema, ev);
+
+  applySignalThresholds(schema, ev);
+  applySaturation(schema, ev);
+  applyFallbacks(schema, ev);
+  normalize(ev);
+
+  return ev;
+}
+
+/* ───────── META ACCURACY TRACKING ───────── */
+
+function updateAccuracy(profile, schema) {
+  if (!profile._meta) {
+    profile._meta = { alpha: 1, beta: 1 };
+  }
+
+  const topDims = Object.entries(profile)
+    .filter(([k,v]) => v.score !== undefined)
+    .sort((a,b)=>b[1].score - a[1].score)
+    .slice(0,3)
+    .map(x=>x[0]);
+
+  const phrases = profile.userPhrases || [];
+
+  let consistent = phrases.some(p =>
+    topDims.some(d => p.toLowerCase().includes(d.split("_")[1]))
+  );
+
+  if (consistent) profile._meta.alpha += 0.5;
+  else profile._meta.beta += 0.5;
+
+  return profile;
+}
+
+
+
+/* ───────── WARM QUESTION SYSTEM ───────── */
+
+function entropy(scores) {
+  const vals = Object.values(scores).map(v => v.score || 0);
+  const sum = vals.reduce((a,b)=>a+b,0) || 1;
+
+  return -vals.reduce((acc,v)=>{
+    const p = v/sum;
+    return acc + (p>0 ? p*Math.log(p) : 0);
+  },0);
+}
+
+function selectNextQuestionWarm(profile) {
+  const ent = entropy(profile);
+
+  if (ent > 2.5) {
+    return {
+      text: "There's a few directions here — what feels most important right now?",
+      mode: "EXPLORE"
+    };
+  }
+
+  const sorted = Object.entries(profile)
+    .filter(([k,v]) => v.score !== undefined)
+    .sort((a,b)=>b[1].score - a[1].score);
+
+  const top = sorted[0]?.[0] || "your experience";
+
+  return {
+    text: `I'm noticing something around ${top.replace("_"," ")} — can you expand on that?`,
+    mode: "FOCUS"
+  };
+}
+
+
+
+/* ===== 2026 RESEARCH-ALIGNED OVERRIDE ENGINE ===== */
+(function(){
+  const clamp = (v, lo=0, hi=1) => Math.max(lo, Math.min(hi, v));
+  const sum = arr => arr.reduce((a,b)=>a+b,0);
+  const mean = arr => arr.length ? sum(arr)/arr.length : 0;
+  const uniq = arr => [...new Set(arr.filter(Boolean))];
+
+  const OPEN_DICT = {
+    article: /\b(a|an|the)\b/gi,
+    prep: /\b(in|on|at|by|for|with|without|under|over|between|through|around|against|toward|from|into|onto|across|within)\b/gi,
+    conj: /\b(and|or|but|because|so|although|though|while|whereas|yet|however)\b/gi,
+    aux: /\b(am|is|are|was|were|be|been|being|do|does|did|have|has|had|can|could|should|would|may|might|must)\b/gi,
+    social: /\b(friend|friends|family|partner|relationship|team|people|person|coworker|group|community|together|belong|support|close|trust|intimacy|connection|alone|lonely)\b/gi,
+    affect_pos: /\b(happy|glad|grateful|excited|hopeful|relieved|joy|love|calm|content|good|great|better|warm|connected|safe)\b/gi,
+    affect_neg: /\b(sad|hurt|angry|afraid|anxious|ashamed|guilty|bad|terrible|upset|lonely|scared|worried|broken|empty|resentful|regret)\b/gi,
+    anger: /\b(angry|mad|furious|irritated|annoyed|resentful|pissed|rage)\b/gi,
+    anxiety: /\b(anxious|worried|panic|panicked|fear|afraid|uneasy|nervous|tense|dread)\b/gi,
+    sadness: /\b(sad|down|empty|grief|grieving|cry|cried|hopeless|lonely|hurt|loss)\b/gi,
+    cogproc: /\b(think|thought|know|understand|wonder|because|realize|reason|why|meaning|consider|reflect|question|process|figure out)\b/gi,
+    insight: /\b(realize|understand|learned|noticed|recognize|aware|clarity|insight|it hit me)\b/gi,
+    causal: /\b(because|since|therefore|so that|which means|as a result|led to)\b/gi,
+    tentative: /\b(maybe|perhaps|might|could|i guess|sort of|kind of|possibly|not sure|unclear|seems)\b/gi,
+    certainty: /\b(always|never|definitely|absolutely|clearly|obviously|certain|must|can't deny|no doubt)\b/gi,
+    discrep: /\b(should|would|could|wish|if only|supposed to|meant to|ought)\b/gi,
+    reward: /\b(success|recognition|win|achieve|reward|status|admire|impress|attention|praise|approval|valuable)\b/gi,
+    risk: /\b(risk|danger|unsafe|threat|guard|protect|prevent|avoid|watch|scan|vigilant|brace)\b/gi,
+    affiliation: /\b(together|belong|close|care|support|with you|with them|bond|connect|community|loyal)\b/gi,
+    morality: /\b(right|wrong|fair|unfair|ethical|honest|dishonest|integrity|principle|duty|ought)\b/gi,
+    humility: /\b(maybe i'm wrong|i may be wrong|i don't know|still learning|humble|small part|not above|grace|mercy)\b/gi,
+    power: /\b(control|dominant|power|in charge|status|influence|lead|authority|command|superior)\b/gi,
+    body: /\b(body|chest|stomach|gut|jaw|hands|skin|breath|breathing|heart|tight|tense|ache|numb|shaking|racing)\b/gi,
+    future: /\b(will|going to|plan|soon|future|someday|next|eventually|hope to)\b/gi,
+    past: /\b(was|were|used to|before|back then|years ago|when i was|once|previously|earlier)\b/gi,
+    second: /\b(you|your|yours|yourself)\b/gi,
+    first: /\b(i|me|my|mine|myself|i'm|i've|i'd)\b/gi,
+    third: /\b(they|them|their|he|she|his|her|it|its)\b/gi,
+    absolutist: /\b(always|never|nothing|everything|completely|totally|entirely|everyone|no one)\b/gi,
+    repair: /\b(apologize|repair|make it right|own it|accountable|forgive|amends)\b/gi,
+    pleasure: /\b(enjoy|fun|play|light|laugh|adventure|interesting|curious|new|novel)\b/gi,
+    duty: /\b(should|must|duty|responsibility|obligation|disciplined|order|routine|structure)\b/gi
+  };
+
+  function countRE(re, text){
+    const flags = re.flags.includes('g') ? re.flags : re.flags + 'g';
+    const rr = new RegExp(re.source, flags);
+    return (text.match(rr) || []).length;
+  }
+
+  function tokenize(text){
+    return (text.toLowerCase().match(/[a-z]+(?:'[a-z]+)?/g) || []);
+  }
+
+  function pct(count, total){ return total ? count / total : 0; }
+
+  function safeFeatureValue(features, name){
+    if (features[name] !== undefined) return features[name];
+    const aliases = {
+      clout: 'liwcClout',
+      analytic: 'liwcAnalytic',
+      authenticity: 'liwcAuthenticity',
+      tone: 'liwcTone',
+      affect: 'affectDensity',
+      cogproc: 'cognitiveDensity',
+      negate: 'negationCount',
+      social: 'socialDensity',
+      reward: 'rewardDensity',
+      risk: 'riskDensity'
+    };
+    if (aliases[name] && features[aliases[name]] !== undefined) return features[aliases[name]];
+    return undefined;
+  }
+
+  function evaluateConditionFull(val, cond){
+    if (val === undefined || val === null || !cond) return false;
+    const m = String(cond).trim().match(/^(>=|<=|>|<|==)?\s*(-?\d+(?:\.\d+)?)$/);
+    if (!m) return false;
+    const op = m[1] || '==';
+    const rhs = parseFloat(m[2]);
+    if (op === '>') return val > rhs;
+    if (op === '<') return val < rhs;
+    if (op === '>=') return val >= rhs;
+    if (op === '<=') return val <= rhs;
+    return val === rhs;
+  }
+
+  function deriveSignals(text, sentiment, legacy){
+    const lower = text.toLowerCase();
+    const tokens = tokenize(text);
+    const wc = Math.max(tokens.length, 1);
+    const sentences = text.split(/[.!?]+/).map(s => s.trim()).filter(Boolean);
+    const sentenceLens = sentences.map(s => tokenize(s).length).filter(Boolean);
+    const uniqCount = new Set(tokens).size;
+    const first = countRE(OPEN_DICT.first, lower);
+    const second = countRE(OPEN_DICT.second, lower);
+    const third = countRE(OPEN_DICT.third, lower);
+    const article = countRE(OPEN_DICT.article, lower);
+    const prep = countRE(OPEN_DICT.prep, lower);
+    const conj = countRE(OPEN_DICT.conj, lower);
+    const aux = countRE(OPEN_DICT.aux, lower);
+    const social = countRE(OPEN_DICT.social, lower);
+    const affectPos = countRE(OPEN_DICT.affect_pos, lower);
+    const affectNeg = countRE(OPEN_DICT.affect_neg, lower);
+    const anger = countRE(OPEN_DICT.anger, lower);
+    const anxiety = countRE(OPEN_DICT.anxiety, lower);
+    const sadness = countRE(OPEN_DICT.sadness, lower);
+    const cogproc = countRE(OPEN_DICT.cogproc, lower);
+    const insight = countRE(OPEN_DICT.insight, lower);
+    const causal = countRE(OPEN_DICT.causal, lower);
+    const tentative = countRE(OPEN_DICT.tentative, lower);
+    const certainty = countRE(OPEN_DICT.certainty, lower);
+    const discrep = countRE(OPEN_DICT.discrep, lower);
+    const reward = countRE(OPEN_DICT.reward, lower);
+    const risk = countRE(OPEN_DICT.risk, lower);
+    const affiliation = countRE(OPEN_DICT.affiliation, lower);
+    const morality = countRE(OPEN_DICT.morality, lower);
+    const humility = countRE(OPEN_DICT.humility, lower);
+    const power = countRE(OPEN_DICT.power, lower);
+    const body = countRE(OPEN_DICT.body, lower);
+    const future = countRE(OPEN_DICT.future, lower);
+    const past = countRE(OPEN_DICT.past, lower);
+    const absolutist = countRE(OPEN_DICT.absolutist, lower);
+    const repair = countRE(OPEN_DICT.repair, lower);
+    const pleasure = countRE(OPEN_DICT.pleasure, lower);
+    const duty = countRE(OPEN_DICT.duty, lower);
+    const quoteCount = (text.match(/["“”]/g) || []).length;
+    const questionCount = (text.match(/\?/g) || []).length;
+    const exclaimCount = (text.match(/!/g) || []).length;
+    const commaCount = (text.match(/,/g) || []).length;
+
+    const functionWordDensity = pct(article + prep + conj + aux + first + second + third, wc);
+    const affectDensity = pct(affectPos + affectNeg, wc);
+    const cognitiveDensity = pct(cogproc + insight + causal, wc);
+    const socialDensity = pct(social, wc);
+    const riskDensity = pct(risk, wc);
+    const rewardDensity = pct(reward, wc);
+    const affiliationDensity = pct(affiliation, wc);
+    const discrepancyDensity = pct(discrep, wc);
+    const certaintyDensity = pct(certainty, wc);
+    const tentativeDensity = pct(tentative, wc);
+    const absolutistDensity = pct(absolutist, wc);
+    const bodyDensity = pct(body, wc);
+    const powerDensity = pct(power, wc);
+    const moralityDensity = pct(morality, wc);
+    const humilityDensity = pct(humility, wc);
+    const ttr = uniqCount / wc;
+    const avgSentenceLength = sentenceLens.length ? mean(sentenceLens) : wc;
+    const pronounBalance = pct(first - third, wc);
+    const selfOtherGap = clamp((first - (second + third)) / wc, -1, 1);
+    const timeSpan = pct(future - past, wc);
+    const contradictionSignal = clamp((legacy.valenceCollisions || 0) * 0.28 + absolutistDensity * 2.0 + discrepancyDensity * 1.8, 0, 1.5);
+    const guardSignal = clamp(riskDensity * 7 + (legacy.negationCount || 0) / 18 + certaintyDensity * 2.5, 0, 1.5);
+    const opennessSignal = clamp(ttr * 1.4 + cognitiveDensity * 2.8 + (legacy.metaphorCount || 0) / 10 + pleasure / 20, 0, 1.5);
+    const orderSignal = clamp(duty / 10 + certainty / 12 + future / 15 - tentative / 20 - (legacy.deflectionSignal || 0) * 0.5, 0, 1.5);
+    const warmthSignal = clamp(affiliationDensity * 8 + socialDensity * 4 + repair / 10 + (sentiment.pos * 0.8), 0, 1.5);
+    const distressSignal = clamp(sentiment.neg * 1.3 + bodyDensity * 4 + (legacy.negationCount || 0) / 15 + anxiety / 12 + sadness / 12, 0, 1.5);
+    const dominanceSignal = clamp(powerDensity * 8 + certaintyDensity * 4 + (legacy.cloutCount || 0) / 14 - humilityDensity * 4, 0, 1.5);
+
+    const liwcAnalytic = clamp(50 + (article + prep - first - second) * 4 + avgSentenceLength * 1.2 + cogproc * 1.5 - exclaimCount * 3, 1, 99);
+    const liwcClout = clamp(50 + second * 5 - first * 3 + certainty * 4 + power * 4 - tentative * 3, 1, 99);
+    const liwcAuthenticity = clamp(50 + first * 5 + sadness * 2 + anxiety * 2 - quoteCount * 2 - certainty * 2 + humility * 5, 1, 99);
+    const liwcTone = clamp(50 + (sentiment.pos - sentiment.neg) * 45 + affectPos * 2 - affectNeg * 2, 1, 99);
+
+    return {
+      wc,
+      tokenCount: wc,
+      uniqueCount: uniqCount,
+      lexicalDiversity: ttr,
+      avgSentenceLength,
+      functionWordDensity,
+      affectDensity,
+      cognitiveDensity,
+      socialDensity,
+      rewardDensity,
+      riskDensity,
+      affiliationDensity,
+      discrepancyDensity,
+      certaintyDensity,
+      tentativeDensity,
+      absolutistDensity,
+      bodyDensity,
+      powerDensity,
+      moralityDensity,
+      humilityDensity,
+      firstCount: first,
+      secondCount: second,
+      thirdCount: third,
+      selfOtherGap,
+      pronounBalance,
+      timeSpan,
+      contradictionSignal,
+      guardSignal,
+      opennessSignal,
+      orderSignal,
+      warmthSignal,
+      distressSignal,
+      dominanceSignal,
+      questionCount,
+      exclaimCount,
+      commaCount,
+      liwcAnalytic,
+      liwcClout,
+      liwcAuthenticity,
+      liwcTone,
+      clout: liwcClout,
+      analytic: liwcAnalytic,
+      authenticity: liwcAuthenticity,
+      tone: liwcTone,
+      anxietyDensity: pct(anxiety, wc),
+      angerDensity: pct(anger, wc),
+      sadnessDensity: pct(sadness, wc),
+      positiveAffectDensity: pct(affectPos, wc),
+      negativeAffectDensity: pct(affectNeg, wc),
+      moralityCount: morality,
+      repairCount: repair,
+      pleasureCount: pleasure,
+      dutyCount: duty
+    };
+  }
+
+  function initEvidenceFrame(){
+    const out = {};
+    DIM_KEYS.forEach(k => {
+      out[k] = { observed: 0, inferred: 0, neg: 0, signalCount: 0, coverage: 0, words: [], notes: [] };
+    });
+    return out;
+  }
+
+  function addEv(bucket, key, amt, type='observed', token=null, note=null){
+    if (!bucket[key]) return;
+    bucket[key][type] += Math.max(0, amt || 0);
+    if (type !== 'neg') bucket[key].coverage += Math.max(0, amt || 0) * 0.6;
+    if (amt > 0) bucket[key].signalCount += 1;
+    if (token && !bucket[key].words.includes(token)) bucket[key].words.push(token);
+    if (note && !bucket[key].notes.includes(note)) bucket[key].notes.push(note);
+  }
+
+  function applySchemaEvidence(text, features, ev){
+    const lower = (text || '').toLowerCase();
+    const schema = (typeof SCHEMA !== 'undefined' && SCHEMA.dimensions) ? SCHEMA.dimensions : {};
+    for (const [key, cfg] of Object.entries(schema)) {
+      const lex = cfg.lexical_markers || [];
+      const lexNorm = Math.max(0.18, (cfg.evidence_weight || 0.5) / Math.max(lex.length, 4));
+      for (const marker of lex) {
+        const esc = marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = marker.includes(' ') ? new RegExp(esc, 'i') : new RegExp('\\b' + esc + '\\b', 'i');
+        if (re.test(lower)) addEv(ev, key, lexNorm, 'observed', marker, 'lexical');
+      }
+      for (const sig of (cfg.feature_signals || [])) {
+        const val = safeFeatureValue(features, sig.feature);
+        if (evaluateConditionFull(val, sig.condition)) {
+          const amt = (sig.contribution || 0.25) * (cfg.evidence_weight || 0.5);
+          addEv(ev, key, amt, 'observed', sig.feature, 'feature');
+        }
+      }
+      const cats = cfg.liw_categories || [];
+      for (const cat of cats) {
+        const proxy = safeFeatureValue(features, cat);
+        if (proxy === undefined || proxy === null) continue;
+        const normalized = proxy > 1 ? proxy / 100 : proxy;
+        const amt = clamp(normalized, 0, 1) * 0.18;
+        if (amt > 0.02) addEv(ev, key, amt, 'observed', cat, 'liwc-proxy');
+      }
+    }
+  }
+
+  function applyDimensionSpecificEvidence(features, sentiment, ev){
+    const f = features;
+    const s = sentiment;
+    addEv(ev,'trauma_abandon', clamp((f.thirdPersonDensity||0)*2.2 + (f.pastRatio||0)*0.6 + f.sadnessDensity*4 + f.socialDensity*1.5,0,1.8), 'observed', 'abandon-pattern');
+    addEv(ev,'trauma_shame', clamp((f.passiveCount||0)/6 + f.bodyDensity*4 + f.negativeAffectDensity*4 + f.liwcAuthenticity/250,0,1.6), 'observed', 'shame-pattern');
+    addEv(ev,'trauma_control', clamp(f.guardSignal + f.futureRatio*0.5 + f.cognitiveDensity*1.5,0,1.8), 'observed', 'control-pattern');
+    addEv(ev,'trauma_betrayal', clamp(f.thirdPersonDensity*1.6 + f.angerDensity*5 + f.negationCount/12 + f.valenceCollisions*0.25,0,1.7), 'observed', 'betrayal-pattern');
+
+    addEv(ev,'att_anxious', clamp((f.firstPersonDensity||0)*3.2 + (f.ruminationCount||0)/10 + f.questionCount/6 + f.contradictionSignal*0.6,0,1.9), 'observed', 'anxious-attachment');
+    addEv(ev,'att_avoidant', clamp(((f.firstPersonDensity||0) < 0.055 ? 0.45 : 0) + (f.deflectionSignal||0)*0.9 + (f.socialDensity < 0.03 ? 0.25 : 0),0,1.4), 'observed', 'avoidant-attachment');
+    addEv(ev,'att_fearful', clamp(f.contradictionSignal + f.valenceCollisions*0.35 + (f.firstPersonDensity||0)*0.8,0,1.8), 'observed', 'fearful-attachment');
+
+    addEv(ev,'mbti_i', clamp((1-(f.firstPersonDensity||0))*0.35 + f.thirdPersonDensity*1.2 + (f.socialDensity < 0.04 ? 0.25 : 0),0,1.2), 'observed', 'introversion-proxy');
+    addEv(ev,'mbti_n', clamp(f.opennessSignal + f.metaphorCount/8 + f.cognitiveDensity*2,0,1.8), 'observed', 'intuition-proxy');
+    addEv(ev,'mbti_f', clamp(f.bodyDensity*3 + f.affectDensity*4 + Math.abs(s.compound)*0.5,0,1.5), 'observed', 'feeling-proxy');
+    addEv(ev,'mbti_p', clamp(f.tentativeDensity*4 + (f.futureRatio>0.42?0.15:0) - f.orderSignal*0.25 + 0.35,0,1.2), 'observed', 'perceiving-proxy');
+
+    addEv(ev,'enn_head', clamp(f.guardSignal + f.cognitiveDensity*2.2 + f.riskDensity*3.5,0,1.8), 'observed', 'head-center');
+    addEv(ev,'enn_body', clamp(f.bodyDensity*4 + f.negationCount/14 + f.powerDensity*2,0,1.6), 'observed', 'body-center');
+    addEv(ev,'enn_heart', clamp((f.firstPersonDensity||0)*2.5 + f.affectDensity*3 + f.rewardDensity*2.5,0,1.7), 'observed', 'heart-center');
+
+    addEv(ev,'b5_open', clamp(f.opennessSignal + f.lexicalDiversity*0.8,0,1.8), 'observed', 'open-proxy');
+    addEv(ev,'b5_cons', clamp(f.orderSignal + f.futureRatio*0.4,0,1.6), 'observed', 'cons-proxy');
+    addEv(ev,'b5_extra', clamp((f.socialDensity*4) + (f.positiveAffectDensity*3) + Math.max(0, f.liwcClout-50)/100,0,1.5), 'observed', 'extra-proxy');
+    addEv(ev,'b5_agree', clamp(f.warmthSignal + f.humilityDensity*2 - f.powerDensity*1.2,0,1.7), 'observed', 'agree-proxy');
+    addEv(ev,'b5_neuro', clamp(f.distressSignal + f.absolutistDensity*2,0,1.9), 'observed', 'neuro-proxy');
+
+    addEv(ev,'hex_em', clamp(f.warmthSignal*0.6 + f.distressSignal*0.8 + f.bodyDensity*2.5,0,1.7), 'observed', 'emotionality-proxy');
+    addEv(ev,'hex_hh', clamp(f.humilityDensity*4 + f.moralityDensity*2 + f.repairCount/6 - f.dominanceSignal*0.35,0,1.5), 'observed', 'honesty-humility-proxy');
+
+    addEv(ev,'dark_narc', clamp(f.rewardDensity*4 + f.dominanceSignal*0.8 + Math.max(0,(f.firstPersonDensity||0)-0.11)*6,0,1.6), 'observed', 'narc-proxy');
+    addEv(ev,'dark_mach', clamp(f.powerDensity*3.2 + f.socialDensity*1.2 + f.certaintyDensity*2 - f.humilityDensity*2,0,1.5), 'observed', 'mach-proxy');
+    addEv(ev,'dark_psyc', clamp(f.angerDensity*4 + f.absolutistDensity*2.5 + Math.max(0,(f.liwcAuthenticity<35?0.25:0)) - f.affiliationDensity*2,0,1.4), 'observed', 'psych-proxy');
+    addEv(ev,'dark_sadism', clamp(f.angerDensity*4 + f.powerDensity*2.5 + (s.neg>0.55?0.25:0) - f.warmthSignal*0.5,0,1.3), 'observed', 'sadism-proxy');
+
+    addEv(ev,'light_compassion', clamp(f.warmthSignal + f.repairCount/8 + f.affiliationDensity*3,0,1.6), 'observed', 'compassion-proxy');
+    addEv(ev,'light_hum', clamp(f.humilityDensity*4 + f.liwcAuthenticity/120 + (f.certaintyDensity<0.03?0.15:0),0,1.4), 'observed', 'humility-proxy');
+    addEv(ev,'light_faith', clamp(f.warmthSignal*0.6 + f.moralityDensity*2 + f.futureRatio*0.3,0,1.3), 'observed', 'faith-proxy');
+    addEv(ev,'light_kant', clamp(f.moralityDensity*4 + f.dutyCount/8 + f.orderSignal*0.5,0,1.6), 'observed', 'kant-proxy');
+
+    addEv(ev,'sch_st', clamp(f.rewardDensity*3 + f.powerDensity*2 + f.futureRatio*0.3,0,1.5), 'observed', 'achievement-values');
+    addEv(ev,'sch_se', clamp(f.pleasureCount/8 + f.opennessSignal*0.6 + f.positiveAffectDensity*2.5,0,1.4), 'observed', 'self-direction-values');
+    addEv(ev,'sch_conservation', clamp(f.orderSignal + f.riskDensity*2.5 + f.dutyCount/10,0,1.6), 'observed', 'conservation-values');
+    addEv(ev,'sch_openness', clamp(f.opennessSignal + f.pleasureCount/8 + f.tentativeDensity*1.5,0,1.6), 'observed', 'openness-values');
+
+    const negativeDims = ['dark_narc','dark_mach','dark_psyc','dark_sadism'];
+    negativeDims.forEach(k => addEv(ev, k, clamp(f.warmthSignal*0.4 + f.humilityDensity*2,0,0.9), 'neg', 'prosocial-counterweight'));
+    addEv(ev,'b5_neuro', clamp(f.positiveAffectDensity*1.2 + f.futureRatio*0.2,0,0.8), 'neg', 'stability-counterweight');
+    addEv(ev,'trauma_control', clamp(f.tentativeDensity*1.4 + f.humilityDensity,0,0.7), 'neg', 'flexibility-counterweight');
+    addEv(ev,'att_avoidant', clamp(f.affiliationDensity*2 + f.warmthSignal*0.6,0,0.8), 'neg', 'closeness-counterweight');
+  }
+
+  function applyFallbackInference(ev){
+    const getObs = k => (ev[k]?.observed || 0);
+    const fallback = (typeof SCHEMA !== 'undefined' && SCHEMA.dimensions) ? SCHEMA.dimensions : {};
+    for (const [key, cfg] of Object.entries(fallback)) {
+      const fb = cfg.fallback;
+      if (!fb || getObs(key) > 0.35) continue;
+      if (fb.startsWith('infer_from_')) {
+        const ref = fb.replace('infer_from_','');
+        if (ev[ref]) addEv(ev, key, (ev[ref].observed || 0) * 0.35, 'inferred', ref, 'fallback');
+      } else if (fb === '1 - max(att_anxious, att_avoidant, att_fearful)') {
+        const m = Math.max(getObs('att_anxious'), getObs('att_avoidant'), getObs('att_fearful'));
+        addEv(ev, key, clamp(1 - m, 0, 0.7), 'inferred', 'secure-inverse', 'fallback');
+      } else if (fb === 'infer_from_head_body_heart') {
+        const m = mean([getObs('enn_head'), getObs('enn_body'), getObs('enn_heart')]);
+        addEv(ev, key, clamp(m * 0.4, 0, 0.7), 'inferred', 'enneagram-centers', 'fallback');
+      }
+    }
+    if (ev.att_secure && ev.att_secure.observed < 0.2) {
+      const secure = 1 - Math.max(getObs('att_anxious'), getObs('att_avoidant'), getObs('att_fearful'));
+      addEv(ev, 'att_secure', clamp(secure * 0.6, 0, 0.7), 'inferred', 'inverse-insecure', 'fallback');
+    }
+    if (ev.enn_integration && ev.enn_integration.observed < 0.2) {
+      const integ = mean([getObs('enn_head'), getObs('enn_body'), getObs('enn_heart')]);
+      addEv(ev, 'enn_integration', clamp(integ * 0.45, 0, 0.75), 'inferred', 'center-balance', 'fallback');
+    }
+  }
+
+  function finalizeEvidence(rawEv){
+    const out = {};
+    DIM_KEYS.forEach(k => {
+      const e = rawEv[k];
+      const observed = clamp(e.observed, 0, 2.4);
+      const inferred = clamp(e.inferred, 0, 1.2);
+      const neg = clamp(e.neg, 0, 1.5);
+      const support = observed + inferred * 0.55;
+      const coverage = clamp((e.signalCount / 4) + e.coverage * 0.12, 0, 1);
+      const sourceFactor = observed > 0 ? 1 : 0.62;
+      const confidencePre = clamp((1 - Math.exp(-(support + neg) / 1.8)) * coverage * sourceFactor, 0, 1);
+      out[k] = {
+        pos: observed + inferred * 0.45,
+        neg,
+        observed,
+        inferred,
+        signalCount: e.signalCount,
+        coverage,
+        confidenceHint: confidencePre,
+        source: observed > inferred ? 'observed' : inferred > 0 ? 'mixed' : 'low-support',
+        words: uniq(e.words).slice(0, 10),
+        notes: uniq(e.notes).slice(0, 8)
+      };
+    });
+    return out;
+  }
+
+  function advancedBayesUpdate(acc, evidence){
+    const prevMass = Math.max(0, (acc.alpha + acc.beta - 2));
+    const obs = clamp(evidence.observed || evidence.pos || 0, 0, 2.5);
+    const inf = clamp(evidence.inferred || 0, 0, 1.2);
+    const neg = clamp(evidence.neg || 0, 0, 1.8);
+    const dAlpha = 0.42 * obs + 0.18 * inf;
+    const dBeta = 0.34 * neg + Math.max(0, 0.08 - (obs * 0.03));
+    const a = acc.alpha + dAlpha;
+    const b = acc.beta + dBeta;
+    const meanVal = a / (a + b);
+    const mass = Math.max(0, a + b - 2);
+    const baseConf = 1 - Math.exp(-mass / 7.5);
+    const evidentiality = clamp((evidence.coverage || 0.2) * (evidence.confidenceHint || 0.3) * (obs > 0 ? 1 : 0.66), 0, 1);
+    const confidence = clamp(baseConf * (0.4 + evidentiality), 0, 0.97);
+    const uncertainty = Math.sqrt((a * b) / (Math.pow(a + b, 2) * (a + b + 1)));
+    return {
+      alpha: a,
+      beta: b,
+      mean: meanVal,
+      confidence,
+      uncertainty,
+      words: uniq([...(acc.words || []), ...((evidence.words)||[])]).slice(-12),
+      source: evidence.source || 'observed',
+      observed: obs,
+      inferred: inf,
+      signalCount: evidence.signalCount || 0,
+      coverage: evidence.coverage || 0,
+      notes: evidence.notes || [],
+      massGain: mass - prevMass
+    };
+  }
+
+  function computeQuestionPriorities(profile){
+    const acc = profile.accumulators;
+    const recencyPenalty = {};
+    (profile.questionHistory || []).slice(-5).forEach((q, idx) => {
+      if (q.dk) recencyPenalty[q.dk] = Math.max(recencyPenalty[q.dk] || 0, 1 - idx * 0.18);
+    });
+    const priorities = {};
+    FRAMEWORKS.forEach(fw => {
+      const dims = fw.dims.map(d => ({ key: d.k, mean: acc[d.k].mean, conf: acc[d.k].confidence }));
+      const sorted = dims.slice().sort((a,b)=>b.mean-a.mean);
+      const margin = sorted.length > 1 ? Math.abs(sorted[0].mean - sorted[1].mean) : 0.2;
+      dims.forEach(d => {
+        const uncertainty = acc[d.key].uncertainty || 0.25;
+        const ambiguity = clamp(0.22 - margin, 0, 0.22) / 0.22;
+        const lowSupport = 1 - (acc[d.key].coverage || 0);
+        const recent = recencyPenalty[d.key] || 0;
+        priorities[d.key] = (uncertainty * 0.58) + (ambiguity * 0.22) + (lowSupport * 0.25) - (recent * 0.18);
+      });
+    });
+    return priorities;
+  }
+
+  function improvedSelectNextQuestion(profile, features){
+    const readiness = profile.readiness || 0.45;
+    const asked = new Set((profile.questionHistory || []).map(q => q.t));
+    const priorities = computeQuestionPriorities(profile);
+    const recentFW = (profile.questionHistory || []).slice(-2).map(q => q.fw).filter(Boolean);
+    const mirror = (features && features.salientPhrase && features.deflectionSignal > 0.36)
+      ? `You used the phrase "${String(features.salientPhrase).replace(/</g,'&lt;').replace(/>/g,'&gt;')}" — what feels most true inside that phrase?`
+      : null;
+    if (mirror && !asked.has(mirror) && readiness >= 0.2) {
+      profile.questionHistory.push({ t: mirror, fw: null, dk: null });
+      return { text: mirror, mode: 'MIRROR' };
+    }
+    const candidates = Q.filter(q => !asked.has(q.t)).map(q => {
+      const target = q.dk ? (priorities[q.dk] || 0.18) : 0.16;
+      const readinessFit = readiness >= (q.r || 0) * 0.22 ? 1 : 0.45;
+      const depthFit = q.depth >= 3 && readiness < 0.58 ? 0.52 : q.depth === 2 && readiness < 0.34 ? 0.72 : 1;
+      const diversity = q.fw && recentFW.includes(q.fw) ? 0.72 : 1;
+      const diagnosticBonus = q.dk && (priorities[q.dk] || 0) > 0.28 ? 0.16 : 0;
+      const textBonus = (features && features.deflectionSignal > 0.45 && q.s === 'reflective') ? 0.08 : 0;
+      return { q, score: target * readinessFit * depthFit * diversity + diagnosticBonus + textBonus };
+    }).sort((a,b)=>b.score-a.score);
+    const pick = (candidates.slice(0, 5)[Math.floor(Math.random() * Math.min(3, candidates.length))] || candidates[0]);
+    if (!pick) {
+      const adaptiveFallbacks = [
+        'Given everything we covered, what feels most important to name next?',
+        'If you had to pick one thread to clarify now, which would it be?',
+        'What question do you wish had been asked so far?'
+      ];
+      const recentText = (profile.textHistory || []).slice(-2).join(' ').toLowerCase();
+      const preferred = recentText.includes('confus') || recentText.includes('uncertain')
+        ? adaptiveFallbacks[1]
+        : recentText.includes('question')
+          ? adaptiveFallbacks[2]
+          : adaptiveFallbacks[0];
+      profile.questionHistory.push({ t: preferred, fw: null, dk: null });
+      return { text: preferred, mode: 'FALLBACK' };
+    }
+    profile.questionHistory.push({ t: pick.q.t, fw: pick.q.fw, dk: pick.q.dk });
+    return { text: pick.q.t, mode: 'STANDARD' };
+  }
+
+  function improvedNarrative(profile){
+    const acc = profile.accumulators;
+    const ranked = ALL_DIMS.map(d => ({ d, v: acc[d.k].mean, c: acc[d.k].confidence, s: acc[d.k].source || 'observed' }))
+      .sort((a,b)=>(b.v*b.c)-(a.v*a.c));
+    const top = ranked.filter(x => x.c > 0.24).slice(0, 4);
+    if (!top.length) return '<p>Not enough high-quality language signal yet. The profiler is intentionally withholding interpretation until the text sample is richer.</p>';
+    const style = profile.styleCumulative || {};
+    const profileTone = acc.b5_neuro.mean > 0.62 && acc.b5_neuro.confidence > 0.32
+      ? 'The session language shows elevated distress reactivity and self-monitoring.'
+      : acc.b5_agree.mean > 0.58 && acc.b5_agree.confidence > 0.28
+        ? 'The session language leans relational and repair-oriented.'
+        : 'The current language pattern is mixed rather than dominated by a single register.';
+    const bullets = top.map(x => `<li><strong>${x.d.label}</strong> — ${Math.round(x.v*100)}% score, ${Math.round(x.c*100)}% confidence, source: ${x.s}. Evidence: ${(acc[x.d.k].words || []).slice(0,4).join(', ') || 'structural linguistic cues'}.</li>`).join('');
+    const temporal = (style.pastTotal || 0) > (style.futureTotal || 0) * 1.35
+      ? 'Language is more past-anchored than future-anchored, which often means memory is driving the current interpretation frame.'
+      : (style.futureTotal || 0) > (style.pastTotal || 0) * 1.35
+        ? 'Language is more future-oriented, with noticeable forecasting and anticipation.'
+        : 'Past and future references are relatively balanced.';
+    return `<p>${profileTone} ${temporal}</p><ul>${bullets}</ul><p>These are <strong>language-pattern inferences</strong>, not diagnoses or fixed truths. Low-support dimensions are deliberately down-weighted, and fallback-derived dimensions never receive the same confidence as directly observed evidence.</p>`;
+  }
+
+  function improvedReveal(profile){
+    const acc = profile.accumulators;
+    const topDims = ALL_DIMS.map(d => ({
+      d,
+      v: acc[d.k].mean,
+      c: acc[d.k].confidence,
+      source: acc[d.k].source || 'observed',
+      score: acc[d.k].mean * Math.max(0.2, acc[d.k].confidence)
+    })).sort((a,b)=>b.score-a.score).slice(0,6);
+    const insecure = ['att_anxious','att_avoidant','att_fearful'].map(k => ({ k, v: acc[k].mean * acc[k].confidence })).sort((a,b)=>b.v-a.v)[0];
+    const attMap = { att_anxious:'Anxious-leaning', att_avoidant:'Avoidant-leaning', att_fearful:'Fearful-leaning' };
+    const mbti = `${acc.mbti_i.mean >= 0.5 ? 'I' : 'E'}${acc.mbti_n.mean >= 0.5 ? 'N' : 'S'}${acc.mbti_f.mean >= 0.5 ? 'F' : 'T'}${acc.mbti_p.mean >= 0.5 ? 'P' : 'J'}`;
+    const compounds = (profile.sentimentHistory || []).map(x => x.compound || 0);
+    const avgCompound = compounds.length ? mean(compounds) : 0;
+    return {
+      topDims,
+      primaryAtt: insecure ? (attMap[insecure.k] || 'Mixed insecure pattern') : 'Insufficient signal',
+      mbtiStr: mbti,
+      sentimentLabel: avgCompound > 0.18 ? 'Positive-leaning' : avgCompound < -0.18 ? 'Negative-leaning' : 'Mixed / neutral',
+      avgCompound,
+      volatility: profile.sentimentVolatility || 0,
+      deflections: (profile.deflectionTurns || []).length,
+      turns: profile.turn || 0,
+      words: profile.styleCumulative ? profile.styleCumulative.wordTotal : 0,
+      narrative: improvedNarrative(profile)
+    };
+  }
+
+  const originalInitProfile = initProfile;
+  initProfile = function(){
+    const p = originalInitProfile();
+    p.researchMode = 'uncertainty-aware';
+    p.textHistory = [];
+    p.proxyHistory = [];
+    p.dimensionHistory = [];
+    return p;
+  };
+
+  updateProfile = function(profile, text){
+    const p = JSON.parse(JSON.stringify(profile));
+    p.turn++;
+    p.textHistory = p.textHistory || [];
+    p.textHistory.push(text);
+
+    const sentiment = vaderSentiment(text);
+    const legacy = extractFeatures(text, sentiment);
+    const proxy = deriveSignals(text, sentiment, legacy);
+    const features = Object.assign({}, legacy, proxy);
+    const baseEvidence = mapEvidence(legacy, sentiment);
+    const rawEv = initEvidenceFrame();
+
+    DIM_KEYS.forEach(k => {
+      const base = baseEvidence[k] || { pos:0, neg:0, words:[] };
+      rawEv[k].observed += clamp(base.pos || 0, 0, 1.8);
+      rawEv[k].neg += clamp(base.neg || 0, 0, 1.2);
+      rawEv[k].coverage += clamp((base.pos || 0) * 0.3, 0, 1);
+      rawEv[k].signalCount += base.words && base.words.length ? Math.min(base.words.length, 3) : 0;
+      rawEv[k].words = uniq([...(rawEv[k].words || []), ...((base.words)||[])]).slice(0,10);
+      rawEv[k].notes.push('legacy-map');
+    });
+
+    applySchemaEvidence(text, features, rawEv);
+    applyDimensionSpecificEvidence(features, sentiment, rawEv);
+    applyFallbackInference(rawEv);
+
+    const evidence = finalizeEvidence(rawEv);
+    DIM_KEYS.forEach(k => {
+      p.accumulators[k] = advancedBayesUpdate(p.accumulators[k], evidence[k]);
+    });
+
+    p.sentimentHistory.push({ turn: p.turn, ...sentiment });
+    const sc = p.styleCumulative;
+    sc.pastTotal += legacy.pastCount || 0;
+    sc.futureTotal += legacy.futureCount || 0;
+    sc.metaphorTotal += legacy.metaphorCount || 0;
+    sc.ruminationTotal += legacy.ruminationCount || 0;
+    sc.somaticTotal += legacy.somaticCount || 0;
+    sc.negationTotal += legacy.negationCount || 0;
+    sc.valenceCollisionTotal += legacy.valenceCollisions || 0;
+    sc.wordTotal += features.wc || 0;
+    if ((legacy.deflectionSignal || 0) > 0.5) { sc.deflections += 1; p.deflectionTurns.push(p.turn); }
+    if ((legacy.emotionalIntensity || 0) > 0.45) p.intenseTurns.push(p.turn);
+    if (legacy.salientPhrase) p.userPhrases.push(legacy.salientPhrase);
+    p.proxyHistory.push({ turn: p.turn, analytic: features.liwcAnalytic, clout: features.liwcClout, authenticity: features.liwcAuthenticity, tone: features.liwcTone });
+    p.dimensionHistory.push({ turn: p.turn, top: ALL_DIMS.map(d => ({ key:d.k, value:p.accumulators[d.k].mean, conf:p.accumulators[d.k].confidence })).sort((a,b)=>(b.value*b.conf)-(a.value*a.conf)).slice(0,5) });
+
+    const compounds = p.sentimentHistory.map(s => s.compound);
+    const avg = mean(compounds);
+    const variance = compounds.length ? mean(compounds.map(c => Math.pow(c - avg, 2))) : 0;
+    p.sentimentVolatility = Math.sqrt(variance);
+    const recentDeflect = p.deflectionTurns.filter(t => p.turn - t <= 2).length;
+    const recentIntense = p.intenseTurns.filter(t => p.turn - t <= 2).length;
+    p.readiness = clamp(0.5 - recentDeflect*0.20 + recentIntense*0.16 + (legacy.emotionalIntensity||0)*0.18 + (features.liwcAuthenticity/100)*0.12 - p.sentimentVolatility*0.10, 0, 1);
+
+    return { profile: p, features, sentiment, evidence };
+  };
+
+  selectNextQuestion = function(profile, features){
+    return improvedSelectNextQuestion(profile, features || {});
+  };
+
+  generateNarrative = function(profile){
+    return improvedNarrative(profile);
+  };
+
+  generateRevealProfile = function(profile){
+    return improvedReveal(profile);
+  };
+
+  updateNarrative = function(profile){
+    const el = document.getElementById('narrative-body');
+    if (!el) return;
+    document.getElementById('narrative-section').classList.add('visible');
+    el.innerHTML = improvedNarrative(profile);
+  };
+
+  renderScorePanel = function(profile){
+    const panel = document.getElementById('scores-col');
+    if (!panel) return;
+    const groups = FRAMEWORKS.map(fw => {
+      const rows = fw.dims.map(d => {
+        const a = profile.accumulators[d.k];
+        const pct = Math.round(a.mean * 100);
+        const conf = Math.round(a.confidence * 100);
+        const evidence = (a.words || []).slice(0, 5);
+        return `<div class="fw-dim">
+          <div class="fw-dim-row">
+            <span class="fw-dim-name">${d.label}</span>
+            <div class="fw-bar-wrap"><div class="fw-bar" style="width:${pct}%"></div></div>
+            <span class="fw-score">${pct}</span>
+            <span class="fw-conf">${conf}%</span>
+          </div>
+          <div class="fw-evidence">${evidence.length ? `Evidence: ${evidence.map(w => `<em>${w}</em>`).join(', ')}` : 'Hover for evidence — no signals yet.'}</div>
+        </div>`;
+      }).join('');
+      return `<div class="fw-group"><div class="fw-group-header">${fw.label}</div>${rows}</div>`;
+    }).join('');
+    panel.innerHTML = groups;
+  };
+})();
