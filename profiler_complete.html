@@ -1,0 +1,1995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Linguistic Insight Profiler — Psycholinguistic Intelligence</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,700;1,300&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg0:        #070707;
+  --bg1:        #0d0d0d;
+  --bg2:        #141414;
+  --bg3:        #1c1c1c;
+  --bg4:        #242424;
+  --border:     #2a2a2a;
+  --border-mid: #363636;
+  --border-hi:  #484848;
+  --text:       #d4c5a9;
+  --text-dim:   #7a6f5e;
+  --text-muted: #3a3228;
+  --amber:      #c8922a;
+  --amber-lo:   #7a5418;
+  --amber-dim:  #3d2a0c;
+  --amber-glow: rgba(200,146,42,0.07);
+  --amber-glow-hi: rgba(200,146,42,0.15);
+  --red-sig:    #8b3a3a;
+  --red-hi:     #c05050;
+  --green-dim:  #2d5a3a;
+  --green-hi:   #4a9460;
+  --mono:       'IBM Plex Mono', 'Courier New', monospace;
+  --serif:      'Cormorant Garamond', Georgia, serif;
+  --transition: 280ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  background: var(--bg0);
+  color: var(--text);
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* Intro screen */
+#intro {
+  position: fixed; inset: 0; z-index: 100;
+  background: var(--bg0);
+  display: flex; align-items: stretch;
+  transition: opacity 600ms ease, transform 600ms ease;
+}
+#intro.fading { opacity: 0; transform: translateY(-8px); pointer-events: none; }
+
+.intro-left {
+  width: 50%; padding: 72px 56px;
+  display: flex; flex-direction: column; justify-content: center;
+  border-right: 1px solid var(--border);
+}
+.intro-right {
+  width: 50%; padding: 72px 56px;
+  display: flex; flex-direction: column; justify-content: center;
+  background: var(--bg1);
+}
+.intro-kicker {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 0.5em;
+  color: var(--amber); text-transform: uppercase;
+  margin-bottom: 32px; display: flex; align-items: center; gap: 12px;
+}
+.intro-kicker::before {
+  content: ''; display: inline-block;
+  width: 28px; height: 1px; background: var(--amber);
+}
+.intro-h1 {
+  font-family: var(--serif);
+  font-size: clamp(40px, 5vw, 68px);
+  font-weight: 300; font-style: italic;
+  line-height: 1.04; letter-spacing: -0.02em;
+  color: var(--text); margin-bottom: 28px;
+}
+.intro-sub {
+  font-family: var(--mono); font-size: 11px; color: var(--text-dim); line-height: 1.7;
+  margin-bottom: 48px; max-width: 420px;
+}
+.intro-begin {
+  display: inline-flex; align-items: center; gap: 12px;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.15em;
+  text-transform: uppercase; color: var(--amber);
+  background: none; border: 1px solid var(--amber-lo);
+  padding: 14px 28px; cursor: pointer;
+  transition: var(--transition); width: fit-content;
+}
+.intro-begin:hover {
+  background: var(--amber-dim);
+  border-color: var(--amber);
+  box-shadow: 0 0 24px var(--amber-glow-hi);
+}
+.intro-begin::after { content: '→'; }
+.intro-spec { display: flex; flex-direction: column; gap: 0; }
+.spec-row {
+  display: flex; align-items: baseline;
+  padding: 14px 0; border-bottom: 1px solid var(--border);
+}
+.spec-row:first-child { border-top: 1px solid var(--border); }
+.spec-label {
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: 0.3em; text-transform: uppercase;
+  color: var(--text-dim); width: 140px; flex-shrink: 0;
+}
+.spec-val {
+  font-family: var(--serif); font-size: 14px; font-style: italic;
+  color: var(--text); line-height: 1.4;
+}
+.spec-val em { font-style: normal; color: var(--amber); }
+
+/* App layout */
+#app {
+  display: flex; height: 100vh; overflow: hidden;
+  opacity: 0; transition: opacity 600ms ease;
+}
+#app.visible { opacity: 1; }
+
+/* Left panel: chat */
+#left-panel {
+  width: 44%; min-width: 360px; max-width: 520px;
+  display: flex; flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--bg1);
+}
+.chat-header {
+  padding: 20px 24px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+  background: var(--bg0);
+  flex-shrink: 0;
+}
+.chat-logo {
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: 0.45em; text-transform: uppercase;
+  color: var(--amber);
+}
+.chat-phase {
+  margin-left: auto;
+  font-family: var(--mono); font-size: 9px;
+  color: var(--text-dim); letter-spacing: 0.2em;
+}
+.chat-phase-dot {
+  display: inline-block; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--amber);
+  margin-right: 7px;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+#chat-messages {
+  flex: 1; overflow-y: auto; padding: 28px 24px;
+  display: flex; flex-direction: column; gap: 20px;
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+#chat-messages::-webkit-scrollbar { width: 4px; }
+#chat-messages::-webkit-scrollbar-thumb { background: var(--border-mid); }
+.msg {
+  display: flex; flex-direction: column; gap: 5px;
+  animation: msg-in 320ms ease forwards;
+}
+@keyframes msg-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.msg-role {
+  font-family: var(--mono); font-size: 8px;
+  letter-spacing: 0.4em; text-transform: uppercase;
+  color: var(--text-dim);
+}
+.msg.ai .msg-role { color: var(--amber); }
+.msg-body {
+  font-family: var(--serif); font-size: 15px;
+  line-height: 1.65; color: var(--text);
+}
+.msg.ai .msg-body {
+  font-style: italic; color: #e8dcc8;
+}
+.msg.user .msg-body {
+  color: var(--text-dim);
+  padding-left: 12px;
+  border-left: 2px solid var(--border-mid);
+}
+.msg.sys .msg-body {
+  font-family: var(--mono); font-size: 10px;
+  color: var(--text-muted); font-style: normal;
+}
+.thinking-dots {
+  display: flex; gap: 5px; padding: 4px 0;
+  align-items: center;
+}
+.thinking-dots span {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--amber-lo);
+  animation: dot-bounce 1.2s ease-in-out infinite;
+}
+.thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dot-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40% { transform: translateY(-4px); opacity: 1; }
+}
+.chat-input-wrap {
+  padding: 18px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--bg0);
+  flex-shrink: 0;
+}
+.chat-input-row {
+  display: flex; align-items: flex-end; gap: 10px;
+}
+#user-input {
+  flex: 1;
+  background: var(--bg2); border: 1px solid var(--border-mid);
+  color: var(--text); font-family: var(--serif); font-size: 15px;
+  padding: 11px 14px; resize: none; outline: none;
+  min-height: 44px; max-height: 120px;
+  transition: border-color var(--transition);
+  scrollbar-width: thin;
+}
+#user-input:focus { border-color: var(--amber-lo); }
+#user-input::placeholder { color: var(--text-muted); font-style: italic; }
+#send-btn {
+  background: var(--amber-dim); border: 1px solid var(--amber-lo);
+  color: var(--amber); font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.3em; padding: 10px 16px; cursor: pointer;
+  transition: var(--transition); white-space: nowrap;
+  text-transform: uppercase; height: 44px;
+}
+#send-btn:hover { background: var(--amber-lo); border-color: var(--amber); }
+#send-btn:disabled { opacity: 0.4; pointer-events: none; }
+.turn-counter {
+  font-family: var(--mono); font-size: 8px;
+  color: var(--text-muted); letter-spacing: 0.3em;
+  margin-top: 8px; text-align: right;
+}
+
+/* Right panel: diagnostics */
+#right-panel {
+  flex: 1; display: flex; flex-direction: column;
+  overflow: hidden; background: var(--bg0);
+}
+.panel-header {
+  padding: 18px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 16px;
+  flex-shrink: 0;
+}
+.panel-title {
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: 0.45em; text-transform: uppercase;
+  color: var(--text-dim);
+}
+.panel-status {
+  margin-left: auto; display: flex; align-items: center; gap: 16px;
+}
+.status-item {
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: 0.15em; color: var(--text-dim);
+}
+.status-val { color: var(--amber); }
+#diag-content {
+  flex: 1; overflow-y: auto; display: flex;
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+#diag-content::-webkit-scrollbar { width: 4px; }
+#diag-content::-webkit-scrollbar-thumb { background: var(--border-mid); }
+
+/* Radar and sentiment charts */
+#chart-col {
+  width: 48%; border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; flex-shrink: 0;
+}
+.chart-block {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.chart-label {
+  font-family: var(--mono); font-size: 8px;
+  letter-spacing: 0.4em; text-transform: uppercase;
+  color: var(--text-dim); margin-bottom: 12px;
+}
+#radar-wrap { position: relative; padding: 8px; }
+#radar-wrap canvas { display: block; }
+#sentiment-wrap { padding: 8px; }
+#sentiment-wrap canvas { display: block; }
+
+/* Framework scores */
+#scores-col {
+  flex: 1; overflow-y: auto; padding: 0;
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+.fw-group { border-bottom: 1px solid var(--border); }
+.fw-group-header {
+  padding: 12px 20px 10px;
+  background: var(--bg1);
+  font-family: var(--mono); font-size: 8px;
+  letter-spacing: 0.35em; text-transform: uppercase;
+  color: var(--text-dim); display: flex; align-items: center; gap: 10px;
+  position: sticky; top: 0; z-index: 1;
+}
+.fw-group-header::before {
+  content: ''; width: 8px; height: 1px; background: var(--amber);
+}
+.fw-dim {
+  padding: 10px 20px 9px;
+  border-top: 1px solid var(--border);
+  cursor: default;
+  transition: background var(--transition);
+}
+.fw-dim:hover { background: var(--bg2); }
+.fw-dim-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 5px;
+}
+.fw-dim-name {
+  font-family: var(--serif); font-size: 12px;
+  font-style: italic; color: var(--text);
+  width: 140px; flex-shrink: 0;
+}
+.fw-bar-wrap {
+  flex: 1; height: 3px;
+  background: var(--bg4);
+  position: relative; overflow: hidden;
+}
+.fw-bar {
+  height: 100%; background: var(--amber);
+  transition: width 600ms cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+.fw-bar::after {
+  content: ''; position: absolute; right: 0; top: -2px;
+  width: 1px; height: 7px; background: var(--amber);
+  opacity: 0.6;
+}
+.fw-score {
+  font-family: var(--mono); font-size: 9px;
+  color: var(--amber); width: 32px; text-align: right;
+}
+.fw-conf {
+  font-family: var(--mono); font-size: 8px;
+  color: var(--text-muted); width: 28px; text-align: right;
+}
+.fw-evidence {
+  font-family: var(--mono); font-size: 9px;
+  color: var(--text-dim); padding-left: 0;
+  line-height: 1.5; display: none;
+}
+.fw-dim:hover .fw-evidence { display: block; }
+.fw-evidence em {
+  color: var(--amber); font-style: normal;
+}
+
+/* Narrative panel */
+#narrative-section {
+  border-top: 1px solid var(--border);
+  flex-shrink: 0; display: none;
+}
+#narrative-section.visible { display: block; }
+.narrative-header {
+  padding: 14px 20px 12px;
+  background: var(--bg1);
+  font-family: var(--mono); font-size: 8px;
+  letter-spacing: 0.35em; text-transform: uppercase;
+  color: var(--amber); border-bottom: 1px solid var(--border);
+}
+#narrative-body {
+  padding: 20px 20px;
+  font-family: var(--serif); font-size: 14px; font-style: italic;
+  color: var(--text); line-height: 1.75; max-height: 200px;
+  overflow-y: auto;
+}
+#narrative-body p { margin-bottom: 10px; }
+#narrative-body strong {
+  font-style: normal; font-weight: 600; color: #e8dcc8;
+}
+
+/* Reveal screen */
+#reveal {
+  position: fixed; inset: 0; z-index: 90;
+  background: var(--bg0); display: none;
+  flex-direction: column; overflow-y: auto;
+}
+#reveal.visible { display: flex; }
+.reveal-inner {
+  max-width: 840px; margin: 0 auto;
+  padding: 64px 40px 80px;
+}
+.reveal-kicker {
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: 0.45em; color: var(--amber);
+  text-transform: uppercase; margin-bottom: 40px;
+  display: flex; align-items: center; gap: 12px;
+}
+.reveal-kicker::before {
+  content: ''; width: 24px; height: 1px; background: var(--amber);
+}
+.reveal-h1 {
+  font-family: var(--serif); font-weight: 300;
+  font-style: italic; font-size: clamp(32px,4vw,52px);
+  line-height: 1.1; color: var(--text);
+  margin-bottom: 48px;
+}
+.reveal-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 2px; margin-bottom: 48px;
+}
+.reveal-card {
+  background: var(--bg1); padding: 24px 24px 20px;
+}
+.rc-label {
+  font-family: var(--mono); font-size: 8px;
+  letter-spacing: 0.3em; text-transform: uppercase;
+  color: var(--text-dim); margin-bottom: 10px;
+}
+.rc-value {
+  font-family: var(--serif); font-size: 20px;
+  font-style: italic; color: var(--text);
+  line-height: 1.3; margin-bottom: 6px;
+}
+.rc-conf {
+  font-family: var(--mono); font-size: 9px;
+  color: var(--amber-lo);
+}
+.reveal-narrative {
+  font-family: var(--serif); font-size: 16px;
+  line-height: 1.8; color: var(--text);
+  font-style: italic; margin-bottom: 40px;
+  padding: 28px 28px; background: var(--bg1);
+  border-left: 2px solid var(--amber-lo);
+}
+.reveal-narrative strong { font-style: normal; color: #e8dcc8; }
+.reveal-tech {
+  background: var(--bg1); padding: 24px;
+  margin-bottom: 32px;
+}
+.tech-title {
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: 0.4em; text-transform: uppercase;
+  color: var(--text-dim); margin-bottom: 16px;
+}
+.tech-row {
+  display: flex; gap: 12px; padding: 8px 0;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono); font-size: 10px; color: var(--text-dim);
+}
+.tech-key { color: var(--amber); width: 140px; flex-shrink: 0; }
+.tech-evidence { color: var(--text-dim); flex: 1; }
+.reveal-actions {
+  display: flex; gap: 12px; margin-top: 8px;
+}
+.reveal-btn {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.25em; text-transform: uppercase;
+  padding: 12px 24px; cursor: pointer;
+  transition: var(--transition); border: 1px solid;
+}
+.reveal-btn.primary {
+  background: var(--amber-dim); border-color: var(--amber-lo); color: var(--amber);
+}
+.reveal-btn.primary:hover { background: var(--amber-lo); }
+.reveal-btn.secondary {
+  background: none; border-color: var(--border); color: var(--text-dim);
+}
+.reveal-btn.secondary:hover { background: var(--bg2); border-color: var(--border-mid); }
+
+/* Mobile styles (simplified for brevity) */
+@media (max-width: 820px) {
+  #intro { flex-direction: column; }
+  .intro-left, .intro-right { width: 100%; }
+  #app { flex-direction: column; height: auto; }
+  #left-panel, #right-panel { width: 100%; max-width: none; }
+  .chat-phase { margin-left: 0; }
+  .panel-status { width: 100%; display: grid; grid-template-columns: repeat(3,1fr); }
+  #diag-content { display: grid; grid-template-columns: 1fr; }
+  #chart-col, #scores-col { width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- Intro screen -->
+<div id="intro">
+  <div class="intro-left">
+    <div class="intro-kicker">Behavioral Intelligence</div>
+    <h1 class="intro-h1">Markets<br>Mirror</h1>
+    <p class="intro-sub">A psycholinguistic profiling engine. Nine frameworks. Twenty-eight axes. Every word you write is evidence. The session runs silently against your language — you won't feel it working.</p>
+    <button class="intro-begin" onclick="beginSession()">Begin session &nbsp;</button>
+  </div>
+  <div class="intro-right">
+    <div class="intro-spec">
+      <div class="spec-row"><span class="spec-label">Frameworks</span><span class="spec-val"><em>9</em> — Trauma · Attachment · MBTI · Enneagram · Big Five · HEXACO · Dark Triad · Light Triad · Schwartz</span></div>
+      <div class="spec-row"><span class="spec-label">Diagnostic axes</span><span class="spec-val"><em>28</em> independent Bayesian accumulators</span></div>
+      <div class="spec-row"><span class="spec-label">Method</span><span class="spec-val">Beta-conjugate scoring · VADER sentiment · HUMINT elicitation</span></div>
+      <div class="spec-row"><span class="spec-label">Question pool</span><span class="spec-val"><em>120</em> adaptive prompts across 4 depth levels</span></div>
+      <div class="spec-row"><span class="spec-label">Phase structure</span><span class="spec-val"><em>17-turn</em> core profiling · unlimited refinement</span></div>
+      <div class="spec-row"><span class="spec-label">Data</span><span class="spec-val"><em>Zero</em> network requests · session memory only · resets on refresh</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app">
+  <div id="left-panel">
+    <div class="chat-header">
+      <span class="chat-logo">Linguistic Insight Profiler</span>
+      <span class="chat-phase"><span class="chat-phase-dot"></span><span id="phase-label">Phase I — Evidence-Gathering</span></span>
+    </div>
+    <div id="chat-messages"></div>
+    <div class="chat-input-wrap">
+      <div class="chat-input-row">
+        <textarea id="user-input" rows="1" placeholder="Respond naturally. There are no right answers."></textarea>
+        <button id="send-btn" onclick="send()">Send</button>
+      </div>
+      <div class="turn-counter" id="turn-counter">Turn 0 / 17</div>
+    </div>
+  </div>
+  <div id="right-panel">
+    <div class="panel-header">
+    <div id="api-settings-panel" style="border-bottom: 1px solid var(--border); padding: 12px 20px; background: var(--bg1);">
+      <div class="panel-title" style="margin-bottom: 8px;">🔌 External NLP API</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+        <label style="display: flex; align-items: center; gap: 6px;">
+          <input type="checkbox" id="api-enabled"> Enable
+        </label>
+        <select id="api-provider" style="background: var(--bg2); color: var(--text); border: 1px solid var(--border-mid); padding: 6px 10px; font-size: 11px;">
+          <option value="openai">OpenAI</option>
+          <option value="google">Google Cloud</option>
+          <option value="custom">Custom</option>
+        </select>
+        <input type="password" id="api-key" placeholder="API Key" style="background: var(--bg2); color: var(--text); border: 1px solid var(--border-mid); padding: 6px 10px; flex: 1; min-width: 200px;">
+        <input type="text" id="api-endpoint" placeholder="Endpoint URL" style="background: var(--bg2); color: var(--text); border: 1px solid var(--border-mid); padding: 6px 10px; flex: 1;">
+        <input type="text" id="api-model" placeholder="Model" style="background: var(--bg2); color: var(--text); border: 1px solid var(--border-mid); padding: 6px 10px; width: 120px;">
+        <button id="save-api-settings" style="background: var(--amber-dim); border: 1px solid var(--amber-lo); color: var(--amber); padding: 6px 12px; cursor: pointer;">Save</button>
+        <button id="test-api" style="background: var(--bg2); border: 1px solid var(--border-mid); color: var(--text-dim); padding: 6px 12px; cursor: pointer;">Test</button>
+      </div>
+      <div id="api-status" style="margin-top: 8px; font-size: 10px; color: var(--text-dim);"></div>
+    </div>
+      <span class="panel-title">Live Diagnostic</span>
+      <div class="panel-status">
+        <span class="status-item">readiness: <span class="status-val" id="stat-readiness">—</span></span>
+        <span class="status-item">sentiment: <span class="status-val" id="stat-sentiment">—</span></span>
+        <span class="status-item">volatility: <span class="status-val" id="stat-volatility">—</span></span>
+      </div>
+    </div>
+    <div id="diag-content">
+      <div id="chart-col">
+        <div class="chart-block">
+          <div class="chart-label">28-axis psychographic profile</div>
+          <div id="radar-wrap"><canvas id="radar-chart" width="340" height="320"></canvas></div>
+        </div>
+        <div class="chart-block">
+          <div class="chart-label">Sentiment arc</div>
+          <div id="sentiment-wrap"><canvas id="sentiment-chart" width="340" height="100"></canvas></div>
+        </div>
+        <div id="narrative-section">
+          <div class="narrative-header">Live Interpretation</div>
+          <div id="narrative-body"></div>
+        </div>
+      </div>
+      <div id="scores-col">
+        <!-- Framework score groups rendered here by JS -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Reveal screen -->
+<div id="reveal">
+  <div class="reveal-inner">
+    <div class="reveal-kicker">Session complete — Full profile</div>
+    <h1 class="reveal-h1" id="reveal-h1">Loading profile...</h1>
+    <div class="reveal-grid" id="reveal-grid"></div>
+    <div class="reveal-narrative" id="reveal-narrative"></div>
+    <div class="reveal-tech" id="reveal-tech"></div>
+    <div class="reveal-actions">
+      <button class="reveal-btn primary" onclick="continueSession()">Continue to Phase II</button>
+      <button class="reveal-btn secondary" onclick="restartSession()">New Session</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   MARKETSMIRROR v3 — PSYCHOLINGUISTIC PROFILING ENGINE
+   (All original definitions, fixed for reliability)
+═══════════════════════════════════════════════════════════ */
+
+const FRAMEWORKS = [
+  { key: 'trauma', label: 'Trauma Patterns', dims: [
+    { k:'trauma_abandon', label:'Abandonment / Rejection', short:'Abandon' },
+    { k:'trauma_shame',   label:'Shame / Inadequacy',      short:'Shame' },
+    { k:'trauma_control', label:'Hypercontrol / Vigilance',short:'Control' }
+  ] },
+  { key: 'attachment', label: 'Attachment Style', dims: [
+    { k:'att_anxious',   label:'Anxious / Preoccupied',    short:'Anxious' },
+    { k:'att_avoidant',  label:'Dismissive / Avoidant',    short:'Avoidant' },
+    { k:'att_fearful',   label:'Fearful / Disorganized',   short:'Fearful' }
+  ] },
+  { key: 'mbti', label: 'MBTI Tendencies', dims: [
+    { k:'mbti_i',  label:'Introversion',                   short:'Intro' },
+    { k:'mbti_n',  label:'Intuition / Abstract',           short:'iNtuit' },
+    { k:'mbti_f',  label:'Feeling / Affect-Led',           short:'Feeling' },
+    { k:'mbti_p',  label:'Perceiving / Open-Ended',        short:'Percvg' }
+  ] },
+  { key: 'enneagram', label: 'Enneagram Centers', dims: [
+    { k:'enn_heart', label:'Heart Center (Shame/Image)',   short:'Heart' },
+    { k:'enn_head',  label:'Head Center (Fear/Planning)',  short:'Head' },
+    { k:'enn_body',  label:'Body Center (Anger/Instinct)', short:'Body' }
+  ] },
+  { key: 'big5', label: 'Big Five (OCEAN)', dims: [
+    { k:'b5_open',  label:'Openness to Experience',        short:'Open' },
+    { k:'b5_cons',  label:'Conscientiousness',             short:'Consci' },
+    { k:'b5_extra', label:'Extraversion',                  short:'Extra' },
+    { k:'b5_agree', label:'Agreeableness',                 short:'Agree' },
+    { k:'b5_neuro', label:'Neuroticism',                   short:'Neuro' }
+  ] },
+  { key: 'hexaco', label: 'HEXACO', dims: [
+    { k:'hex_hh',   label:'Honesty-Humility',              short:'H-H' },
+    { k:'hex_em',   label:'Emotionality',                  short:'Emot' }
+  ] },
+  { key: 'dark', label: 'Dark Triad', dims: [
+    { k:'dark_narc', label:'Narcissism',                   short:'Narc' },
+    { k:'dark_mach', label:'Machiavellianism',             short:'Mach' },
+    { k:'dark_psyc', label:'Psychopathy / Callousness',    short:'Psyc' }
+  ] },
+  { key: 'light', label: 'Light Triad', dims: [
+    { k:'light_kant', label:'Kantianism (Ends, not means)',short:'Kant' },
+    { k:'light_hum',  label:'Humanism',                    short:'Hum' },
+    { k:'light_faith',label:'Faith in Humanity',           short:'Faith' }
+  ] },
+  { key: 'schwartz', label: 'Schwartz Values', dims: [
+    { k:'sch_st', label:'Self-Transcendence',              short:'Trans' },
+    { k:'sch_se', label:'Self-Enhancement',                short:'Enhance' }
+  ] }
+];
+
+    /* ─── External NLP API Configuration ──────────────────────────── */
+    // WARNING: Never commit API keys to public repositories.
+    // For local testing only.
+    const NLP_CONFIG = {
+        enabled: false,              // set to true to use external API
+        provider: "openai",          // "openai", "google", "huggingface", etc.
+        apiKey: "YOUR_API_KEY_HERE",
+        endpoint: "https://api.openai.com/v1/chat/completions", // example
+        // For Google Cloud NLP: "https://language.googleapis.com/v1/documents:analyzeSentiment"
+        model: "gpt-3.5-turbo",      // provider-specific
+        // Custom headers if needed
+        headers: {
+            "Content-Type": "application/json"
+        }
+    };
+
+    /* Call external NLP API */
+    async function callExternalAPI(text) {
+        if (!NLP_CONFIG.enabled || !NLP_CONFIG.apiKey || NLP_CONFIG.apiKey === "YOUR_API_KEY_HERE") {
+            console.log("External NLP disabled or not configured.");
+            return null;
+        }
+
+        // Build request body according to provider
+        let body = {};
+        if (NLP_CONFIG.provider === "openai") {
+            body = {
+                model: NLP_CONFIG.model,
+                messages: [{ role: "user", content: `Analyze the sentiment and psychological tone of this text. Return only a JSON object with fields: sentiment (positive/negative/neutral), intensity (0-1), and any notable emotion words. Text: "${text}"` }],
+                temperature: 0.3,
+                max_tokens: 150
+            };
+        } else if (NLP_CONFIG.provider === "google") {
+            body = {
+                document: { type: "PLAIN_TEXT", content: text },
+                encodingType: "UTF8"
+            };
+        } else {
+            // fallback – you'll need to implement your own
+            console.warn("Unsupported provider for external API.");
+            return null;
+        }
+
+        try {
+            const response = await fetch(NLP_CONFIG.endpoint, {
+                method: 'POST',
+                headers: {
+                    ...NLP_CONFIG.headers,
+                    'Authorization': `Bearer ${NLP_CONFIG.apiKey}`
+                },
+                body: JSON.stringify(body)
+            });
+            if (!response.ok) {
+                console.error("External API error:", response.status, await response.text());
+                return null;
+            }
+            const data = await response.json();
+            console.log("External NLP response:", data);
+            return data;
+        } catch (err) {
+            console.error("External API call failed:", err);
+            return null;
+        }
+    }
+
+    /* Merge external API results into the evidence map */
+    function mergeExternalEvidence(evidence, externalResult) {
+        if (!externalResult) return evidence;
+        // Example: adapt OpenAI response to influence dimensions
+        // You'll need to write this based on what your API returns.
+        // For demonstration, we'll boost the "b5_open" dimension if the external
+        // sentiment is positive and the response contains "curious".
+        try {
+            const content = externalResult.choices?.[0]?.message?.content || "";
+            if (content.toLowerCase().includes("positive") || content.toLowerCase().includes("curious")) {
+                evidence["b5_open"].pos += 0.2;
+                evidence["b5_open"].words.push("external_nlp");
+            }
+            if (content.toLowerCase().includes("negative") || content.toLowerCase().includes("anxious")) {
+                evidence["b5_neuro"].pos += 0.2;
+                evidence["b5_neuro"].words.push("external_nlp");
+            }
+        } catch(e) {
+            console.warn("Error merging external evidence:", e);
+        }
+        return evidence;
+    }
+    
+const ALL_DIMS = FRAMEWORKS.flatMap(f => f.dims);
+const DIM_KEYS = ALL_DIMS.map(d => d.k);
+
+/* ─── LEXICONS (full – kept from original) ───────────────── */
+const LEX = {
+  trauma_abandon: { pos: ['abandoned','left me','they left','everyone leaves','nobody stayed','walked away','went quiet','never came back','disappeared','no one showed up','left behind','by myself','without me','drove them away','always leaves','they all left','the quiet after','empty without','before they leave','leave first','terrified of losing','when people leave','afraid to lose','hollow inside'], neg: ['they stayed','showed up','never left','came back','still here','i can count on them','reliable','they always come through','i\'m not alone','feel secure with them'] },
+  trauma_shame: { pos: ['ashamed','humiliated','defective','something is wrong with me','i\'m the problem','my fault','always my fault','i deserve it','i had it coming','i ruin things','feel like a burden','no one can know','if they knew','can\'t forgive myself','i\'m not enough','never enough','worthless','feel dirty','hide this','what\'s wrong with me','damaged','broken inside'], neg: ['not my fault','i forgave myself','i accept myself','no shame in that','i did the best i could','i\'m enough','proud of myself','don\'t feel guilty about it','made peace with it'] },
+  trauma_control: { pos: ['need to control','if i\'m not watching','need a plan','can\'t not plan','what if something goes wrong','worst case','run through scenarios','always on guard','waiting for something to go wrong','never fully relax','always scanning','micromanage','grip','hold on tight','keep it together','if i let go','not knowing is the worst','need certainty','prepared for everything','just in case','can\'t trust it will work out','hard to let go of control'], neg: ['let go','trust the process','comfortable not knowing','not a planner','things work themselves out','i go with the flow','don\'t need to control','fine with uncertainty','can improvise','trust others to handle it'] },
+  att_anxious: { pos: ['need reassurance','did i say something wrong','overthink after talking to them','replay conversations','waiting to hear back','walking on eggshells','afraid they\'re upset','hyperaware of their mood','what if they\'re angry','they seem distant','why haven\'t they responded','change myself for them','afraid to express needs','worried about losing them','can\'t stop thinking about them','people pleasing','afraid to upset them','jealous easily','clingy','constant reassurance','preoccupied with the relationship'], neg: ['comfortable with space','don\'t need constant contact','trust them to come back','not worried when they\'re quiet','secure in the relationship','don\'t need reassurance','give them space easily','not jealous'] },
+  att_avoidant: { pos: ['don\'t need people','rely only on myself','vulnerability feels wrong','don\'t like depending on others','pull back when it gets close','need my space','emotional distance','shut down','walls up','uncomfortable when they need too much','too much closeness','suffocating','don\'t open up easily','independence is non-negotiable','better alone','don\'t ask for help','relationships are complicated','go quiet instead','keep to myself','can\'t rely on others','keep it surface level'], neg: ['love closeness','comfortable being vulnerable','enjoy leaning on people','ask for help easily','like being needed','intimacy feels natural','don\'t mind depending on someone','open up quickly'] },
+  att_fearful: { pos: ['want closeness but scared','push them away before they can leave','self-sabotage','when things get good i ruin it','trust issues','been hurt before','if i let them in','can\'t fully commit','terrifying to be loved','want connection but afraid of it','open and then close off','don\'t deserve love','afraid they\'ll see the real me','scared to trust again','the closer they get the more i panic','runs from closeness','love and fear','can\'t stay','want to be close but'], neg: ['fully trust them','open up completely','not scared of closeness','let people in easily','feel safe being vulnerable','committed without fear','don\'t sabotage things'] },
+  mbti_i: { pos: ['recharge alone','need quiet to think','social energy drains me','overstimulated by groups','need time alone after socializing','prefer one on one','prefer to observe first','think before speaking','internal processing','private person','exhausted after social events','need to decompress','prefer written over verbal','notice from the sidelines','think it through alone first','small groups or none','don\'t need to be the center','lost in my own head'], neg: ['energized by being around people','love big groups','social butterfly','love parties','extrovert','the more people the better','bored when alone','love being center of attention'] },
+  mbti_n: { pos: ['there\'s a pattern here','what it all means','beneath the surface','underlying reason','connections between things','big picture','what it symbolizes','deeper meaning','reading into it','feels like there\'s more','could mean something','archetypal','conceptual','sense that something is off','theoretical','abstract','narrative arc','what if this represents','intuition tells me','something about it i can\'t name','might be a metaphor for'], neg: ['just the facts','step by step','literal','what you see is what you get','not reading into it','practical','concrete','no hidden meaning','don\'t overthink the details'] },
+  mbti_f: { pos: ['how it feels matters more','can\'t make myself feel okay about it','emotionally it doesn\'t sit right','affects the people involved','have to weigh how it impacts them','feelings guide my decisions','can\'t separate logic from how i feel','matters to me personally','it felt wrong even if it made sense','values over logic','heart over head','hard to be objective when i care','relationship matters in the decision','consider the emotional impact first','my gut says no even if the math says yes','can\'t do something that doesn\'t feel right','harmony matters'], neg: ['purely logical','objective decision','emotions cloud judgment','leave feelings out of it','data-driven','rational approach','detach from the emotional side','feelings aren\'t relevant here','by the numbers'] },
+  mbti_p: { pos: ['keep options open','not ready to decide','maybe','could go either way','don\'t like rigid plans','adapt as i go','see how i feel','leave it open','might change my mind','not locked in','last minute works for me','figure it out when i get there','prefer flexibility','go with the flow','don\'t commit to plans far ahead','spontaneous','hate being pinned down','open to whatever comes','don\'t need a schedule'], neg: ['planned it out','schedule is important','committed to the plan','need structure','like having things decided','follow through on decisions','organized approach','routine keeps me grounded','prefer certainty in plans'] },
+  enn_heart: { pos: ['how i come across','what they think of me','need to feel recognized','want to be wanted','image matters','be seen a certain way','need to feel special','do i matter to them','are they happy with me','i give so much','give too much of myself','who am i without this','identity feels tied to how i\'m perceived','need to be needed','feel invisible when unacknowledged','the version they see of me','want to be loved for who i am','emotional attunement','feel others\' emotions','identity shifts around different people','meaning through connection'], neg: ['don\'t care what they think','image doesn\'t define me','not seeking recognition','secure in who i am regardless','don\'t need to be needed','identity isn\'t tied to others','not emotionally dependent on validation'] },
+  enn_head: { pos: ['need information before deciding','gather evidence first','research everything','contingency plan','what if things go wrong','worst case scenario','can\'t act without knowing enough','security comes from being prepared','fear of making the wrong move','over-analyze','second-guess myself','doubt before committing','need to be sure','anxious about the future','not enough information yet','more time to think','what could go wrong','need to understand the system first','overthought it before acting'], neg: ['act on gut instinct','don\'t need to research','comfortable deciding quickly','trust the process','not a planner','confident without all the info','act first think later','not anxious about what i don\'t know'] },
+  enn_body: { pos: ['felt it in my body','my gut says','visceral reaction','body knew before i did','instinct','injustice bothers me deeply','that\'s just wrong','unfair','it shouldn\'t be that way','stand my ground','won\'t back down','stubborn about what\'s right','right and wrong matters','anger at how things are','boundaries are non-negotiable','confront it directly','principles over comfort','this is not okay','physically tense around conflict','avoid conflict to keep the peace','anger turned inward'], neg: ['indifferent','don\'t feel strongly about it','no gut reaction','rules don\'t matter much to me','fine either way','not principled about it','no strong physical reaction','conflict doesn\'t bother me'] },
+  b5_open: { pos: ['love learning','curious about everything','drawn to complexity','creative','love art','love music','fascinated by ideas','different perspectives interest me','unconventional','unusual approaches','aesthetic sense','beauty in unexpected places','intellectually hungry','love philosophy','imaginative','novel experiences','eclectic interests','culture','literature moves me','wonder','challenging my assumptions','experimenting','thought-provoking'], neg: ['prefer the familiar','not creative','conventional','tradition matters','practical over theoretical','same thing works fine','don\'t need novelty','art doesn\'t do much for me','step-by-step over abstract'] },
+  b5_cons: { pos: ['organized','follow through','disciplined','work hard to finish things','reliable','on time','goal-oriented','systematic approach','methodical','detail-oriented','prepared','structured','meet deadlines','commitments matter','don\'t quit','finish what i start','responsible','thorough','productive','plan ahead','careful','deliberate'], neg: ['procrastinate','disorganized','forget things','unreliable','no follow through','scattered','messy','can\'t finish things','don\'t plan ahead','miss deadlines regularly'] },
+  b5_extra: { pos: ['energized by being around people','love talking','outgoing','assertive','enthusiastic','expressive','love meeting people','thrive in groups','animated','vivid','love conversation','like being the one who speaks up','connections come easily','social confidence','love events','engaging','talkative','draw energy from others','don\'t like being alone long'], neg: ['need to recharge alone','prefer quiet','reserved','private person','not assertive','find small talk draining','don\'t like attention','prefer one-on-one at most','low-key social life'] },
+  b5_agree: { pos: ['cooperative','easy to get along with','give people the benefit of the doubt','conflict-averse','put others first','forgiving','patient','generous','accommodating','hate upsetting people','supportive','kind','nurturing','trust people easily','help without being asked','go along with others','don\'t like confrontation','consider others\' feelings in decisions','charitable interpretation','gentle'], neg: ['competitive','blunt','confrontational','suspicious of others','self-interested','don\'t trust easily','cold','don\'t go out of my way','direct to the point of harsh','not particularly generous'] },
+  b5_neuro: { pos: ['easily overwhelmed','mood swings','snap easily','can\'t calm down quickly','hard to let go of bad feelings','emotionally reactive','dwell on things','catastrophize','negative thinking spirals','self-conscious','irritable under stress','hard to relax','triggered easily','anxiety spikes','can\'t let it go','fear the worst','ruminate','doubt myself constantly','insecure','moody'], neg: ['emotionally stable','bounce back quickly','even-keeled','not easily upset','resilient','don\'t dwell on things','calm under pressure','recover fast','not anxious by default'] },
+  hex_hh: { pos: ['not interested in status','don\'t care about being important','modest','don\'t want to impress people','not motivated by money for its own sake','same in private as in public','don\'t play games','what you see is what you get','don\'t manipulate','sincere','don\'t pretend','not driven by image','wouldn\'t take advantage','not greedy','don\'t scheme','genuinely mean it','don\'t use people','don\'t flatter to get what i want','uncomfortable with fakeness','hate political maneuvering'], neg: ['status matters','reputation is everything','impress the right people','willing to bend rules','get what i need from people','image is important','play the game','leverage relationships','cut corners when needed'] },
+  hex_em: { pos: ['sentimental','emotionally attached','moved by others\' pain','feel empathy deeply','cry easily','affected by others\' emotions','hard to detach from people i care about','need emotional support when stressed','emotionally dependent on close relationships','fear something happening to people i love','worry about loved ones\' safety','connected at a feeling level','can\'t stay detached','feel things for a long time','tender toward people','soft-hearted','vulnerability in others affects me','hard to cope alone when hurt','need someone to talk to'], neg: ['not sentimental','detached','handle it alone','don\'t need support','stoic','not easily moved','don\'t cry easily','emotionally self-sufficient','not affected by others\' problems','resilient without needing connection'] },
+  dark_narc: { pos: ['i deserve more than i get','most people don\'t understand me','above average','i know better','they should appreciate what i bring','not like other people','exceptional','natural leader','wasting my potential here','people should listen to me','i could do it better','obvious to me','they don\'t get it','entitled to recognition','my accomplishments speak for themselves','others hold me back','why don\'t they see it','i\'m different from most','special','lack of appreciation frustrates me','superior in this area'], neg: ['i have obvious flaws','others know better','admire people easily','not special in any meaningful way','ordinary is fine','i was clearly wrong','don\'t need to be recognized','happy to be in the background','others are more capable'] },
+  dark_mach: { pos: ['know who to know','work the room','people are useful in the right context','leverage relationships','play it smart','angle','what\'s in it for me','don\'t show all your cards','wait for the right moment','information is power','know what motivates people','get what i need from a situation','position myself strategically','never show weakness','protect my position','calculated approach','keep people close for a reason','timing is everything','navigate office politics carefully','know their pressure points'], neg: ['no agenda','transparent with people','trust freely','not strategic about relationships','what you see is what you get with me','don\'t think about leverage','don\'t use people','not calculating in relationships'] },
+  dark_psyc: { pos: ['their feelings are their problem','too sensitive','weakness to feel that way','don\'t let emotion interfere','detached from the outcome','doesn\'t affect me','not responsible for how they feel','emotionally numb to it','harm is sometimes necessary','ends justify the means','they had it coming','collateral','get over it','no remorse about it','other people\'s suffering doesn\'t land on me','rules are for people who can\'t think','feelings get in the way','don\'t feel bad about it','cold calculation'], neg: ['care about how it affects them','feel responsible for their pain','empathy is important to me','remorse when i hurt someone','their wellbeing matters','rules exist for good reason','affected by seeing others suffer','can\'t be detached from consequences'] },
+  light_kant: { pos: ['treat people with dignity','they matter as a person not just what they offer','not just a means to an end','do the right thing regardless of outcome','their autonomy matters','wouldn\'t exploit someone even if i could','ethical regardless of consequences','wouldn\'t use someone like that','principle over convenience','their rights matter','moral obligation','it\'s not about what i get','wrong to treat them that way','they deserve respect regardless','protect their dignity','not okay to deceive them for gain','fair regardless of power'], neg: ['ends justify the means','use people when necessary','doesn\'t matter how i get there','their feelings aren\'t my concern in this','outcome is what matters','principles are situational','willing to bend ethics'] },
+  light_hum: { pos: ['people are fundamentally good','believe in people','most people are trying','inspired by what people are capable of','human potential moves me','people can change','see the best in people','generosity in strangers','give benefit of the doubt','people surprise me with their goodness','others\' kindness affects me','moved by humanity','love for people','people are genuinely interesting','amazed by what people do for each other','see the humanity in difficult people','most people mean well'], neg: ['people are selfish','can\'t trust people','people always disappoint','humans are fundamentally flawed','don\'t believe people change','suspicious of generosity','no real altruism exists'] },
+  light_faith: { pos: ['world is fundamentally okay','meaning in things','things work out somehow','goodness exists','kindness is real','love is real and it matters','world has beauty in it','trust in life','things happen for a reason','the world is worth being in','faith in the future','something larger than myself','connection heals','belonging is possible','there is enough good','hope isn\'t naive','life is worth living fully'], neg: ['world is corrupt','everything is transactional','no real meaning','things don\'t work out','people don\'t care','world is fundamentally dark','no point to any of it','cynical about the future','nothing is sacred'] },
+  sch_st: { pos: ['make a difference beyond my own life','contribute to something larger','care about the world beyond myself','not just about me','give back','justice matters','equality matters','future generations','care for the environment','world beyond my immediate circle','service to others','welfare of people i\'ll never meet','community is worth investing in','sacrifice for others','bigger than me','leave it better than i found it','empathy for strangers','the collective matters','others need','protect people who can\'t protect themselves'], neg: ['just for me','my success only','personal benefit is what matters','don\'t care about people i don\'t know','not my responsibility','the world beyond my circle isn\'t my problem','self-interest is rational'] },
+  sch_se: { pos: ['succeed','achieve','ambition drives me','status matters','get ahead','recognition is important','want power','want influence','build wealth','be the best','outperform','competitive drive','rise in my career','prove what i can do','my accomplishments define me','want to lead','dominate in my field','reputation is something i build','climb','exceed expectations','what i\'ve built matters to me'], neg: ['don\'t care about status','not competitive','ambition doesn\'t drive me','success isn\'t the point','recognition means little to me','power doesn\'t appeal to me','wealth isn\'t a priority'] }
+};
+
+/* ─── VADER sentiment engine (kept from original) ───────── */
+const VALENCE = {
+  love:2.5, joy:2.9, happiness:2.9, wonderful:2.9, amazing:2.5, beautiful:2.0,
+  grateful:2.5, thankful:2.2, peaceful:2.3, calm:1.8, safe:2.1, warm:1.7,
+  fulfilled:2.8, alive:2.0, hopeful:2.1, trust:2.0, connected:2.2, belong:2.3,
+  whole:2.4, free:2.0, worthy:2.4, healing:2.4, brave:2.0, strong:1.8,
+  proud:2.1, inspired:2.3, cherished:2.5, secure:1.9, meaning:2.1,
+  fine:0.9, good:1.2, okay:0.7, better:1.1, glad:1.5, content:1.4, relief:1.6,
+  tired:-1.2, worried:-1.3, hard:-1.1, difficult:-1.0, tough:-1.0,
+  uncertain:-1.1, confused:-0.9, lost:-1.5, stuck:-1.4, frustrated:-1.6,
+  heavy:-1.3, drained:-1.4, exhausted:-1.5,
+  afraid:-1.8, anxious:-1.7, shame:-2.4, ashamed:-2.5, hopeless:-2.8,
+  helpless:-2.5, worthless:-2.9, useless:-2.4, broken:-2.3, empty:-2.2,
+  alone:-2.0, abandoned:-2.6, rejected:-2.5, hurt:-1.9, pain:-2.1,
+  grief:-2.5, numb:-1.9, dark:-1.8, trapped:-2.2, failure:-2.3,
+  panic:-2.4, rage:-2.3, hate:-2.5, disgusting:-2.4, pathetic:-2.4,
+  invisible:-1.8, hollow:-2.0, damaged:-2.1, defective:-2.3,
+  not:0, never:0, no:0, cannot:0, cant:0, wont:0, dont:0, doesnt:0, didnt:0,
+  couldnt:0, wouldnt:0, shouldnt:0
+};
+const NEGATION_WORDS = new Set(['not','never','no','cannot','cant',"can't",'wont',"won't",'dont',"don't",'doesnt',"doesn't",'didnt',"didn't",'couldnt',"couldn't",'wouldnt',"wouldn't",'shouldnt',"shouldn't",'nor','neither','nothing','nobody','nowhere','without','hardly','barely','scarcely']);
+const BOOSTER_POS = new Set(['very','really','extremely','incredibly','absolutely','completely','deeply','truly','highly','intensely','totally','utterly','so','such']);
+const BOOSTER_NEG = new Set(['slightly','somewhat','kind of','sort of','a bit','a little','barely','hardly','scarcely','rather']);
+
+function vaderSentiment(text) {
+  const words = text.toLowerCase().replace(/[^a-z\s']/g,' ').split(/\s+/).filter(Boolean);
+  let pos = 0, neg = 0;
+  const hasExclaim = (text.match(/!/g)||[]).length;
+  const isAllCaps = text.split(/\s+/).some(w => w.length > 2 && w === w.toUpperCase() && /[A-Z]/.test(w));
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i].replace(/[^a-z']/g,'');
+    if (!VALENCE[w] || VALENCE[w] === 0) continue;
+    let score = VALENCE[w];
+    const window = words.slice(Math.max(0, i-3), i).map(x => x.replace(/[^a-z']/g,''));
+    const negated = window.some(n => NEGATION_WORDS.has(n));
+    const prev = i > 0 ? words[i-1].replace(/[^a-z']/g,'') : '';
+    if (BOOSTER_POS.has(prev)) score *= 1.28;
+    if (BOOSTER_NEG.has(prev)) score *= 0.72;
+    if (isAllCaps) score *= 1.14;
+    if (negated) score *= -0.74;
+    if (score > 0) pos += score;
+    else neg += Math.abs(score);
+  }
+  pos += Math.min(hasExclaim * 0.292, 0.876);
+  const total = pos + neg + 0.001;
+  const normPos = pos / total;
+  const normNeg = neg / total;
+  const normNeu = 1 - normPos - normNeg;
+  const rawC = pos - neg;
+  const compound = rawC / Math.sqrt(rawC * rawC + 15);
+  return { pos: normPos, neg: normNeg, neu: Math.max(0, normNeu), compound };
+}
+
+/* ─── Feature extraction (original) ────────────────────── */
+const RE = {
+  personal:   /\b(i|me|my|myself|mine|i've|i'm|i'd|i'll)\b/gi,
+  iOnly:      /\bi\b/gi,
+  thirdPer:   /\b(they|them|their|he|she|it|his|her)\b/gi,
+  passive:    /\b(was|were|been|get|got)\s+(hurt|left|told|given|made|used|treated|pushed|ignored|seen|heard)\b/gi,
+  past:       /\b(was|were|had|did|felt|thought|used to|before|back then|when i was|years ago|once|back when|when they|when we|when it)\b/gi,
+  future:     /\b(will|going to|gonna|soon|someday|one day|hope|wish|plan|when i|if i|could|would|might|maybe someday)\b/gi,
+  negation:   /\b(not|never|don't|doesn't|didn't|can't|couldn't|won't|wouldn't|no|nobody|nothing|nowhere|without|hardly|barely|scarcely)\b/gi,
+  somatic:    /\b(body|chest|stomach|gut|heart|skin|breath|breathing|throat|shoulders|hands|legs|back|neck|head|face|jaw|tense|tight|heavy|sinking|rising|shaking|trembling|racing|pounding|ache|aches|numb)\b/gi,
+  mortality:  /\b(die|dying|death|dead|gone|end|over|finished|doesn't matter anymore|give up|what's the point|no reason|too late)\b/gi,
+  metaphor:   /\b(feels like|like a|as if|shape of|weight of|color of|heavy as|light as|soft as|sharp as|echo|shadow|buried|surface|root|ground|wall|door|hollow|beneath|underneath|inside of|carries|a kind of)\b/gi,
+  adversative:/\b(but|though|yet|however|although|even though|except|whereas|then again|that said|on the other hand|having said that)\b/i,
+  ruminate:   /\b(because|since|which means|think|thought|realize|realized|know|wonder|wondering|understand|make sense|figure out|figured|why|reason|meaning|perhaps|maybe|consider|reflect|question|ask myself|can't stop thinking|keep thinking|keep coming back|over and over)\b/gi,
+  clout:      /\b(i know|definitely|clearly|obviously|certainly|absolutely|always|everyone|nobody|must|should|have to|need to|important|significant|no doubt)\b/gi,
+  entity:     /\b(my|her|his|their)\s+(mother|father|mom|dad|sister|brother|partner|husband|wife|girlfriend|boyfriend|friend|best friend|boss|manager|teacher|therapist|ex|family|parents|parent|children|kids|son|daughter|grandmother|grandfather|grandma|grandpa)\b/gi,
+  deflect:    /\b(i don't know|not sure|hard to say|i guess|kind of|sort of|not really|it's fine|i'm fine|just fine|okay i guess|nothing specific|nothing in particular|everything's fine|it is what it is|doesn't matter|not important)\b/gi
+};
+function countMatches(re, text) {
+  const r = new RegExp(re.source, re.flags.replace('g','') + 'g');
+  return (text.match(r) || []).length;
+}
+function extractFeatures(text, sentiment) {
+  const lower = text.toLowerCase();
+  const words = lower.split(/\s+/).filter(Boolean);
+  const wc = Math.max(words.length, 1);
+  const sentences = text.split(/[.!?;]+/).filter(s => s.trim().length > 3);
+  const advMatch = lower.match(RE.adversative);
+  let honestText = text;
+  if (advMatch) {
+    const idx = lower.indexOf(advMatch[0]);
+    honestText = text.slice(idx + advMatch[0].length).trim();
+  }
+  const honLow = honestText.toLowerCase();
+  const firstPersonDensity  = countMatches(RE.iOnly, lower) / wc;
+  const thirdPersonDensity  = countMatches(RE.thirdPer, lower) / wc;
+  const passiveCount        = countMatches(RE.passive, text);
+  const negationCount       = countMatches(RE.negation, honLow);
+  const somaticCount        = countMatches(RE.somatic, lower);
+  const mortalityCount      = countMatches(RE.mortality, lower);
+  const metaphorCount       = countMatches(RE.metaphor, text);
+  const pastCount           = countMatches(RE.past, honLow);
+  const futureCount         = countMatches(RE.future, honLow);
+  const ruminationCount     = countMatches(RE.ruminate, honLow);
+  const cloutCount          = countMatches(RE.clout, honLow);
+  const personalDensity     = countMatches(RE.personal, lower) / wc;
+  const tenseTotal = pastCount + futureCount + 1;
+  const pastRatio   = pastCount / tenseTotal;
+  const futureRatio = futureCount / tenseTotal;
+  let valenceCollisions = 0;
+  sentences.forEach(s => {
+    const sv = vaderSentiment(s);
+    if (sv.pos > 0.25 && sv.neg > 0.25) valenceCollisions++;
+  });
+  const hasDeflectPhrase = RE.deflect.test(lower); RE.deflect.lastIndex = 0;
+  const specificity = Math.min(1, (personalDensity * 3) + (metaphorCount / wc) * 10);
+  const deflectionSignal = hasDeflectPhrase ? 1 :
+    (wc < 15 && firstPersonDensity < 0.05) ? 0.8 :
+    (firstPersonDensity < 0.04 && specificity < 0.25) ? 0.65 : 0;
+  let salientPhrase = null;
+  const frags = text.split(/[.!?;]+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 14 && s.length < 120)
+    .filter(s => countMatches(RE.personal, s.toLowerCase()) > 0 || countMatches(RE.metaphor, s) > 0);
+  RE.metaphor.lastIndex = 0;
+  if (frags.length > 0) {
+    const met = frags.filter(f => RE.metaphor.test(f));
+    RE.metaphor.lastIndex = 0;
+    salientPhrase = met.length > 0 ? met[0] : frags[0];
+  }
+  return {
+    wc, firstPersonDensity, thirdPersonDensity,
+    passiveCount, negationCount, somaticCount, mortalityCount,
+    metaphorCount, pastCount, futureCount, ruminationCount, cloutCount,
+    pastRatio, futureRatio, valenceCollisions, deflectionSignal,
+    salientPhrase, honestText,
+    emotionalIntensity: Math.min(1,
+      Math.abs(sentiment.compound) * 0.5 +
+      (somaticCount > 0 ? 0.15 : 0) +
+      (mortalityCount > 0 ? 0.2 : 0) +
+      (metaphorCount > 0 ? 0.1 : 0) +
+      (wc > 35 ? 0.1 : 0)
+    )
+  };
+}
+
+/* ─── Evidence mapper (original) ───────────────────────── */
+function mapEvidence(features, sentiment) {
+  const f = features; const s = sentiment;
+  const ev = {};
+  DIM_KEYS.forEach(k => { ev[k] = { pos: 0, neg: 0, words: [] }; });
+  const negAmp = 1 + (s.neg * 0.4);
+  const posAmp = 1 + (s.pos * 0.25);
+  function add(k, amt, type = 'pos', word = null) {
+    ev[k][type] += Math.max(0, amt);
+    if (word && !ev[k].words.includes(word)) ev[k].words.push(word);
+  }
+  const LEX_REFERENCE_SIZE = 20;
+  const fullLow = features.honestText.toLowerCase();
+  DIM_KEYS.forEach(dk => {
+    const lex = LEX[dk];
+    if (!lex) return;
+    const posNorm = (LEX_REFERENCE_SIZE / Math.max(LEX_REFERENCE_SIZE, lex.pos.length)) * 0.8;
+    const negNorm = (LEX_REFERENCE_SIZE / Math.max(LEX_REFERENCE_SIZE, lex.neg.length)) * 0.5;
+    lex.pos.forEach(kw => {
+      const re = kw.includes(' ') ? new RegExp(kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'i') : new RegExp('\\b' + kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\b', 'i');
+      if (re.test(fullLow)) add(dk, posNorm, 'pos', kw);
+    });
+    lex.neg.forEach(kw => {
+      const re = kw.includes(' ') ? new RegExp(kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'i') : new RegExp('\\b' + kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\b', 'i');
+      if (re.test(fullLow)) add(dk, negNorm, 'neg', kw);
+    });
+  });
+  // Feature-derived signals (simplified but kept from original)
+  add('trauma_abandon', f.mortalityCount * 0.55 * negAmp, 'pos', 'mortality');
+  add('trauma_abandon', f.pastRatio > 0.65 ? 0.50 * negAmp : 0, 'pos', 'past-anchor');
+  add('trauma_abandon', f.thirdPersonDensity * 1.20 * negAmp, 'pos', 'other-absent');
+  add('trauma_shame', f.passiveCount * 0.50 * negAmp, 'pos', 'passive-agency');
+  add('trauma_shame', f.somaticCount * 0.40 * negAmp, 'pos', 'somatic');
+  add('trauma_shame', f.valenceCollisions * 0.50 * negAmp, 'pos', 'ambivalence');
+  add('trauma_control', f.negationCount * 0.35 * negAmp, 'pos');
+  add('trauma_control', f.futureRatio > 0.55 ? 0.55 * negAmp : 0, 'pos', 'future-scan');
+  add('trauma_control', f.ruminationCount * 0.30 * negAmp, 'pos', 'cognitive-loop');
+  add('att_anxious', f.firstPersonDensity * 2.20 * negAmp, 'pos');
+  add('att_anxious', f.ruminationCount * 0.38 * negAmp, 'pos', 'rumination');
+  add('att_anxious', f.valenceCollisions * 0.42 * negAmp, 'pos', 'push-pull-affect');
+  add('att_avoidant', (f.firstPersonDensity < 0.06 && f.wc > 20) ? 0.55 : 0, 'pos', 'self-erasure');
+  add('att_avoidant', f.passiveCount * 0.48, 'pos', 'passive-distance');
+  add('att_avoidant', f.deflectionSignal * 0.82, 'pos', 'deflection');
+  add('att_fearful', f.valenceCollisions * 0.72 * negAmp, 'pos', 'approach-avoidance');
+  add('att_fearful', f.metaphorCount * 0.38 * negAmp, 'pos', 'indirect-expression');
+  add('att_fearful', (f.pastRatio > 0.6 && f.firstPersonDensity > 0.08) ? 0.42 * negAmp : 0, 'pos', 'wound-self-ref');
+  add('mbti_i', (1 - f.firstPersonDensity) * 0.48, 'pos');
+  add('mbti_i', f.thirdPersonDensity * 0.42, 'pos');
+  add('mbti_i', f.passiveCount > 0 ? 0.28 : 0, 'pos', 'observer');
+  add('mbti_n', f.metaphorCount * 0.58, 'pos', 'metaphor');
+  add('mbti_n', f.ruminationCount * 0.22, 'pos', 'meaning-seeking');
+  add('mbti_n', f.wc > 40 && f.firstPersonDensity < 0.12 ? 0.32 : 0, 'pos', 'abstract-density');
+  add('mbti_f', f.somaticCount * 0.42, 'pos', 'somatic');
+  add('mbti_f', Math.abs(s.compound) * 0.52, 'pos', 'valence-intensity');
+  add('mbti_f', f.valenceCollisions * 0.28, 'pos', 'affective-weight');
+  add('mbti_p', f.cloutCount > 2 ? 0.38 : 0, 'neg', 'closure→J');
+  add('mbti_p', f.futureRatio > 0.45 ? 0.42 : 0, 'pos', 'open-future');
+  add('mbti_p', f.negationCount * 0.14, 'neg', 'decisive-negation→J');
+  add('enn_heart', f.firstPersonDensity * 1.85, 'pos');
+  add('enn_heart', Math.abs(s.compound) * 0.42, 'pos', 'emotional-register');
+  add('enn_heart', f.metaphorCount * 0.22, 'pos', 'expressive-style');
+  add('enn_head', f.ruminationCount * 0.52, 'pos', 'over-analysis');
+  add('enn_head', f.futureRatio > 0.40 ? 0.52 * negAmp : 0, 'pos', 'anticipatory');
+  add('enn_head', f.negationCount * 0.28 * negAmp, 'pos', 'uncertainty-negation');
+  add('enn_body', f.somaticCount * 0.52, 'pos', 'somatic-instinct');
+  add('enn_body', f.negationCount * 0.22, 'pos', 'boundary-assertion');
+  add('enn_body', f.passiveCount > 1 ? 0.32 : 0, 'neg', 'active-voice→body');
+  add('b5_open', f.metaphorCount * 0.42, 'pos', 'metaphor');
+  add('b5_open', f.wc > 50 ? 0.22 : 0, 'pos', 'elaboration');
+  add('b5_open', f.ruminationCount * 0.16, 'pos', 'curiosity');
+  add('b5_cons', f.cloutCount * 0.30, 'pos', 'decisiveness');
+  add('b5_cons', f.futureRatio > 0.45 ? 0.30 : 0, 'pos', 'planning');
+  add('b5_cons', f.deflectionSignal > 0.5 ? 0.32 : 0, 'neg', 'avoidance→low-C');
+  add('b5_extra', f.firstPersonDensity * 1.15 * (s.pos > 0.3 ? 1.2 : 1), 'pos');
+  add('b5_extra', s.pos * 0.48 * posAmp, 'pos');
+  add('b5_extra', f.deflectionSignal > 0.5 ? 0.32 : 0, 'neg');
+  add('b5_agree', s.pos * 0.48 * posAmp, 'pos');
+  add('b5_agree', f.thirdPersonDensity * 0.48, 'pos', 'other-orientation');
+  add('b5_agree', f.cloutCount > 3 ? 0.32 : 0, 'neg', 'dominance→low-A');
+  add('b5_neuro', s.neg * 1.45 * negAmp, 'pos', 'neg-affect');
+  add('b5_neuro', f.negationCount * 0.28 * negAmp, 'pos', 'negation-loop');
+  add('b5_neuro', f.somaticCount * 0.22 * negAmp, 'pos', 'distress-somatic');
+  add('hex_hh', f.cloutCount > 3 ? f.cloutCount * 0.28 : 0, 'neg', 'authority-claim');
+  add('hex_hh', f.deflectionSignal > 0.5 ? 0.48 : 0, 'neg', 'performance-register');
+  add('hex_hh', f.firstPersonDensity < 0.07 && f.wc > 25 ? 0.50 * posAmp : 0, 'pos', 'self-effacing');
+  add('hex_em', f.somaticCount * 0.58, 'pos', 'somatic');
+  add('hex_em', s.neg * 0.80, 'pos', 'neg-affect');
+  add('hex_em', f.ruminationCount * 0.32, 'pos', 'emotional-processing');
+  add('dark_narc', f.firstPersonDensity > 0.14 ? (f.firstPersonDensity - 0.14) * 3.5 : 0, 'pos', 'excess-self-ref');
+  add('dark_narc', f.cloutCount * 0.58, 'pos', 'certainty-claim');
+  add('dark_narc', s.pos > 0.5 && f.cloutCount > 1 ? 0.42 : 0, 'pos', 'self-celebratory');
+  add('dark_mach', f.thirdPersonDensity * 1.35, 'pos', 'other-as-object');
+  add('dark_mach', f.passiveCount * 0.48, 'pos', 'agency-obscured');
+  add('dark_mach', f.ruminationCount > 3 && s.neg < 0.15 ? 0.42 : 0, 'pos', 'cold-analysis');
+  add('dark_psyc', f.emotionalIntensity < 0.10 && f.wc > 20 ? 0.65 : 0, 'pos', 'flat-affect');
+  add('dark_psyc', f.somaticCount < 1 && f.wc > 30 ? 0.38 : 0, 'pos', 'somatic-absence');
+  add('dark_psyc', s.neg < 0.04 && f.mortalityCount > 0 ? 0.52 : 0, 'pos', 'harm-detachment');
+  add('light_kant', f.thirdPersonDensity * 0.58 * posAmp, 'pos', 'other-present');
+  add('light_kant', f.cloutCount < 2 && f.wc > 20 ? 0.42 * posAmp : 0, 'pos', 'non-dominant');
+  add('light_kant', f.mortalityCount > 0 && s.pos > 0.15 ? 0.48 * posAmp : 0, 'pos', 'meaning-in-harm');
+  add('light_hum', s.pos > 0.3 ? s.pos * 0.88 * posAmp : 0, 'pos', 'positive-affect');
+  add('light_hum', f.thirdPersonDensity > 0.05 && s.pos > 0.2 ? 0.42 * posAmp : 0, 'pos', 'other-positive');
+  add('light_hum', f.metaphorCount > 0 && s.pos > 0.2 ? 0.32 * posAmp : 0, 'pos', 'warm-language');
+  add('light_faith', f.futureRatio > 0.35 ? 0.52 * posAmp : 0, 'pos', 'future-positive');
+  add('light_faith', s.pos > 0.4 ? 0.42 * posAmp : 0, 'pos', 'world-positive');
+  add('light_faith', f.negationCount < 2 && f.wc > 25 ? 0.32 * posAmp : 0, 'pos', 'low-negation');
+  add('sch_st', f.thirdPersonDensity * 0.85 * posAmp, 'pos', 'other-reference');
+  add('sch_st', f.futureRatio > 0.30 && s.pos > 0.15 ? 0.52 * posAmp : 0, 'pos', 'future-other');
+  add('sch_st', f.mortalityCount > 0 && s.pos > 0.20 ? 0.58 * posAmp : 0, 'pos', 'meaning-beyond-self');
+  add('sch_se', f.cloutCount * 0.58, 'pos', 'authority-claim');
+  add('sch_se', f.firstPersonDensity > 0.12 && f.cloutCount > 1 ? 0.52 : 0, 'pos', 'self-assertion');
+  add('sch_se', f.futureRatio > 0.40 && f.cloutCount > 1 ? 0.38 : 0, 'pos', 'goal-orientation');
+  const TARGET_FW_BUDGET = 2.0;
+  FRAMEWORKS.forEach(fw => {
+    const totalPos = fw.dims.reduce((sum, d) => sum + ev[d.k].pos, 0);
+    if (totalPos > TARGET_FW_BUDGET) {
+      const scale = TARGET_FW_BUDGET / totalPos;
+      fw.dims.forEach(d => { ev[d.k].pos *= scale; ev[d.k].neg *= scale; });
+    }
+  });
+  return ev;
+}
+
+/* ─── Bayesian update ──────────────────────────────────── */
+const LEARNING_RATE = 0.5;
+const CONF_SCALE = 8;
+function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+function bayesUpdate(acc, evidence) {
+  const dAlpha = sigmoid(evidence.pos) * LEARNING_RATE;
+  const dBeta  = sigmoid(evidence.neg) * LEARNING_RATE;
+  const a = acc.alpha + dAlpha;
+  const b = acc.beta  + dBeta;
+  const mean = a / (a + b);
+  const mass = Math.max(0, a + b - 2);
+  const confidence = 0.95 * (1 - Math.exp(-mass / CONF_SCALE));
+  const uncertainty = Math.sqrt((a * b) / (Math.pow(a + b, 2) * (a + b + 1)));
+  return { alpha: a, beta: b, mean, confidence, uncertainty, words: evidence.words || [] };
+}
+
+/* ─── Profile management ───────────────────────────────── */
+function initProfile() {
+  const accumulators = {};
+  DIM_KEYS.forEach(k => { accumulators[k] = { alpha: 1, beta: 1, mean: 0.5, confidence: 0, uncertainty: 0.289, words: [] }; });
+  return {
+    turn: 0,
+    accumulators,
+    sentimentHistory: [],
+    sessionWords: [],
+    deflectionTurns: [],
+    intenseTurns: [],
+    styleCumulative: { pastTotal: 0, futureTotal: 0, metaphorTotal: 0, ruminationTotal: 0, somaticTotal: 0, negationTotal: 0, valenceCollisionTotal: 0, wordTotal: 0, deflections: 0 },
+    questionHistory: [],
+    userPhrases: []
+  };
+}
+function updateProfile(profile, text) {
+  const p = JSON.parse(JSON.stringify(profile));
+  p.turn++;
+  const sentiment = vaderSentiment(text);
+  const features = extractFeatures(text, sentiment);
+  const evidence = mapEvidence(features, sentiment);
+  DIM_KEYS.forEach(k => {
+    p.accumulators[k] = bayesUpdate(p.accumulators[k], evidence[k]);
+    const newWords = (evidence[k].words || []).filter(w => !p.accumulators[k].words.includes(w));
+    p.accumulators[k].words = [...(p.accumulators[k].words || []), ...newWords].slice(-8);
+  });
+  p.sentimentHistory.push({ turn: p.turn, ...sentiment });
+  const sc = p.styleCumulative;
+  sc.pastTotal += features.pastCount;
+  sc.futureTotal += features.futureCount;
+  sc.metaphorTotal += features.metaphorCount;
+  sc.ruminationTotal += features.ruminationCount;
+  sc.somaticTotal += features.somaticCount;
+  sc.negationTotal += features.negationCount;
+  sc.valenceCollisionTotal += features.valenceCollisions;
+  sc.wordTotal += features.wc;
+  if (features.deflectionSignal > 0.5) { sc.deflections++; p.deflectionTurns.push(p.turn); }
+  if (features.emotionalIntensity > 0.45) p.intenseTurns.push(p.turn);
+  if (features.salientPhrase) p.userPhrases.push(features.salientPhrase);
+  const compounds = p.sentimentHistory.map(s => s.compound);
+  const mean = compounds.reduce((a,b)=>a+b,0) / compounds.length;
+  const variance = compounds.reduce((s,c)=>s+Math.pow(c-mean,2),0) / compounds.length;
+  p.sentimentVolatility = Math.sqrt(variance);
+  const recentDeflect = p.deflectionTurns.filter(t => p.turn - t <= 2).length;
+  const recentIntense = p.intenseTurns.filter(t => p.turn - t <= 2).length;
+  p.readiness = Math.max(0, Math.min(1, 0.5 - recentDeflect*0.22 + recentIntense*0.18 + features.emotionalIntensity*0.18 + Math.min(features.metaphorCount*0.1,0.12) - p.sentimentVolatility*0.10));
+  return { profile: p, features, sentiment, evidence };
+}
+
+/* ─── Question pool (simplified but enough) ───────────── */
+const Q = [
+  {t:"How's your day been — anything on your mind?", fw:null,dk:null,r:0,depth:0,s:'opener'},
+  {t:"What's been on your mind lately — anything you keep coming back to?", fw:null,dk:null,r:0,depth:0,s:'opener'},
+  {t:"Is there someone in your life you've been thinking about a lot lately?", fw:'trauma',dk:'trauma_abandon',r:0,depth:0,s:'reflective'},
+  {t:"When someone goes quiet on you — what tends to happen inside?", fw:'trauma',dk:'trauma_abandon',r:0,depth:1,s:'reflective'},
+  {t:"What's the version of being left that you never quite got over?", fw:'trauma',dk:'trauma_abandon',r:1,depth:2,s:'temporal'},
+  {t:"Is there a part of yourself that you keep pretty protected — that most people don't see?", fw:'trauma',dk:'trauma_shame',r:0,depth:1,s:'reflective'},
+  {t:"What's something about you that people don't usually get right when they first meet you?", fw:'trauma',dk:'trauma_shame',r:0,depth:1,s:'reflective'},
+  {t:"How do you usually handle things when they feel out of control?", fw:'trauma',dk:'trauma_control',r:0,depth:1,s:'reflective'},
+  {t:"What's the thing you hold onto most tightly when things get uncertain?", fw:'trauma',dk:'trauma_control',r:0,depth:1,s:'reflective'},
+  {t:"Is there someone in your life who you feel consistently understood by?", fw:'attachment',dk:'att_anxious',r:0,depth:0,s:'reflective'},
+  {t:"When someone doesn't respond right away, what do you do with that feeling?", fw:'attachment',dk:'att_anxious',r:0,depth:1,s:'reflective'},
+  {t:"What's the most you'd let yourself need from someone before it felt like too much?", fw:'attachment',dk:'att_anxious',r:1,depth:2,s:'probe'},
+  {t:"Do you find it easier to need someone less than to risk being disappointed?", fw:'attachment',dk:'att_avoidant',r:1,depth:2,s:'probe'},
+  {t:"What does real intimacy look like versus what you actually allow yourself?", fw:'attachment',dk:'att_fearful',r:2,depth:3,s:'probe'},
+  {t:"When you're working through something difficult, do you prefer to think it through alone first or talk it out?", fw:'mbti',dk:'mbti_i',r:0,depth:0,s:'reflective'},
+  {t:"What do you find most draining about social situations?", fw:'mbti',dk:'mbti_i',r:0,depth:1,s:'probe'},
+  {t:"When you read a story or watch something, what stays with you longest — the plot or what it means?", fw:'mbti',dk:'mbti_n',r:0,depth:0,s:'reflective'},
+  {t:"When you have to make a big decision, does logic or how you feel tend to win?", fw:'mbti',dk:'mbti_f',r:0,depth:1,s:'reflective'},
+  {t:"What does your ideal unscheduled Saturday look like?", fw:'mbti',dk:'mbti_p',r:0,depth:0,s:'opener'},
+  {t:"How much of what you present to the world matches who you actually are?", fw:'enneagram',dk:'enn_heart',r:0,depth:1,s:'reflective'},
+  {t:"When did you first start anticipating problems before they happened?", fw:'enneagram',dk:'enn_head',r:1,depth:2,s:'temporal'},
+  {t:"When something feels deeply wrong or unfair — where does that land in your body?", fw:'enneagram',dk:'enn_body',r:1,depth:2,s:'somatic'},
+  {t:"What kind of idea or problem do you find yourself unable to leave alone?", fw:'big5',dk:'b5_open',r:0,depth:1,s:'reflective'},
+  {t:"What's your relationship like with unfinished things?", fw:'big5',dk:'b5_cons',r:0,depth:1,s:'reflective'},
+  {t:"Where do you get your energy — from people, or from stepping away from them?", fw:'big5',dk:'b5_extra',r:0,depth:0,s:'opener'},
+  {t:"What's something you wish you could just say without thinking about how it lands?", fw:'big5',dk:'b5_agree',r:1,depth:2,s:'probe'},
+  {t:"What's the texture of your inner voice on a hard day?", fw:'big5',dk:'b5_neuro',r:1,depth:2,s:'cognitive'},
+  {t:"Is there something you've done that you could have gotten away with — and didn't?", fw:'hexaco',dk:'hex_hh',r:1,depth:2,s:'probe'},
+  {t:"When something difficult is happening, do you tend to carry it alone or reach out?", fw:'hexaco',dk:'hex_em',r:0,depth:1,s:'reflective'},
+  {t:"When you've gotten something you wanted through a social situation — how did you do it?", fw:'dark',dk:'dark_narc',r:0,depth:1,s:'reflective'},
+  {t:"When you're trying to get something done — how do you think about the people involved?", fw:'dark',dk:'dark_mach',r:0,depth:1,s:'reflective'},
+  {t:"When someone is visibly upset — what's your first internal reaction?", fw:'dark',dk:'dark_psyc',r:0,depth:1,s:'reflective'},
+  {t:"When you've helped someone with nothing to gain — what was going through your mind?", fw:'light',dk:'light_kant',r:0,depth:1,s:'reflective'},
+  {t:"When you meet a stranger — what do you assume about them before they say anything?", fw:'light',dk:'light_hum',r:0,depth:1,s:'reflective'},
+  {t:"What would it feel like to live in a world where most people were basically trying?", fw:'light',dk:'light_faith',r:1,depth:2,s:'hypothetical'},
+  {t:"What do you want to leave behind — not in things, but in how you made people feel?", fw:'schwartz',dk:'sch_st',r:0,depth:1,s:'reflective'},
+  {t:"What does success actually look like to you — and how much of that is about other people seeing it?", fw:'schwartz',dk:'sch_se',r:1,depth:2,s:'probe'}
+];
+const OPENERS = Q.filter(q => q.s === 'opener');
+
+/* ─── Question selection (original) ───────────────────── */
+function computeUncertainty(profile) {
+  const u = {};
+  DIM_KEYS.forEach(k => { u[k] = profile.accumulators[k].uncertainty; });
+  return u;
+}
+function prioritizeQuestions(profile, uncertainty, readiness) {
+  const recentFW = profile.questionHistory.slice(-4).map(h => h.fw).filter(Boolean);
+  return Q.filter(q => !profile.questionHistory.map(h=>h.t).includes(q.t)).map(q => {
+    let uScore = q.dk ? (uncertainty[q.dk] || 0.3) : Object.values(uncertainty).reduce((a,b)=>a+b,0) / DIM_KEYS.length;
+    const depthPenalty = (q.depth === 3 && readiness < 0.55) ? 0.3 : (q.depth === 2 && readiness < 0.30) ? 0.55 : (q.depth === 1 && readiness < 0.15) ? 0.75 : 1.0;
+    const diversityFactor = (q.fw && recentFW.includes(q.fw)) ? 0.45 : 1.0;
+    return { q, score: uScore * depthPenalty * diversityFactor };
+  }).sort((a,b)=>b.score-a.score);
+}
+function detectHumintMode(profile, features) {
+  const deflect = features.deflectionSignal;
+  if (deflect > 0.65) return 'SILENCE_BREAK';
+  if (deflect > 0.40) return 'MIRROR';
+  if ([6,11,16].includes(profile.turn) && profile.userPhrases.length >= 2) return 'BRIDGE';
+  return 'STANDARD';
+}
+function generateMirrorPrompt(profile) {
+  const phrases = profile.userPhrases;
+  if (phrases.length === 0) return null;
+  const raw = phrases[phrases.length - 1];
+  const anchor = raw.split(/\s+/).slice(0,7).join(' ').replace(/["""'']/g,'');
+  const escaped = anchor.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const templates = [`You said "${escaped}" — can you take me back to when that was most true?`, `There's something in "${escaped}" — what does it feel like to say that out loud?`, `"${escaped}" — where does that actually live in you?`];
+  return templates[Math.floor(Math.random() * templates.length)];
+}
+function generateBridgePrompt(profile) {
+  if (profile.userPhrases.length < 2) return null;
+  const a = profile.userPhrases[0];
+  const b = profile.userPhrases[profile.userPhrases.length - 1];
+  if (a === b) return null;
+  const anchorA = a.split(/\s+/).slice(0,5).join(' ').replace(/["""'']/g,'');
+  const anchorB = b.split(/\s+/).slice(0,5).join(' ').replace(/["""'']/g,'');
+  return `Earlier you said "${anchorA}" — and just now "${anchorB}". Do those feel connected to you?`;
+}
+function generateSilenceBreak() {
+  const opts = ["I noticed you stepped back a bit just there. That's completely fine — is there a different way into this you'd prefer?", "Something made that one hard to land on. No pressure — what's actually on your mind right now?", "You don't have to answer that one directly. What would you want to say instead?"];
+  return opts[Math.floor(Math.random() * opts.length)];
+}
+function selectNextQuestion(profile, features) {
+  const uncertainty = computeUncertainty(profile);
+  const mode = detectHumintMode(profile, features);
+  if (mode === 'SILENCE_BREAK') {
+    profile.questionHistory.push({ t: '[silence-break]', fw: null });
+    return { text: generateSilenceBreak(), mode };
+  }
+  if (mode === 'MIRROR') {
+    const mirror = generateMirrorPrompt(profile);
+    if (mirror) {
+      profile.questionHistory.push({ t: '[mirror]', fw: null });
+      return { text: mirror, mode };
+    }
+  }
+  if (mode === 'BRIDGE') {
+    const bridge = generateBridgePrompt(profile);
+    if (bridge) {
+      profile.questionHistory.push({ t: '[bridge]', fw: null });
+      return { text: bridge, mode };
+    }
+  }
+  if (profile.turn <= 1) {
+    const unusedOpeners = OPENERS.filter(q => !profile.questionHistory.map(h=>h.t).includes(q.t));
+    const pick = unusedOpeners.length > 0 ? unusedOpeners[Math.floor(Math.random() * unusedOpeners.length)] : OPENERS[0];
+    profile.questionHistory.push({ t: pick.t, fw: pick.fw });
+    return { text: pick.t, mode: 'STANDARD' };
+  }
+  const prioritized = prioritizeQuestions(profile, uncertainty, profile.readiness || 0.5);
+  if (prioritized.length === 0) return { text: "What's still unsaid in what you've been sharing?", mode: 'FALLBACK' };
+  const topN = prioritized.slice(0, Math.min(3, prioritized.length));
+  const pick = topN[Math.floor(Math.random() * topN.length)].q;
+  profile.questionHistory.push({ t: pick.t, fw: pick.fw });
+  return { text: pick.t, mode: 'STANDARD' };
+}
+
+/* ─── Narrative generation (original) ─────────────────── */
+function generateNarrative(profile) {
+  const acc = profile.accumulators;
+  const sc = profile.styleCumulative;
+  const topOverall = FRAMEWORKS.flatMap(fw => fw.dims.map(d => ({ label: d.label, fw: fw.label, v: acc[d.k].mean, c: acc[d.k].confidence, k: d.k }))).sort((a,b)=>b.v*b.c - a.v*a.c).slice(0,4);
+  if (topOverall.length === 0) return '<p>Accumulating signal — continue the conversation.</p>';
+  const primary = topOverall[0];
+  const pastDom = sc.pastTotal > sc.futureTotal * 1.4;
+  const futDom = sc.futureTotal > sc.pastTotal * 1.4;
+  const highNeuro = acc.b5_neuro.mean > 0.6 && acc.b5_neuro.confidence > 0.3;
+  const highDark = (acc.dark_narc.mean + acc.dark_mach.mean + acc.dark_psyc.mean) / 3 > 0.55;
+  const highLight = (acc.light_kant.mean + acc.light_hum.mean + acc.light_faith.mean) / 3 > 0.55;
+  let html = `<p>The strongest current signal is in <strong>${primary.label}</strong> (${Math.round(primary.v*100)}%, ${Math.round(primary.c*100)}% confidence). `;
+  if (topOverall[1]) html += `Secondary signal: <strong>${topOverall[1].label}</strong>.`;
+  html += `</p>`;
+  if (pastDom) html += `<p>Language is past-dominant — the session shows a backward temporal anchor. The concern isn't what's coming; it's what already happened.</p>`;
+  if (futDom) html += `<p>Future-orientation is elevated — anticipatory cognition. The mind is running ahead of the present moment.</p>`;
+  if (highNeuro) html += `<p>Neuroticism markers are significant. There is emotional reactivity in the register — difficulty disengaging from negative states.</p>`;
+  if (highDark && !highLight) html += `<p>Dark Triad cluster is accumulating. Strategic self-presentation and reduced empathic engagement are visible in the phrasing.</p>`;
+  if (highLight) html += `<p>Light Triad is strong. Genuine other-orientation — this is not performance. The signal is in unguarded moments.</p>`;
+  if (sc.deflections > 1) html += `<p>Deflection pattern detected (${sc.deflections} events). Certain terrain is being managed around.</p>`;
+  return html;
+}
+function generateRevealProfile(profile) {
+  const acc = profile.accumulators;
+  const topDims = ALL_DIMS.map(d => ({ d, v: acc[d.k].mean, c: acc[d.k].confidence, score: acc[d.k].mean * acc[d.k].confidence })).sort((a,b)=>b.score-a.score).slice(0,6);
+  const attScores = { 'Secure (baseline)': 1 - Math.max(acc.att_anxious.mean, acc.att_avoidant.mean, acc.att_fearful.mean), 'Anxious / Preoccupied': acc.att_anxious.mean, 'Dismissive-Avoidant': acc.att_avoidant.mean, 'Fearful-Disorganized': acc.att_fearful.mean };
+  const primaryAtt = Object.entries(attScores).sort((a,b)=>b[1]-a[1])[0][0];
+  const mbtiStr = [acc.mbti_i.mean > 0.5 ? 'I' : 'E', acc.mbti_n.mean > 0.5 ? 'N' : 'S', acc.mbti_f.mean > 0.5 ? 'F' : 'T', acc.mbti_p.mean > 0.5 ? 'P' : 'J'].join('');
+  const sc = profile.styleCumulative;
+  const compounds = profile.sentimentHistory.map(s=>s.compound);
+  const avgCompound = compounds.length ? compounds.reduce((a,b)=>a+b,0)/compounds.length : 0;
+  const sentimentLabel = avgCompound > 0.15 ? 'Positive arc' : avgCompound < -0.15 ? 'Negative arc' : 'Neutral / Mixed';
+  return { topDims, primaryAtt, mbtiStr, sentimentLabel, avgCompound, volatility: profile.sentimentVolatility || 0, deflections: sc.deflections, words: sc.wordTotal, turns: profile.turn, narrative: generateNarrative(profile) };
+}
+
+/* ─── Charts (original) ───────────────────────────────── */
+let radarChart = null;
+let sentimentChart = null;
+function initCharts() {
+  const AMBER = 'rgba(200,146,42,0.85)';
+  const AMBER_FILL = 'rgba(200,146,42,0.12)';
+  const GRID = 'rgba(100,80,50,0.2)';
+  const LABEL_COLOR = '#7a6f5e';
+  const rCtx = document.getElementById('radar-chart').getContext('2d');
+  radarChart = new Chart(rCtx, {
+    type: 'radar',
+    data: { labels: ALL_DIMS.map(d => d.short), datasets: [{ label: 'Profile', data: new Array(28).fill(50), backgroundColor: AMBER_FILL, borderColor: AMBER, borderWidth: 1.2, pointBackgroundColor: AMBER, pointRadius: 2, pointHoverRadius: 4 }] },
+    options: { responsive: false, animation: { duration: 600, easing: 'easeInOutQuart' }, scales: { r: { min: 0, max: 100, backgroundColor: 'transparent', grid: { color: GRID, circular: true }, angleLines: { color: GRID }, pointLabels: { color: LABEL_COLOR, font: { family: "'IBM Plex Mono'", size: 8.5 } }, ticks: { display: false, stepSize: 25 } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw}%` }, backgroundColor: '#0d0d0d', borderColor: '#2a2a2a', borderWidth: 1, titleColor: '#c8922a', bodyColor: '#d4c5a9', titleFont: { family: "'IBM Plex Mono'", size: 9 }, bodyFont: { family: "'IBM Plex Mono'", size: 9 } } } }
+  });
+  const sCtx = document.getElementById('sentiment-chart').getContext('2d');
+  sentimentChart = new Chart(sCtx, {
+    type: 'bar',
+    data: { labels: [], datasets: [{ label: 'Positive', data: [], backgroundColor: 'rgba(74,148,96,0.7)', borderWidth: 0, borderRadius: 1 }, { label: 'Negative', data: [], backgroundColor: 'rgba(192,80,80,0.7)', borderWidth: 0, borderRadius: 1 }, { label: 'Compound', data: [], type: 'line', borderColor: 'rgba(200,146,42,0.9)', backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 2.5, pointBackgroundColor: 'rgba(200,146,42,0.9)', tension: 0.35, yAxisID: 'y2' }] },
+    options: { responsive: false, animation: { duration: 400 }, scales: { x: { grid: { display: false }, ticks: { color: LABEL_COLOR, font: { family: "'IBM Plex Mono'", size: 8 } } }, y: { stacked: false, min: 0, max: 1, grid: { color: GRID }, ticks: { color: LABEL_COLOR, font: { family: "'IBM Plex Mono'", size: 8 }, maxTicksLimit: 3 } }, y2: { position: 'right', min: -1, max: 1, grid: { display: false }, ticks: { color: LABEL_COLOR, font: { family: "'IBM Plex Mono'", size: 8 }, maxTicksLimit: 3 } } }, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0d0d0d', borderColor: '#2a2a2a', borderWidth: 1, titleColor: '#c8922a', bodyColor: '#d4c5a9', titleFont: { family: "'IBM Plex Mono'", size: 9 }, bodyFont: { family: "'IBM Plex Mono'", size: 9 } } } }
+  });
+}
+function updateCharts(profile) {
+  if (!radarChart) return;
+  radarChart.data.datasets[0].data = ALL_DIMS.map(d => Math.round(profile.accumulators[d.k].mean * 100));
+  radarChart.update();
+  const hist = profile.sentimentHistory;
+  sentimentChart.data.labels = hist.map((_, i) => `T${i+1}`);
+  sentimentChart.data.datasets[0].data = hist.map(s => +s.pos.toFixed(3));
+  sentimentChart.data.datasets[1].data = hist.map(s => +s.neg.toFixed(3));
+  sentimentChart.data.datasets[2].data = hist.map(s => +s.compound.toFixed(3));
+  sentimentChart.update();
+}
+
+/* ─── Score panel (fixed to use scores-col) ───────────── */
+function renderScorePanel(profile) {
+  const container = document.getElementById('scores-col');
+  if (!container) return;
+  container.innerHTML = '';
+  const acc = profile.accumulators;
+  FRAMEWORKS.forEach(fw => {
+    const group = document.createElement('div');
+    group.className = 'fw-group';
+    const header = document.createElement('div');
+    header.className = 'fw-group-header';
+    header.textContent = fw.label;
+    group.appendChild(header);
+    fw.dims.forEach(d => {
+      const a = acc[d.k];
+      const pct = Math.round(a.mean * 100);
+      const conf = Math.round(a.confidence * 100);
+      const row = document.createElement('div');
+      row.className = 'fw-dim';
+      const topRow = document.createElement('div');
+      topRow.className = 'fw-dim-row';
+      topRow.innerHTML = `<span class="fw-dim-name">${d.label}</span><div class="fw-bar-wrap"><div class="fw-bar" style="width:${pct}%"></div></div><span class="fw-score">${pct}</span><span class="fw-conf">${conf}%</span>`;
+      const evRow = document.createElement('div');
+      evRow.className = 'fw-evidence';
+      const words = a.words || [];
+      evRow.innerHTML = words.length > 0 ? `Evidence: ${words.map(w => `<em>${w}</em>`).join(', ')}` : 'Hover for evidence — no signals yet.';
+      row.appendChild(topRow);
+      row.appendChild(evRow);
+      group.appendChild(row);
+    });
+    container.appendChild(group);
+  });
+}
+
+/* ─── UI helpers ───────────────────────────────────────── */
+function addMsg(role, text) {
+  const messages = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  const roleLabel = { ai: 'Linguistic Insight Profiler', user: 'You', sys: 'System' }[role];
+  div.innerHTML = `<div class="msg-role">${roleLabel}</div><div class="msg-body">${text}</div>`;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
+function showThinking() {
+  const messages = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg ai'; div.id = 'thinking-msg';
+  div.innerHTML = `<div class="msg-role">Linguistic Insight Profiler</div><div class="msg-body"><div class="thinking-dots"><span></span><span></span><span></span></div></div>`;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
+function removeThinking() {
+  const t = document.getElementById('thinking-msg');
+  if (t) t.remove();
+}
+function updateStatus(profile) {
+  const r = profile.readiness || 0;
+  const hist = profile.sentimentHistory;
+  const lastCompound = hist.length > 0 ? hist[hist.length-1].compound : 0;
+  const vol = profile.sentimentVolatility || 0;
+  document.getElementById('stat-readiness').textContent = Math.round(r * 100) + '%';
+  document.getElementById('stat-sentiment').textContent = lastCompound >= 0 ? '+' + lastCompound.toFixed(2) : lastCompound.toFixed(2);
+  document.getElementById('stat-volatility').textContent = vol.toFixed(2);
+  document.getElementById('turn-counter').textContent = `Turn ${profile.turn} / ${profile.turn < 17 ? 17 : '∞'}`;
+  const phaseLabel = document.getElementById('phase-label');
+  if (profile.turn >= 17) phaseLabel.textContent = 'Phase II — Uncertainty Reduction';
+}
+function updateNarrative(profile) {
+  if (profile.turn < 4) return;
+  const ns = document.getElementById('narrative-section');
+  const nb = document.getElementById('narrative-body');
+  ns.classList.add('visible');
+  nb.innerHTML = generateNarrative(profile);
+}
+function escapeHTML(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+/* ─── Session management ───────────────────────────────── */
+let profile = null;
+let sessionActive = false;
+let lastFeatures = null;
+
+function beginSession() {
+  document.getElementById('intro').classList.add('fading');
+  setTimeout(() => {
+    document.getElementById('intro').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+  }, 620);
+  profile = initProfile();
+  initCharts();
+  renderScorePanel(profile);
+  sessionActive = true;
+  setTimeout(() => {
+    const opener = OPENERS[Math.floor(Math.random() * OPENERS.length)];
+    profile.questionHistory.push({ t: opener.t, fw: null });
+    addMsg('ai', opener.t);
+    document.getElementById('user-input').focus();
+  }, 500);
+}
+
+async function send() {
+  try {
+    const input = document.getElementById('user-input');
+    const text = input.value.trim();
+    if (!text || !sessionActive) return;
+
+    input.value = '';
+    input.style.height = 'auto';
+    document.getElementById('send-btn').disabled = true;
+
+    addMsg('user', escapeHTML(text));
+    showThinking();
+
+    await new Promise(r => setTimeout(r, 420 + Math.random() * 280));
+
+    const result = updateProfile(profile, text);
+    profile = result.profile;
+    lastFeatures = result.features;
+
+    console.group(`%cLinguistic Insight Profiler — Turn ${profile.turn}`, 'color:#c8922a;font-family:monospace');
+    console.log('Sentiment:', result.sentiment);
+    console.log('Features:', result.features);
+    console.log('Evidence delta:', result.evidence);
+    console.log('Accumulators:', profile.accumulators);
+    console.log('Readiness:', profile.readiness);
+    console.log('Volatility:', profile.sentimentVolatility);
+    console.groupEnd();
+
+    // --- External NLP call (if enabled) ---
+    let externalData = null;
+    if (NLP_CONFIG.enabled) {
+        externalData = await callExternalAPI(text);
+        if (externalData) {
+            // Merge external results into the evidence map
+            const mergedEvidence = mergeExternalEvidence(result.evidence, externalData);
+            // Re-run the update with the merged evidence? Or directly apply?
+            // For simplicity, we'll update the accumulators again with the new evidence.
+            // This is a bit heavy but works.
+            DIM_KEYS.forEach(k => {
+                if (mergedEvidence[k] && (mergedEvidence[k].pos > 0 || mergedEvidence[k].neg > 0)) {
+                    const updated = bayesUpdate(profile.accumulators[k], mergedEvidence[k]);
+                    profile.accumulators[k] = updated;
+                }
+            });
+            // Optionally re-render
+            updateCharts(profile);
+            renderScorePanel(profile);
+            updateStatus(profile);
+            updateNarrative(profile);
+        }
+    }
+
+    updateCharts(profile);
+    renderScorePanel(profile);
+    updateStatus(profile);
+    updateNarrative(profile);
+
+    removeThinking();
+
+    if (profile.turn === 17) {
+      setTimeout(() => {
+        addMsg('sys', 'Phase I complete. Generating full profile...');
+        setTimeout(() => showReveal(), 1400);
+      }, 600);
+      document.getElementById('send-btn').disabled = false;
+      return;
+    }
+
+    let next = selectNextQuestion(profile, result.features);
+    if (!next || typeof next !== 'object' || !next.text) {
+      console.warn('selectNextQuestion returned invalid:', next);
+      next = { text: 'Tell me more about that — what else comes to mind?', mode: 'FALLBACK' };
+    }
+    setTimeout(() => {
+      addMsg('ai', next.text);
+      document.getElementById('send-btn').disabled = false;
+      document.getElementById('user-input').focus();
+    }, 180);
+  } catch (err) {
+    console.error('Error in send():', err);
+    removeThinking();
+    document.getElementById('send-btn').disabled = false;
+    addMsg('sys', 'An internal error occurred. Please refresh the page to restart the session.');
+    sessionActive = false;
+  }
+
+}
+
+function continueSession() {
+  document.getElementById('reveal').classList.remove('visible');
+  sessionActive = true;
+  document.getElementById('phase-label').textContent = 'Phase II — Uncertainty Reduction';
+  addMsg('sys', 'Phase II — Deep refinement mode. Continue as long as you need.');
+  const next = selectNextQuestion(profile, lastFeatures || { deflectionSignal: 0, salientPhrase: null, emotionalIntensity: 0.3 });
+  setTimeout(() => {
+    addMsg('ai', next.text);
+    document.getElementById('user-input').focus();
+  }, 300);
+}
+
+function showReveal() {
+  const rv = generateRevealProfile(profile);
+  sessionActive = false;
+  const primary = rv.topDims[0];
+  document.getElementById('reveal-h1').textContent = primary ? `Primary signal: ${primary.d.label}` : 'Profile complete.';
+  const gridData = [
+    { label: 'Dominant dimension', value: primary ? `${primary.d.label} — ${Math.round(primary.v*100)}%` : '—', conf: primary ? `${Math.round(primary.c*100)}% confidence` : '' },
+    { label: 'Attachment tendency', value: rv.primaryAtt, conf: '' },
+    { label: 'MBTI tendency', value: rv.mbtiStr + ' — provisional', conf: 'Based on language patterns only' },
+    { label: 'Sentiment arc', value: rv.sentimentLabel, conf: `avg compound: ${rv.avgCompound >= 0 ? '+' : ''}${rv.avgCompound.toFixed(2)}` },
+    { label: 'Session volatility', value: rv.volatility < 0.15 ? 'Stable' : rv.volatility < 0.3 ? 'Moderate' : 'High', conf: `σ = ${rv.volatility.toFixed(3)}` },
+    { label: 'Deflection events', value: `${rv.deflections} detected`, conf: rv.deflections > 2 ? 'Pattern present' : rv.deflections > 0 ? 'Isolated' : 'None detected' }
+  ];
+  document.getElementById('reveal-grid').innerHTML = gridData.map(c => `<div class="reveal-card"><div class="rc-label">${c.label}</div><div class="rc-value">${c.value}</div>${c.conf ? `<div class="rc-conf">${c.conf}</div>` : ''}</div>`).join('');
+  document.getElementById('reveal-narrative').innerHTML = rv.narrative;
+  const techRows = FRAMEWORKS.map(fw => {
+    const topDim = fw.dims.map(d => ({ d, v: profile.accumulators[d.k].mean, c: profile.accumulators[d.k].confidence, words: profile.accumulators[d.k].words || [] })).sort((a,b)=>b.v*b.c - a.v*a.c)[0];
+    return `<div class="tech-row"><span class="tech-key">${fw.label}</span><span class="tech-evidence">${topDim.d.label} — ${Math.round(topDim.v*100)}% · evidence: ${topDim.words.slice(0,5).join(', ') || 'structural signals only'}</span></div>`;
+  }).join('');
+  document.getElementById('reveal-tech').innerHTML = `<div class="tech-title">Framework evidence log</div>${techRows}<div class="tech-row"><span class="tech-key">Session stats</span><span class="tech-evidence">${rv.turns} turns · ${rv.words} words · ${rv.deflections} deflections · volatility σ=${rv.volatility.toFixed(3)}</span></div><div class="tech-row"><span class="tech-key">Console audit</span><span class="tech-evidence">Open browser console → full turn-by-turn accumulators, evidence deltas, and feature vectors</span></div>`;
+  document.getElementById('reveal').classList.add('visible');
+}
+
+function restartSession() {
+  document.getElementById('reveal').classList.remove('visible');
+  document.getElementById('chat-messages').innerHTML = '';
+  profile = initProfile();
+  sessionActive = true;
+  updateCharts(profile);
+  renderScorePanel(profile);
+  updateStatus(profile);
+  document.getElementById('narrative-section').classList.remove('visible');
+  document.getElementById('phase-label').textContent = 'Phase I — Evidence-Gathering';
+  const opener = OPENERS[Math.floor(Math.random() * OPENERS.length)];
+  profile.questionHistory.push({ t: opener.t, fw: null });
+  setTimeout(() => {
+    addMsg('ai', opener.t);
+    document.getElementById('user-input').focus();
+  }, 200);
+}
+
+/* ─── Input listeners ──────────────────────────────────── */
+document.getElementById('user-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    send();
+  }
+});
+document.getElementById('user-input').addEventListener('input', function () {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+</script>
+
+
+<script>
+/* ============================================================
+   INTEGRATED SYSTEM: STABILITY + API + STATE MANAGEMENT
+   All systems work together seamlessly
+============================================================ */
+
+// ========== GLOBAL STATE MACHINE ==========
+window.chatState = {
+    isProcessing: false,
+    lastSendTime: 0,
+    sendQueue: [],
+    errorCount: 0,
+    recoveryAttempts: 0,
+    heartbeatInterval: null,
+    lastActivityTime: Date.now(),
+    totalMessagesSent: 0,
+    totalErrors: 0
+};
+
+// Configuration
+const CHAT_CONFIG = {
+    MAX_PROCESSING_TIME: 10000,      // 10 seconds timeout
+    MIN_SEND_INTERVAL: 500,           // 500ms between sends
+    MAX_QUEUE_SIZE: 10,               // Max queued messages
+    ERROR_THRESHOLD: 5,               // Reset after 5 errors
+    HEARTBEAT_INTERVAL: 3000,         // Check every 3 seconds
+    RECOVERY_DELAY: 2000,             // Wait 2 seconds before recovery
+    DEBOUNCE_DELAY: 300               // 300ms debounce for input
+};
+
+// ========== TIMEOUT PROTECTION ==========
+function withTimeout(promise, timeoutMs, errorMessage) {
+    let timeoutId;
+    const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+            reject(new Error(errorMessage || `Operation timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+    });
+    return Promise.race([promise, timeoutPromise]).finally(() => {
+        clearTimeout(timeoutId);
+    });
+}
+
+// ========== QUEUE SYSTEM ==========
+async function processQueue() {
+    if (window.chatState.sendQueue.length > 0 && !window.chatState.isProcessing) {
+        const next = window.chatState.sendQueue.shift();
+        console.log(`Processing queued message (${window.chatState.sendQueue.length} remaining)`);
+        updateQueueIndicator();
+        await window.safeSend(next.text, next.retryCount);
+    }
+}
+
+function updateQueueIndicator() {
+    const indicator = document.getElementById('queue-indicator');
+    if (indicator) {
+        if (window.chatState.sendQueue.length > 0) {
+            indicator.textContent = `📨 ${window.chatState.sendQueue.length}`;
+            indicator.style.display = 'inline-block';
+        } else {
+            indicator.style.display = 'none';
+        }
+    }
+}
+
+// ========== SAFE SEND WITH QUEUE ==========
+window.safeSend = async function(text, retryCount = 0) {
+    window.chatState.lastActivityTime = Date.now();
+    
+    // Check if already processing
+    if (window.chatState.isProcessing) {
+        if (window.chatState.sendQueue.length < CHAT_CONFIG.MAX_QUEUE_SIZE) {
+            window.chatState.sendQueue.push({ text, retryCount, timestamp: Date.now() });
+            updateQueueIndicator();
+            if (window.addMsg) window.addMsg('sys', `⏳ Message queued (${window.chatState.sendQueue.length} pending)`);
+            return { queued: true, position: window.chatState.sendQueue.length };
+        } else {
+            if (window.addMsg) window.addMsg('sys', '⚠️ Message queue full. Please wait.');
+            return { error: 'Queue full' };
+        }
+    }
+    
+    // Rate limiting
+    const now = Date.now();
+    const timeSinceLastSend = now - window.chatState.lastSendTime;
+    if (timeSinceLastSend < CHAT_CONFIG.MIN_SEND_INTERVAL && window.chatState.lastSendTime > 0) {
+        await new Promise(r => setTimeout(r, CHAT_CONFIG.MIN_SEND_INTERVAL - timeSinceLastSend));
+    }
+    
+    window.chatState.isProcessing = true;
+    window.chatState.lastSendTime = Date.now();
+    updateQueueIndicator();
+    
+    try {
+        // Execute original send logic with timeout
+        const result = await withTimeout(
+            (async () => {
+                if (window.originalSend) {
+                    return await window.originalSend(text);
+                }
+                return { success: true };
+            })(),
+            CHAT_CONFIG.MAX_PROCESSING_TIME,
+            'Message processing timeout'
+        );
+        
+        window.chatState.errorCount = 0;
+        window.chatState.totalMessagesSent++;
+        window.chatState.recoveryAttempts = 0;
+        
+        setTimeout(() => processQueue(), 100);
+        return result;
+        
+    } catch (error) {
+        console.error('Safe send error:', error);
+        window.chatState.errorCount++;
+        window.chatState.totalErrors++;
+        
+        if (window.addMsg) {
+            window.addMsg('sys', `⚠️ Error: ${error.message || 'Processing failed'}`);
+        }
+        
+        if (window.chatState.errorCount >= CHAT_CONFIG.ERROR_THRESHOLD) {
+            await attemptRecovery();
+        }
+        
+        if (retryCount < 2) {
+            setTimeout(() => window.safeSend(text, retryCount + 1), CHAT_CONFIG.RECOVERY_DELAY);
+        }
+        
+        return { error: error.message };
+        
+    } finally {
+        window.chatState.isProcessing = false;
+        updateQueueIndicator();
+    }
+};
+
+// ========== AUTO-RECOVERY ==========
+async function attemptRecovery() {
+    if (window.chatState.recoveryAttempts >= 3) {
+        if (window.addMsg) window.addMsg('sys', '⚠️ Please refresh the page to continue.');
+        return;
+    }
+    
+    window.chatState.recoveryAttempts++;
+    console.log(`Recovery attempt ${window.chatState.recoveryAttempts}`);
+    
+    window.chatState.isProcessing = false;
+    
+    const thinkingMsg = document.getElementById('thinking-msg');
+    if (thinkingMsg) thinkingMsg.remove();
+    
+    const sendBtn = document.getElementById('send-btn');
+    if (sendBtn) sendBtn.disabled = false;
+    
+    const input = document.getElementById('user-input');
+    if (input) input.focus();
+    
+    if (window.addMsg) window.addMsg('sys', '🔄 System recovered. You can continue.');
+    
+    setTimeout(() => processQueue(), 500);
+}
+
+// ========== HEARTBEAT MONITOR ==========
+function startHeartbeat() {
+    if (window.chatState.heartbeatInterval) clearInterval(window.chatState.heartbeatInterval);
+    
+    window.chatState.heartbeatInterval = setInterval(() => {
+        const now = Date.now();
+        const timeSinceActivity = now - window.chatState.lastActivityTime;
+        
+        if (window.chatState.isProcessing && timeSinceActivity > 30000) {
+            console.warn('Frozen state detected - recovering');
+            attemptRecovery();
+        }
+        
+        const sendBtn = document.getElementById('send-btn');
+        const thinkingMsg = document.getElementById('thinking-msg');
+        
+        if (sendBtn && sendBtn.disabled && !window.chatState.isProcessing && !thinkingMsg) {
+            sendBtn.disabled = false;
+        }
+        
+        if (thinkingMsg && Date.now() - (thinkingMsg.timestamp || 0) > 30000) {
+            thinkingMsg.remove();
+            if (sendBtn) sendBtn.disabled = false;
+        }
+        
+    }, CHAT_CONFIG.HEARTBEAT_INTERVAL);
+}
+
+// ========== LOOP DETECTION ==========
+function monitorMessageLoop() {
+    const messages = document.querySelectorAll('#chat-messages .msg');
+    if (messages.length < 10) return;
+    
+    const lastMessages = Array.from(messages).slice(-5).map(m => m.textContent);
+    const uniqueCount = new Set(lastMessages).size;
+    
+    if (uniqueCount === 1 && lastMessages.length >= 3) {
+        console.warn('Message loop detected');
+        if (window.addMsg) window.addMsg('sys', '🔄 Adjusting conversation flow...');
+        if (window.profile && window.selectNextQuestion) {
+            const newQuestion = window.selectNextQuestion(window.profile, {});
+            setTimeout(() => {
+                if (window.addMsg) window.addMsg('ai', newQuestion.text);
+            }, 1000);
+        }
+    }
+}
+
+// ========== EXTERNAL API INTEGRATION ==========
+window.NLP_CONFIG = {
+    enabled: false,
+    provider: "openai",
+    apiKey: "",
+    endpoint: "https://api.openai.com/v1/chat/completions",
+    model: "gpt-3.5-turbo"
+};
+
+function loadAPISettings() {
+    const saved = localStorage.getItem("nlp_config");
+    if (saved) {
+        try {
+            const cfg = JSON.parse(saved);
+            window.NLP_CONFIG = { ...window.NLP_CONFIG, ...cfg };
+        } catch(e) {}
+    }
+    const inputs = ['api-enabled', 'api-provider', 'api-key', 'api-endpoint', 'api-model'];
+    inputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            if (id === 'api-enabled') el.checked = window.NLP_CONFIG.enabled;
+            else if (id === 'api-provider') el.value = window.NLP_CONFIG.provider;
+            else if (id === 'api-key') el.value = window.NLP_CONFIG.apiKey;
+            else if (id === 'api-endpoint') el.value = window.NLP_CONFIG.endpoint;
+            else if (id === 'api-model') el.value = window.NLP_CONFIG.model;
+        }
+    });
+    updateAPIStatus();
+}
+
+function saveAPISettings() {
+    window.NLP_CONFIG.enabled = document.getElementById('api-enabled')?.checked || false;
+    window.NLP_CONFIG.provider = document.getElementById('api-provider')?.value || "openai";
+    window.NLP_CONFIG.apiKey = document.getElementById('api-key')?.value || "";
+    window.NLP_CONFIG.endpoint = document.getElementById('api-endpoint')?.value || "";
+    window.NLP_CONFIG.model = document.getElementById('api-model')?.value || "";
+    localStorage.setItem("nlp_config", JSON.stringify(window.NLP_CONFIG));
+    updateAPIStatus();
+    if (window.addMsg) window.addMsg('sys', `💾 API settings saved. ${window.NLP_CONFIG.enabled ? 'External NLP enabled.' : 'External NLP disabled.'}`);
+}
+
+function updateAPIStatus() {
+    const statusDiv = document.getElementById('api-status');
+    if (!statusDiv) return;
+    if (window.NLP_CONFIG.enabled && window.NLP_CONFIG.apiKey) {
+        statusDiv.innerHTML = '✅ External NLP active';
+        statusDiv.style.color = 'var(--green-hi)';
+    } else if (window.NLP_CONFIG.enabled) {
+        statusDiv.innerHTML = '⚠️ Missing API key';
+        statusDiv.style.color = 'var(--amber)';
+    } else {
+        statusDiv.innerHTML = '🔘 Using built-in engine';
+        statusDiv.style.color = 'var(--text-dim)';
+    }
+}
+
+async function testAPIConnection() {
+    if (!window.NLP_CONFIG.apiKey) {
+        if (window.addMsg) window.addMsg('sys', 'Please enter API key first');
+        return;
+    }
+    if (window.addMsg) window.addMsg('sys', 'Testing connection...');
+    try {
+        const headers = { "Content-Type": "application/json" };
+        if (window.NLP_CONFIG.provider === "openai") {
+            headers["Authorization"] = `Bearer ${window.NLP_CONFIG.apiKey}`;
+        }
+        
+        const body = window.NLP_CONFIG.provider === "openai" ? {
+            model: window.NLP_CONFIG.model || "gpt-3.5-turbo",
+            messages: [{ role: "user", content: "OK" }],
+            max_tokens: 5
+        } : { text: "test" };
+        
+        const response = await fetch(window.NLP_CONFIG.endpoint, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(body)
+        });
+        
+        if (response.ok) {
+            if (window.addMsg) window.addMsg('sys', '✅ API connection successful!');
+        } else {
+            if (window.addMsg) window.addMsg('sys', `❌ API error: ${response.status}`);
+        }
+    } catch(err) {
+        if (window.addMsg) window.addMsg('sys', `❌ Connection failed: ${err.message}`);
+    }
+}
+
+window.callExternalAPI = async function(text) {
+    if (!window.NLP_CONFIG.enabled || !window.NLP_CONFIG.apiKey) return null;
+    try {
+        const headers = { "Content-Type": "application/json" };
+        if (window.NLP_CONFIG.provider === "openai") {
+            headers["Authorization"] = `Bearer ${window.NLP_CONFIG.apiKey}`;
+        }
+        
+        const body = window.NLP_CONFIG.provider === "openai" ? {
+            model: window.NLP_CONFIG.model || "gpt-3.5-turbo",
+            messages: [{ role: "user", content: `Analyze sentiment (positive/negative/neutral) and key emotions: "${text.substring(0, 300)}"` }],
+            max_tokens: 100
+        } : { text: text };
+        
+        const response = await fetch(window.NLP_CONFIG.endpoint, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(body)
+        });
+        
+        if (!response.ok) return null;
+        return await response.json();
+    } catch(err) {
+        console.error("API error:", err);
+        return null;
+    }
+};
+
+// ========== INTEGRATED SEND FUNCTION ==========
+// Store original if exists, then override
+if (window.send && typeof window.send === 'function') {
+    window.originalSend = window.send;
+}
+
+window.send = async function() {
+    const input = document.getElementById('user-input');
+    const text = input ? input.value.trim() : '';
+    if (!text) return;
+    
+    if (input) {
+        input.value = '';
+        input.style.height = 'auto';
+    }
+    
+    await window.safeSend(text);
+};
+
+// ========== UI ENHANCEMENTS ==========
+function addQueueIndicator() {
+    const turnCounter = document.getElementById('turn-counter');
+    if (turnCounter && !document.getElementById('queue-indicator')) {
+        const indicator = document.createElement('span');
+        indicator.id = 'queue-indicator';
+        indicator.style.cssText = 'margin-left: 10px; font-size: 9px; color: var(--amber); display: none;';
+        indicator.textContent = '📨 0';
+        turnCounter.appendChild(indicator);
+    }
+}
+
+function addRecoveryButton() {
+    const sendBtn = document.getElementById('send-btn');
+    if (sendBtn && !document.getElementById('recovery-btn')) {
+        const recoveryBtn = document.createElement('button');
+        recoveryBtn.id = 'recovery-btn';
+        recoveryBtn.textContent = '⟳';
+        recoveryBtn.title = 'Recover if frozen';
+        recoveryBtn.style.cssText = 'background: var(--bg2); border: 1px solid var(--border-mid); color: var(--amber); font-size: 16px; padding: 4px 10px; margin-left: 8px; cursor: pointer; border-radius: 4px;';
+        recoveryBtn.onclick = () => {
+            attemptRecovery();
+            if (window.addMsg) window.addMsg('sys', '🔄 Manual recovery triggered');
+        };
+        sendBtn.parentNode.insertBefore(recoveryBtn, sendBtn.nextSibling);
+    }
+}
+
+// ========== DEBOUNCED INPUT ==========
+let inputTimeout;
+function setupDebouncedInput() {
+    const input = document.getElementById('user-input');
+    if (!input) return;
+    
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (inputTimeout) clearTimeout(inputTimeout);
+            inputTimeout = setTimeout(() => {
+                if (window.send) window.send();
+                inputTimeout = null;
+            }, CHAT_CONFIG.DEBOUNCE_DELAY);
+        }
+    });
+}
+
+// ========== FIX THINKING INDICATOR ==========
+const originalShowThinking = window.showThinking;
+if (originalShowThinking) {
+    window.showThinking = function() {
+        const messages = document.getElementById('chat-messages');
+        const div = document.createElement('div');
+        div.className = 'msg ai';
+        div.id = 'thinking-msg';
+        div.timestamp = Date.now();
+        div.innerHTML = `<div class="msg-role">Linguistic Insight Profiler</div><div class="msg-body"><div class="thinking-dots"><span></span><span></span><span></span></div></div>`;
+        messages.appendChild(div);
+        messages.scrollTop = messages.scrollHeight;
+    };
+}
+
+// ========== INITIALIZATION ==========
+function initAllSystems() {
+    addQueueIndicator();
+    addRecoveryButton();
+    setupDebouncedInput();
+    startHeartbeat();
+    loadAPISettings();
+    
+    // Monitor loops every 5 seconds
+    setInterval(() => monitorMessageLoop(), 5000);
+    
+    // Connect API buttons
+    const saveBtn = document.getElementById('save-api-settings');
+    const testBtn = document.getElementById('test-api');
+    if (saveBtn) saveBtn.addEventListener('click', saveAPISettings);
+    if (testBtn) testBtn.addEventListener('click', testAPIConnection);
+    
+    console.log('✅ All systems initialized: Queue, Heartbeat, API, Recovery');
+}
+
+// Start when ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAllSystems);
+} else {
+    initAllSystems();
+}
+
+// Debug tools
+window.chatDebug = {
+    state: () => ({ ...window.chatState }),
+    queue: () => [...window.chatState.sendQueue],
+    reset: () => { window.chatState = { ...window.chatState, isProcessing: false, sendQueue: [] }; },
+    config: () => ({ ...CHAT_CONFIG }),
+    api: () => ({ ...window.NLP_CONFIG })
+};
+
+</script>
+
+</body>
+</html>
