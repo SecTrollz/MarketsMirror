@@ -1188,12 +1188,16 @@ body.mobile-optimized .reveal-inner {
           <div id="narrative-body"></div>
         </div>
       </div>
-      <div id="scores-col" id="scores-col">
+      <div id="scores-col">
         <!-- Framework score groups rendered here by JS -->
       </div>
     </div>
     <div id="customer-insights-section">
       <div class="ci-head">Customer 35-Point Insight Map · LIWC-calibrated</div>
+      <div class="reveal-actions" style="margin: 0 0 10px 0;">
+        <button class="reveal-btn secondary" type="button" onclick="copyLinguaInsightJson()">Copy JSON</button>
+        <button class="reveal-btn secondary" type="button" onclick="downloadLinguaInsightJson()">Download JSON</button>
+      </div>
       <div id="customer-insights-grid"></div>
     </div>
   </div>
@@ -3443,6 +3447,28 @@ async function generateLinguaInsightReport(profile, cognitiveProfile, mmScores, 
       fallback_used: !onnxUsed
     }
   };
+}
+
+function copyLinguaInsightJson() {
+  const payload = window.latestLinguaInsightReport || profile?.latestLinguaInsightReport;
+  if (!payload) return;
+  const text = JSON.stringify(payload, null, 2);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).catch(() => {});
+  }
+}
+
+function downloadLinguaInsightJson() {
+  const payload = window.latestLinguaInsightReport || profile?.latestLinguaInsightReport;
+  if (!payload) return;
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `linguainsight-report-turn-${profile?.turn || 0}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
 }
 
 /* ─── STATUS BAR UPDATE ─────────────────────────────────── */
@@ -5726,17 +5752,25 @@ function selectNextQuestionWarm(profile) {
   };
 
   renderScorePanel = function(profile){
-    const panel = document.getElementById('score-panel');
+    const panel = document.getElementById('scores-col');
     if (!panel) return;
     const groups = FRAMEWORKS.map(fw => {
       const rows = fw.dims.map(d => {
         const a = profile.accumulators[d.k];
         const pct = Math.round(a.mean * 100);
         const conf = Math.round(a.confidence * 100);
-        const tag = a.source === 'observed' ? 'OBS' : a.source === 'mixed' ? 'MIX' : 'INF';
-        return `<div class="score-row"><div class="score-label">${d.label}</div><div class="score-bar-wrap"><div class="score-bar" style="width:${pct}%"></div></div><div class="score-meta">${pct}% · ${conf}% · ${tag}</div></div>`;
+        const evidence = (a.words || []).slice(0, 5);
+        return `<div class="fw-dim">
+          <div class="fw-dim-row">
+            <span class="fw-dim-name">${d.label}</span>
+            <div class="fw-bar-wrap"><div class="fw-bar" style="width:${pct}%"></div></div>
+            <span class="fw-score">${pct}</span>
+            <span class="fw-conf">${conf}%</span>
+          </div>
+          <div class="fw-evidence">${evidence.length ? `Evidence: ${evidence.map(w => `<em>${w}</em>`).join(', ')}` : 'Hover for evidence — no signals yet.'}</div>
+        </div>`;
       }).join('');
-      return `<div class="fw-block"><div class="fw-title">${fw.label}</div>${rows}</div>`;
+      return `<div class="fw-group"><div class="fw-group-header">${fw.label}</div>${rows}</div>`;
     }).join('');
     panel.innerHTML = groups;
   };
