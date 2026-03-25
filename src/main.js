@@ -1,1315 +1,10 @@
-
-/* ═══════════════════════════════════════════════════════════
-   MARKETSMIRROR v3 — PSYCHOLINGUISTIC PROFILING ENGINE
-   Nine frameworks · 28 axes · Full Bayesian · VADER sentiment
-   HUMINT elicitation: Mirror · Bridge · Silence-Break · Standard
-═══════════════════════════════════════════════════════════ */
-
-/* ─── FRAMEWORK SCHEMA ──────────────────────────────────── */
-
-const FRAMEWORKS = [
-  { key: 'trauma',     label: 'Trauma Patterns',
-    dims: [
-      { k:'trauma_abandon', label:'Abandonment / Rejection',   short:'Abandon' },
-      { k:'trauma_shame',   label:'Shame / Inadequacy',        short:'Shame' },
-      { k:'trauma_control', label:'Hypercontrol / Vigilance',  short:'Control' }
-    ]
-  },
-  { key: 'attachment', label: 'Attachment Style',
-    dims: [
-      { k:'att_anxious',   label:'Anxious / Preoccupied',      short:'Anxious' },
-      { k:'att_avoidant',  label:'Dismissive / Avoidant',      short:'Avoidant' },
-      { k:'att_fearful',   label:'Fearful / Disorganized',     short:'Fearful' }
-    ]
-  },
-  { key: 'mbti',       label: 'MBTI Tendencies',
-    dims: [
-      { k:'mbti_i',  label:'Introversion',                     short:'Intro' },
-      { k:'mbti_n',  label:'Intuition / Abstract',             short:'iNtuit' },
-      { k:'mbti_f',  label:'Feeling / Affect-Led',             short:'Feeling' },
-      { k:'mbti_p',  label:'Perceiving / Open-Ended',          short:'Percvg' }
-    ]
-  },
-  { key: 'enneagram',  label: 'Enneagram Centers',
-    dims: [
-      { k:'enn_heart', label:'Heart Center (Shame/Image)',     short:'Heart' },
-      { k:'enn_head',  label:'Head Center (Fear/Planning)',    short:'Head' },
-      { k:'enn_body',  label:'Body Center (Anger/Instinct)',   short:'Body' }
-    ]
-  },
-  { key: 'big5',       label: 'Big Five (OCEAN)',
-    dims: [
-      { k:'b5_open',  label:'Openness to Experience',          short:'Open' },
-      { k:'b5_cons',  label:'Conscientiousness',               short:'Consci' },
-      { k:'b5_extra', label:'Extraversion',                    short:'Extra' },
-      { k:'b5_agree', label:'Agreeableness',                   short:'Agree' },
-      { k:'b5_neuro', label:'Neuroticism',                     short:'Neuro' }
-    ]
-  },
-  { key: 'hexaco',     label: 'HEXACO',
-    dims: [
-      { k:'hex_hh',   label:'Honesty-Humility',                short:'H-H' },
-      { k:'hex_em',   label:'Emotionality',                    short:'Emot' }
-    ]
-  },
-  { key: 'dark',       label: 'Dark Triad',
-    dims: [
-      { k:'dark_narc', label:'Narcissism',                     short:'Narc' },
-      { k:'dark_mach', label:'Machiavellianism',               short:'Mach' },
-      { k:'dark_psyc', label:'Psychopathy / Callousness',      short:'Psyc' }
-    ]
-  },
-  { key: 'light',      label: 'Light Triad',
-    dims: [
-      { k:'light_kant', label:'Kantianism (Ends, not means)',  short:'Kant' },
-      { k:'light_hum',  label:'Humanism',                      short:'Hum' },
-      { k:'light_faith',label:'Faith in Humanity',             short:'Faith' }
-    ]
-  },
-  { key: 'schwartz',   label: 'Schwartz Values',
-    dims: [
-      { k:'sch_st', label:'Self-Transcendence',                short:'Trans' },
-      { k:'sch_se', label:'Self-Enhancement',                  short:'Enhance' }
-    ]
-  }
-];
-
-// Flat array of all 28 dimension keys in order
-const ALL_DIMS = FRAMEWORKS.flatMap(f => f.dims);
-const DIM_KEYS = ALL_DIMS.map(d => d.k);
-const SCORING_CONFIG_35 = {
-  dimensionPoints: ALL_DIMS.map(d => ({ type: 'dimension', key: d.k, label: d.label })),
-  sessionPoints: [
-    { type: 'session', key: 'liwc_analytic', label: 'LIWC Analytic' },
-    { type: 'session', key: 'liwc_clout', label: 'LIWC Clout' },
-    { type: 'session', key: 'liwc_authenticity', label: 'LIWC Authenticity' },
-    { type: 'session', key: 'liwc_tone', label: 'LIWC Tone' },
-    { type: 'session', key: 'readiness', label: 'Readiness Index' },
-    { type: 'session', key: 'sentiment', label: 'Sentiment Balance' },
-    { type: 'session', key: 'volatility', label: 'Stability Index' }
-  ]
-};
-
-/* ─── LEXICONS ──────────────────────────────────────────────────────────────
-   Design rules applied to every axis:
-   · 20–24 pos entries, 9–12 neg entries  (balanced alpha/beta pressure)
-   · Entries are DISTINCT across axes — no term appears in two pos lexicons
-   · pos = language that genuinely predicts this construct (not just "sounds related")
-   · neg = genuine counter-indicators that should move the beta accumulator
-   · Empirically grounded in LIWC, Pennebaker, Nolen-Hoeksema, Bartholomew,
-     McAdams, Paulhus, Lee, Peterson, Schwartz source literature
-────────────────────────────────────────────────────────────────────────── */
-
-const LEX = {
-
-  // ── TRAUMA: ABANDONMENT / RUPTURE ──────────────────────────────────────
-  // Separation-distress language. Fear of relational loss, waiting-for-return,
-  // pre-emptive self-abandonment. Distinct from att_anxious (which is about
-  // current relationship hypervigilance) — this axis captures the wound itself.
-  trauma_abandon: {
-    pos: [
-      'abandoned','left me','they left','everyone leaves','nobody stayed','walked away',
-      'went quiet','never came back','disappeared','no one showed up','left behind',
-      'by myself','without me','drove them away','always leaves','they all left',
-      'the quiet after','empty without','before they leave','leave first',
-      'terrified of losing','when people leave','afraid to lose','hollow inside'
-    ],
-    neg: [
-      'they stayed','showed up','never left','came back','still here',
-      'i can count on them','reliable','they always come through',
-      'i\'m not alone','feel secure with them'
-    ]
-  },
-
-  // ── TRAUMA: SHAME / SELF-CONDEMNATION ──────────────────────────────────
-  // Internalised defectiveness. Self-as-fundamentally-flawed. Hiding, exposure
-  // terror, self-blame. Distinct from hex_hh (which is trait sincerity, not wound)
-  // and from b5_neuro (emotional reactivity, not self-concept damage).
-  trauma_shame: {
-    pos: [
-      'ashamed','humiliated','defective','something is wrong with me','i\'m the problem',
-      'my fault','always my fault','i deserve it','i had it coming','i ruin things',
-      'feel like a burden','no one can know','if they knew','can\'t forgive myself',
-      'i\'m not enough','never enough','worthless','feel dirty','hide this',
-      'what\'s wrong with me','damaged','broken inside'
-    ],
-    neg: [
-      'not my fault','i forgave myself','i accept myself','no shame in that',
-      'i did the best i could','i\'m enough','proud of myself',
-      'don\'t feel guilty about it','made peace with it'
-    ]
-  },
-
-  // ── TRAUMA: HYPERCONTROL / VIGILANCE ──────────────────────────────────
-  // Anxious self-regulation as a trauma response — not generalized anxiety (b5_neuro)
-  // but specifically the compulsion to prevent a bad outcome through watchfulness.
-  trauma_control: {
-    pos: [
-      'need to control','if i\'m not watching','need a plan','can\'t not plan',
-      'what if something goes wrong','worst case','run through scenarios',
-      'always on guard','waiting for something to go wrong','never fully relax',
-      'always scanning','micromanage','grip','hold on tight','keep it together',
-      'if i let go','not knowing is the worst','need certainty','prepared for everything',
-      'just in case','can\'t trust it will work out','hard to let go of control'
-    ],
-    neg: [
-      'let go','trust the process','comfortable not knowing','not a planner',
-      'things work themselves out','i go with the flow','don\'t need to control',
-      'fine with uncertainty','can improvise','trust others to handle it'
-    ]
-  },
-
-  // ── ATTACHMENT: ANXIOUS / PREOCCUPIED ─────────────────────────────────
-  // Hyperactivation of attachment system. Preoccupation with partner availability,
-  // reassurance-seeking, merger-desire. Distinct from trauma_abandon (the original
-  // wound) — this axis captures the relational strategy in present tense.
-  att_anxious: {
-    pos: [
-      'need reassurance','did i say something wrong','overthink after talking to them',
-      'replay conversations','waiting to hear back','walking on eggshells',
-      'afraid they\'re upset','hyperaware of their mood','what if they\'re angry',
-      'they seem distant','why haven\'t they responded','change myself for them',
-      'afraid to express needs','worried about losing them','can\'t stop thinking about them',
-      'people pleasing','afraid to upset them','jealous easily',
-      'clingy','constant reassurance','preoccupied with the relationship'
-    ],
-    neg: [
-      'comfortable with space','don\'t need constant contact','trust them to come back',
-      'not worried when they\'re quiet','secure in the relationship',
-      'don\'t need reassurance','give them space easily','not jealous'
-    ]
-  },
-
-  // ── ATTACHMENT: DISMISSIVE-AVOIDANT ───────────────────────────────────
-  // Deactivation strategy. Self-sufficiency as defence. Discomfort with
-  // emotional need or dependency. Distinct from mbti_i (cognitive preference
-  // for solitude) — this axis is specifically about relational deactivation.
-  att_avoidant: {
-    pos: [
-      'don\'t need people','rely only on myself','vulnerability feels wrong',
-      'don\'t like depending on others','pull back when it gets close',
-      'need my space','emotional distance','shut down','walls up',
-      'uncomfortable when they need too much','too much closeness','suffocating',
-      'don\'t open up easily','independence is non-negotiable','better alone',
-      'don\'t ask for help','relationships are complicated','go quiet instead',
-      'keep to myself','can\'t rely on others','keep it surface level'
-    ],
-    neg: [
-      'love closeness','comfortable being vulnerable','enjoy leaning on people',
-      'ask for help easily','like being needed','intimacy feels natural',
-      'don\'t mind depending on someone','open up quickly'
-    ]
-  },
-
-  // ── ATTACHMENT: FEARFUL / DISORGANIZED ────────────────────────────────
-  // Approach-avoidance conflict. Wants connection, fears it. Trust injury + longing.
-  // This is the push-pull pattern — distinct from avoidant (which doesn't want
-  // closeness) and anxious (which pursues it without ambivalence).
-  att_fearful: {
-    pos: [
-      'want closeness but scared','push them away before they can leave',
-      'self-sabotage','when things get good i ruin it','trust issues',
-      'been hurt before','if i let them in','can\'t fully commit',
-      'terrifying to be loved','want connection but afraid of it',
-      'open and then close off','don\'t deserve love','afraid they\'ll see the real me',
-      'scared to trust again','the closer they get the more i panic',
-      'runs from closeness','love and fear','can\'t stay','want to be close but'
-    ],
-    neg: [
-      'fully trust them','open up completely','not scared of closeness',
-      'let people in easily','feel safe being vulnerable',
-      'committed without fear','don\'t sabotage things'
-    ]
-  },
-
-  // ── MBTI: INTROVERSION ────────────────────────────────────────────────
-  // Energy economy — internal orientation. Observer-language. Need for solitude
-  // to restore. Distinct from att_avoidant (relational defence) — this is
-  // cognitive/energetic style, not attachment strategy.
-  mbti_i: {
-    pos: [
-      'recharge alone','need quiet to think','social energy drains me',
-      'overstimulated by groups','need time alone after socializing',
-      'prefer one on one','prefer to observe first','think before speaking',
-      'internal processing','private person','exhausted after social events',
-      'need to decompress','prefer written over verbal','notice from the sidelines',
-      'think it through alone first','small groups or none',
-      'don\'t need to be the center','lost in my own head'
-    ],
-    neg: [
-      'energized by being around people','love big groups','social butterfly',
-      'love parties','extrovert','the more people the better',
-      'bored when alone','love being center of attention'
-    ]
-  },
-
-  // ── MBTI: INTUITION / ABSTRACT PROCESSING ────────────────────────────
-  // Pattern-seeking, meaning-over-fact, symbolic/conceptual framing.
-  // Distinct from b5_open (which is broader curiosity + aesthetic) — this is
-  // specifically about HOW information is processed (abstract vs concrete).
-  mbti_n: {
-    pos: [
-      'there\'s a pattern here','what it all means','beneath the surface',
-      'underlying reason','connections between things','big picture',
-      'what it symbolizes','deeper meaning','reading into it',
-      'feels like there\'s more','could mean something','archetypal',
-      'conceptual','sense that something is off','theoretical','abstract',
-      'narrative arc','what if this represents','intuition tells me',
-      'something about it i can\'t name','might be a metaphor for'
-    ],
-    neg: [
-      'just the facts','step by step','literal','what you see is what you get',
-      'not reading into it','practical','concrete','no hidden meaning',
-      'don\'t overthink the details'
-    ]
-  },
-
-  // ── MBTI: FEELING / AFFECT-LED DECISION MAKING ───────────────────────
-  // Values-based and relational reasoning. Decisions weighted by emotional
-  // and interpersonal impact. Distinct from b5_agree (prosocial behavior)
-  // and hex_em (sentimentality) — this axis is about the decision-making axis.
-  mbti_f: {
-    pos: [
-      'how it feels matters more','can\'t make myself feel okay about it',
-      'emotionally it doesn\'t sit right','affects the people involved',
-      'have to weigh how it impacts them','feelings guide my decisions',
-      'can\'t separate logic from how i feel','matters to me personally',
-      'it felt wrong even if it made sense','values over logic','heart over head',
-      'hard to be objective when i care','relationship matters in the decision',
-      'consider the emotional impact first','my gut says no even if the math says yes',
-      'can\'t do something that doesn\'t feel right','harmony matters'
-    ],
-    neg: [
-      'purely logical','objective decision','emotions cloud judgment',
-      'leave feelings out of it','data-driven','rational approach',
-      'detach from the emotional side','feelings aren\'t relevant here','by the numbers'
-    ]
-  },
-
-  // ── MBTI: PERCEIVING / OPEN-ENDED ORIENTATION ────────────────────────
-  // Preference for keeping options open, adaptive over structured living.
-  // Distinct from trauma_control (which is anxiety-driven rigidity) — this
-  // is a stable stylistic preference for flexibility, not a fear response.
-  mbti_p: {
-    pos: [
-      'keep options open','not ready to decide','maybe','could go either way',
-      'don\'t like rigid plans','adapt as i go','see how i feel','leave it open',
-      'might change my mind','not locked in','last minute works for me',
-      'figure it out when i get there','prefer flexibility','go with the flow',
-      'don\'t commit to plans far ahead','spontaneous','hate being pinned down',
-      'open to whatever comes','don\'t need a schedule'
-    ],
-    neg: [
-      'planned it out','schedule is important','committed to the plan',
-      'need structure','like having things decided','follow through on decisions',
-      'organized approach','routine keeps me grounded','prefer certainty in plans'
-    ]
-  },
-
-  // ── ENNEAGRAM: HEART CENTER (Types 2, 3, 4) ──────────────────────────
-  // Identity through image, emotion, and others' perception. Recognition-hunger.
-  // Distinct from att_anxious (fear-of-loss) — Heart Center is about IDENTITY
-  // construction through relational mirroring, not attachment anxiety per se.
-  enn_heart: {
-    pos: [
-      'how i come across','what they think of me','need to feel recognized',
-      'want to be wanted','image matters','be seen a certain way',
-      'need to feel special','do i matter to them','are they happy with me',
-      'i give so much','give too much of myself','who am i without this',
-      'identity feels tied to how i\'m perceived','need to be needed',
-      'feel invisible when unacknowledged','the version they see of me',
-      'want to be loved for who i am','emotional attunement','feel others\' emotions',
-      'identity shifts around different people','meaning through connection'
-    ],
-    neg: [
-      'don\'t care what they think','image doesn\'t define me','not seeking recognition',
-      'secure in who i am regardless','don\'t need to be needed',
-      'identity isn\'t tied to others','not emotionally dependent on validation'
-    ]
-  },
-
-  // ── ENNEAGRAM: HEAD CENTER (Types 5, 6, 7) ───────────────────────────
-  // Security-seeking through knowledge, planning, or stimulation. Fear-management
-  // via information-gathering or escape into future possibility. Distinct from
-  // trauma_control (which is a trauma response) — Head Center is a cognitive style.
-  enn_head: {
-    pos: [
-      'need information before deciding','gather evidence first','research everything',
-      'contingency plan','what if things go wrong','worst case scenario',
-      'can\'t act without knowing enough','security comes from being prepared',
-      'fear of making the wrong move','over-analyze','second-guess myself',
-      'doubt before committing','need to be sure','anxious about the future',
-      'not enough information yet','more time to think','what could go wrong',
-      'need to understand the system first','overthought it before acting'
-    ],
-    neg: [
-      'act on gut instinct','don\'t need to research','comfortable deciding quickly',
-      'trust the process','not a planner','confident without all the info',
-      'act first think later','not anxious about what i don\'t know'
-    ]
-  },
-
-  // ── ENNEAGRAM: BODY CENTER (Types 8, 9, 1) ───────────────────────────
-  // Gut-instinct, somatic decision-making, anger/injustice responses, and
-  // boundary-marking or conflict-management. Types 8 (confrontation), 9 (harmony),
-  // 1 (principled anger). Distinct from enn_heart (identity/image).
-  enn_body: {
-    pos: [
-      'felt it in my body','my gut says','visceral reaction','body knew before i did',
-      'instinct','injustice bothers me deeply','that\'s just wrong','unfair',
-      'it shouldn\'t be that way','stand my ground','won\'t back down',
-      'stubborn about what\'s right','right and wrong matters',
-      'anger at how things are','boundaries are non-negotiable',
-      'confront it directly','principles over comfort',
-      'this is not okay','physically tense around conflict',
-      'avoid conflict to keep the peace','anger turned inward'
-    ],
-    neg: [
-      'indifferent','don\'t feel strongly about it','no gut reaction',
-      'rules don\'t matter much to me','fine either way','not principled about it',
-      'no strong physical reaction','conflict doesn\'t bother me'
-    ]
-  },
-
-  // ── BIG FIVE: OPENNESS TO EXPERIENCE ─────────────────────────────────
-  // Intellectual curiosity, aesthetic sensitivity, novelty-seeking, complexity
-  // appreciation. Distinct from mbti_n (abstract processing style) — Openness
-  // is broader: includes art, travel, creative expression, not just cognition.
-  b5_open: {
-    pos: [
-      'love learning','curious about everything','drawn to complexity','creative',
-      'love art','love music','fascinated by ideas','different perspectives interest me',
-      'unconventional','unusual approaches','aesthetic sense','beauty in unexpected places',
-      'intellectually hungry','love philosophy','imaginative','novel experiences',
-      'eclectic interests','culture','literature moves me','wonder',
-      'challenging my assumptions','experimenting','thought-provoking'
-    ],
-    neg: [
-      'prefer the familiar','not creative','conventional','tradition matters',
-      'practical over theoretical','same thing works fine','don\'t need novelty',
-      'art doesn\'t do much for me','step-by-step over abstract'
-    ]
-  },
-
-  // ── BIG FIVE: CONSCIENTIOUSNESS ───────────────────────────────────────
-  // Self-regulation, goal-directedness, reliability. Distinct from trauma_control
-  // (anxiety-driven watchfulness) and mbti_p (stylistic openness) — this is
-  // deliberate, internally-motivated self-discipline.
-  b5_cons: {
-    pos: [
-      'organized','follow through','disciplined','work hard to finish things',
-      'reliable','on time','goal-oriented','systematic approach','methodical',
-      'detail-oriented','prepared','structured','meet deadlines','commitments matter',
-      'don\'t quit','finish what i start','responsible','thorough',
-      'productive','plan ahead','careful','deliberate'
-    ],
-    neg: [
-      'procrastinate','disorganized','forget things','unreliable',
-      'no follow through','scattered','messy','can\'t finish things',
-      'don\'t plan ahead','miss deadlines regularly'
-    ]
-  },
-
-  // ── BIG FIVE: EXTRAVERSION ────────────────────────────────────────────
-  // Social stimulation-seeking, positive affect expressiveness, assertiveness.
-  // Distinct from enn_heart (recognition-seeking identity) — Extraversion is
-  // energized-by-others, not identity-through-others.
-  b5_extra: {
-    pos: [
-      'energized by being around people','love talking','outgoing','assertive',
-      'enthusiastic','expressive','love meeting people','thrive in groups',
-      'animated','vivid','love conversation','like being the one who speaks up',
-      'connections come easily','social confidence','love events','engaging',
-      'talkative','draw energy from others','don\'t like being alone long'
-    ],
-    neg: [
-      'need to recharge alone','prefer quiet','reserved','private person',
-      'not assertive','find small talk draining','don\'t like attention',
-      'prefer one-on-one at most','low-key social life'
-    ]
-  },
-
-  // ── BIG FIVE: AGREEABLENESS ───────────────────────────────────────────
-  // Prosocial orientation, trust-default, accommodation. Distinct from mbti_f
-  // (decision-making style) and light_hum (belief in human goodness) — this
-  // is behavioral: how one acts toward others in daily interactions.
-  b5_agree: {
-    pos: [
-      'cooperative','easy to get along with','give people the benefit of the doubt',
-      'conflict-averse','put others first','forgiving','patient','generous',
-      'accommodating','hate upsetting people','supportive','kind','nurturing',
-      'trust people easily','help without being asked','go along with others',
-      'don\'t like confrontation','consider others\' feelings in decisions',
-      'charitable interpretation','gentle'
-    ],
-    neg: [
-      'competitive','blunt','confrontational','suspicious of others','self-interested',
-      'don\'t trust easily','cold','don\'t go out of my way','direct to the point of harsh',
-      'not particularly generous'
-    ]
-  },
-
-  // ── BIG FIVE: NEUROTICISM ────────────────────────────────────────────
-  // Emotional instability / negative affect reactivity. How quickly the system
-  // responds to stressors. Distinct from hex_em (sentimentality + empathic concern)
-  // and trauma_shame (content of self-concept) — this is the reactivity dial.
-  b5_neuro: {
-    pos: [
-      'easily overwhelmed','mood swings','snap easily','can\'t calm down quickly',
-      'hard to let go of bad feelings','emotionally reactive','dwell on things',
-      'catastrophize','negative thinking spirals','self-conscious',
-      'irritable under stress','hard to relax','triggered easily',
-      'anxiety spikes','can\'t let it go','fear the worst','ruminate',
-      'doubt myself constantly','insecure','moody'
-    ],
-    neg: [
-      'emotionally stable','bounce back quickly','even-keeled','not easily upset',
-      'resilient','don\'t dwell on things','calm under pressure',
-      'recover fast','not anxious by default'
-    ]
-  },
-
-  // ── HEXACO: HONESTY-HUMILITY ──────────────────────────────────────────
-  // Low greed, low status-seeking, sincere register, anti-manipulation. This
-  // is the construct that HH uniquely captures vs the Big Five. Distinct from
-  // light_kant (ethical treatment of others) — HH is about the self: modesty,
-  // non-exploitation motive, authentic self-presentation.
-  hex_hh: {
-    pos: [
-      'not interested in status','don\'t care about being important','modest',
-      'don\'t want to impress people','not motivated by money for its own sake',
-      'same in private as in public','don\'t play games','what you see is what you get',
-      'don\'t manipulate','sincere','don\'t pretend','not driven by image',
-      'wouldn\'t take advantage','not greedy','don\'t scheme','genuinely mean it',
-      'don\'t use people','don\'t flatter to get what i want',
-      'uncomfortable with fakeness','hate political maneuvering'
-    ],
-    neg: [
-      'status matters','reputation is everything','impress the right people',
-      'willing to bend rules','get what i need from people','image is important',
-      'play the game','leverage relationships','cut corners when needed'
-    ]
-  },
-
-  // ── HEXACO: EMOTIONALITY ─────────────────────────────────────────────
-  // Sentimentality, empathic concern, fear of harm to self or loved ones,
-  // need for emotional support. Distinct from b5_neuro (reactivity/instability)
-  // — HEX Emotionality is about depth of emotional attachment and empathic
-  // sensitivity, not how easily one is destabilized.
-  hex_em: {
-    pos: [
-      'sentimental','emotionally attached','moved by others\' pain','feel empathy deeply',
-      'cry easily','affected by others\' emotions','hard to detach from people i care about',
-      'need emotional support when stressed','emotionally dependent on close relationships',
-      'fear something happening to people i love','worry about loved ones\' safety',
-      'connected at a feeling level','can\'t stay detached','feel things for a long time',
-      'tender toward people','soft-hearted','vulnerability in others affects me',
-      'hard to cope alone when hurt','need someone to talk to'
-    ],
-    neg: [
-      'not sentimental','detached','handle it alone','don\'t need support',
-      'stoic','not easily moved','don\'t cry easily','emotionally self-sufficient',
-      'not affected by others\' problems','resilient without needing connection'
-    ]
-  },
-
-  // ── DARK TRIAD: NARCISSISM ────────────────────────────────────────────
-  // Grandiosity, entitlement, admiration-seeking, exceptionalism. Distinct from
-  // enn_heart (identity-through-connection) — Narcissism is superiority + entitlement,
-  // not just identity-seeking. Key markers: exceptionalism + deserving more.
-  dark_narc: {
-    pos: [
-      'i deserve more than i get','most people don\'t understand me','above average',
-      'i know better','they should appreciate what i bring','not like other people',
-      'exceptional','natural leader','wasting my potential here',
-      'people should listen to me','i could do it better','obvious to me',
-      'they don\'t get it','entitled to recognition','my accomplishments speak for themselves',
-      'others hold me back','why don\'t they see it','i\'m different from most',
-      'special','lack of appreciation frustrates me','superior in this area'
-    ],
-    neg: [
-      'i have obvious flaws','others know better','admire people easily',
-      'not special in any meaningful way','ordinary is fine',
-      'i was clearly wrong','don\'t need to be recognized',
-      'happy to be in the background','others are more capable'
-    ]
-  },
-
-  // ── DARK TRIAD: MACHIAVELLIANISM ─────────────────────────────────────
-  // Strategic manipulation, people-as-instruments, long-game thinking,
-  // information asymmetry as power. Distinct from dark_narc (grandiosity) and
-  // sch_se (achievement-drive) — Mach is specifically about interpersonal
-  // strategic exploitation, not just ambition.
-  dark_mach: {
-    pos: [
-      'know who to know','work the room','people are useful in the right context',
-      'leverage relationships','play it smart','angle','what\'s in it for me',
-      'don\'t show all your cards','wait for the right moment',
-      'information is power','know what motivates people',
-      'get what i need from a situation','position myself strategically',
-      'never show weakness','protect my position','calculated approach',
-      'keep people close for a reason','timing is everything',
-      'navigate office politics carefully','know their pressure points'
-    ],
-    neg: [
-      'no agenda','transparent with people','trust freely','not strategic about relationships',
-      'what you see is what you get with me','don\'t think about leverage',
-      'don\'t use people','not calculating in relationships'
-    ]
-  },
-
-  // ── DARK TRIAD: PSYCHOPATHY / CALLOUSNESS ────────────────────────────
-  // Emotional flatness, empathy-deficit, consequence-detachment, rule-dismissal.
-  // Distinct from dark_mach (strategic) — Psychopathy is affective: genuinely
-  // doesn't feel what others feel. Key markers: absence of empathic response.
-  dark_psyc: {
-    pos: [
-      'their feelings are their problem','too sensitive','weakness to feel that way',
-      'don\'t let emotion interfere','detached from the outcome','doesn\'t affect me',
-      'not responsible for how they feel','emotionally numb to it',
-      'harm is sometimes necessary','ends justify the means',
-      'they had it coming','collateral','get over it','no remorse about it',
-      'other people\'s suffering doesn\'t land on me','rules are for people who can\'t think',
-      'feelings get in the way','don\'t feel bad about it','cold calculation'
-    ],
-    neg: [
-      'care about how it affects them','feel responsible for their pain',
-      'empathy is important to me','remorse when i hurt someone',
-      'their wellbeing matters','rules exist for good reason',
-      'affected by seeing others suffer','can\'t be detached from consequences'
-    ]
-  },
-
-  // ── LIGHT TRIAD: KANTIANISM ───────────────────────────────────────────
-  // Treating people as ends in themselves, not as means. Dignity preservation,
-  // principled behavior regardless of personal cost or outcome. Distinct from
-  // sch_st (values orientation) and hex_hh (self-modesty) — this is ethical
-  // action toward others specifically.
-  light_kant: {
-    pos: [
-      'treat people with dignity','they matter as a person not just what they offer',
-      'not just a means to an end','do the right thing regardless of outcome',
-      'their autonomy matters','wouldn\'t exploit someone even if i could',
-      'ethical regardless of consequences','wouldn\'t use someone like that',
-      'principle over convenience','their rights matter','moral obligation',
-      'it\'s not about what i get','wrong to treat them that way',
-      'they deserve respect regardless','protect their dignity',
-      'not okay to deceive them for gain','fair regardless of power'
-    ],
-    neg: [
-      'ends justify the means','use people when necessary','doesn\'t matter how i get there',
-      'their feelings aren\'t my concern in this','outcome is what matters',
-      'principles are situational','willing to bend ethics'
-    ]
-  },
-
-  // ── LIGHT TRIAD: HUMANISM ────────────────────────────────────────────
-  // Genuine belief in the goodness and potential of other people. Charitable
-  // attribution. Moved and inspired by human beings. Distinct from b5_agree
-  // (behavior) and light_faith (world-view) — this is specifically about the
-  // experience of other people as inherently valuable and surprising.
-  light_hum: {
-    pos: [
-      'people are fundamentally good','believe in people','most people are trying',
-      'inspired by what people are capable of','human potential moves me',
-      'people can change','see the best in people','generosity in strangers',
-      'give benefit of the doubt','people surprise me with their goodness',
-      'others\' kindness affects me','moved by humanity','love for people',
-      'people are genuinely interesting','amazed by what people do for each other',
-      'see the humanity in difficult people','most people mean well'
-    ],
-    neg: [
-      'people are selfish','can\'t trust people','people always disappoint',
-      'humans are fundamentally flawed','don\'t believe people change',
-      'suspicious of generosity','no real altruism exists'
-    ]
-  },
-
-  // ── LIGHT TRIAD: FAITH IN HUMANITY / BENEVOLENT WORLD ────────────────
-  // Belief in a fundamentally okay or benevolent world. Optimistic world-view.
-  // Meaning-making. Distinct from light_hum (about people specifically) —
-  // Faith is broader: the universe/life/existence is oriented toward good.
-  light_faith: {
-    pos: [
-      'world is fundamentally okay','meaning in things','things work out somehow',
-      'goodness exists','kindness is real','love is real and it matters',
-      'world has beauty in it','trust in life','things happen for a reason',
-      'the world is worth being in','faith in the future','something larger than myself',
-      'connection heals','belonging is possible','there is enough good',
-      'hope isn\'t naive','life is worth living fully'
-    ],
-    neg: [
-      'world is corrupt','everything is transactional','no real meaning',
-      'things don\'t work out','people don\'t care','world is fundamentally dark',
-      'no point to any of it','cynical about the future','nothing is sacred'
-    ]
-  },
-
-  // ── SCHWARTZ: SELF-TRANSCENDENCE ─────────────────────────────────────
-  // Other-focused values: universalism + benevolence. Care for welfare of people
-  // beyond one's immediate circle, environment, future generations. Distinct from
-  // light_kant (ethics of action) and light_hum (beliefs about people) — this is
-  // about what one VALUES and what MOTIVATES long-term choices.
-  sch_st: {
-    pos: [
-      'make a difference beyond my own life','contribute to something larger',
-      'care about the world beyond myself','not just about me','give back',
-      'justice matters','equality matters','future generations','care for the environment',
-      'world beyond my immediate circle','service to others','welfare of people i\'ll never meet',
-      'community is worth investing in','sacrifice for others','bigger than me',
-      'leave it better than i found it','empathy for strangers',
-      'the collective matters','others need','protect people who can\'t protect themselves'
-    ],
-    neg: [
-      'just for me','my success only','personal benefit is what matters',
-      'don\'t care about people i don\'t know','not my responsibility',
-      'the world beyond my circle isn\'t my problem','self-interest is rational'
-    ]
-  },
-
-  // ── SCHWARTZ: SELF-ENHANCEMENT ────────────────────────────────────────
-  // Achievement, power, hedonism. Personal success, status, influence, wealth
-  // as motivating values. Distinct from dark_narc (grandiosity/entitlement) —
-  // Self-Enhancement is about what one pursues as meaningful, not superiority.
-  sch_se: {
-    pos: [
-      'succeed','achieve','ambition drives me','status matters','get ahead',
-      'recognition is important','want power','want influence','build wealth',
-      'be the best','outperform','competitive drive','rise in my career',
-      'prove what i can do','my accomplishments define me','want to lead',
-      'dominate in my field','reputation is something i build',
-      'climb','exceed expectations','what i\'ve built matters to me'
-    ],
-    neg: [
-      'don\'t care about status','not competitive','ambition doesn\'t drive me',
-      'success isn\'t the point','recognition means little to me',
-      'power doesn\'t appeal to me','wealth isn\'t a priority'
-    ]
-  }
-
-};
-
-/* ─── VADER VALENCE LEXICON ────────────────────────────────────────────────
-   NOTE: All negative values use JavaScript hyphen-minus (-), not Unicode minus (−).
-   The Unicode minus is not a valid JS operator and will produce NaN silently.
-────────────────────────────────────────────────────────────────────────── */
-
-const VALENCE = {
-  // Strong positive
-  love:2.5, joy:2.9, happiness:2.9, wonderful:2.9, amazing:2.5, beautiful:2.0,
-  grateful:2.5, thankful:2.2, peaceful:2.3, calm:1.8, safe:2.1, warm:1.7,
-  fulfilled:2.8, alive:2.0, hopeful:2.1, trust:2.0, connected:2.2, belong:2.3,
-  whole:2.4, free:2.0, worthy:2.4, healing:2.4, brave:2.0, strong:1.8,
-  proud:2.1, inspired:2.3, cherished:2.5, secure:1.9, meaning:2.1,
-  // Moderate positive
-  fine:0.9, good:1.2, okay:0.7, better:1.1, glad:1.5, content:1.4, relief:1.6,
-  // Mild negative
-  tired:-1.2, worried:-1.3, hard:-1.1, difficult:-1.0, tough:-1.0,
-  uncertain:-1.1, confused:-0.9, lost:-1.5, stuck:-1.4, frustrated:-1.6,
-  heavy:-1.3, drained:-1.4, exhausted:-1.5,
-  // Strong negative
-  afraid:-1.8, anxious:-1.7, shame:-2.4, ashamed:-2.5, hopeless:-2.8,
-  helpless:-2.5, worthless:-2.9, useless:-2.4, broken:-2.3, empty:-2.2,
-  alone:-2.0, abandoned:-2.6, rejected:-2.5, hurt:-1.9, pain:-2.1,
-  grief:-2.5, numb:-1.9, dark:-1.8, trapped:-2.2, failure:-2.3,
-  panic:-2.4, rage:-2.3, hate:-2.5, disgusting:-2.4, pathetic:-2.4,
-  invisible:-1.8, hollow:-2.0, damaged:-2.1, defective:-2.3,
-  // Zero-score negation words (handled separately by negation logic)
-  not:0, never:0, no:0, cannot:0, cant:0, wont:0, dont:0, doesnt:0, didnt:0,
-  couldnt:0, wouldnt:0, shouldnt:0
-};
-
-const NEGATION_WORDS = new Set(['not','never','no','cannot','cant',"can't",'wont',"won't",
-  'dont',"don't",'doesnt',"doesn't",'didnt',"didn't",'couldnt',"couldn't",
-  'wouldnt',"wouldn't",'shouldnt',"shouldn't",'nor','neither','nothing','nobody',
-  'nowhere','without','hardly','barely','scarcely']);
-
-const BOOSTER_POS = new Set(['very','really','extremely','incredibly','absolutely','completely',
-  'deeply','truly','highly','intensely','totally','utterly','so','such']);
-
-const BOOSTER_NEG = new Set(['slightly','somewhat','kind of','sort of','a bit','a little',
-  'barely','hardly','scarcely','rather']);
-
-/* ─── VADER SENTIMENT ENGINE ────────────────────────────── */
-
-function vaderSentiment(text) {
-  const words = text.toLowerCase().replace(/[^a-z\s']/g,' ').split(/\s+/).filter(Boolean);
-  let pos = 0, neg = 0;
-  const hasExclaim = (text.match(/!/g)||[]).length;
-  const isAllCaps = text.split(/\s+/).some(w => w.length > 2 && w === w.toUpperCase() && /[A-Z]/.test(w));
-
-  for (let i = 0; i < words.length; i++) {
-    const w = words[i].replace(/[^a-z']/g,'');
-    if (!VALENCE[w] || VALENCE[w] === 0) continue;
-    let score = VALENCE[w];
-
-    // Negation window: check 3 words back
-    const window = words.slice(Math.max(0, i-3), i).map(x => x.replace(/[^a-z']/g,''));
-    const negated = window.some(n => NEGATION_WORDS.has(n));
-
-    // Booster check (one word back)
-    const prev = i > 0 ? words[i-1].replace(/[^a-z']/g,'') : '';
-    if (BOOSTER_POS.has(prev)) score *= 1.28;
-    if (BOOSTER_NEG.has(prev)) score *= 0.72;
-    if (isAllCaps) score *= 1.14;
-
-    if (negated) score *= -0.74;
-
-    if (score > 0) pos += score;
-    else neg += Math.abs(score);
-  }
-
-  // Punctuation adjustments
-  pos += Math.min(hasExclaim * 0.292, 0.876);
-
-  const total = pos + neg + 0.001;
-  const normPos = pos / total;
-  const normNeg = neg / total;
-  const normNeu = 1 - normPos - normNeg;
-  const rawC = pos - neg;
-  const compound = rawC / Math.sqrt(rawC * rawC + 15);
-
-  return { pos: normPos, neg: normNeg, neu: Math.max(0, normNeu), compound };
-}
-
-/* ─── PSYCHOLINGUISTIC FEATURE EXTRACTOR ───────────────── */
-
-const RE = {
-  personal:   /\b(i|me|my|myself|mine|i've|i'm|i'd|i'll)\b/gi,
-  iOnly:      /\bi\b/gi,
-  thirdPer:   /\b(they|them|their|he|she|it|his|her)\b/gi,
-  passive:    /\b(was|were|been|get|got)\s+(hurt|left|told|given|made|used|treated|pushed|ignored|seen|heard)\b/gi,
-  past:       /\b(was|were|had|did|felt|thought|used to|before|back then|when i was|years ago|once|back when|when they|when we|when it)\b/gi,
-  future:     /\b(will|going to|gonna|soon|someday|one day|hope|wish|plan|when i|if i|could|would|might|maybe someday)\b/gi,
-  negation:   /\b(not|never|don't|doesn't|didn't|can't|couldn't|won't|wouldn't|no|nobody|nothing|nowhere|without|hardly|barely|scarcely)\b/gi,
-  somatic:    /\b(body|chest|stomach|gut|heart|skin|breath|breathing|throat|shoulders|hands|legs|back|neck|head|face|jaw|tense|tight|heavy|sinking|rising|shaking|trembling|racing|pounding|ache|aches|numb)\b/gi,
-  mortality:  /\b(die|dying|death|dead|gone|end|over|finished|doesn't matter anymore|give up|what's the point|no reason|too late)\b/gi,
-  metaphor:   /\b(feels like|like a|as if|shape of|weight of|color of|heavy as|light as|soft as|sharp as|echo|shadow|buried|surface|root|ground|wall|door|hollow|beneath|underneath|inside of|carries|a kind of)\b/gi,
-  adversative:/\b(but|though|yet|however|although|even though|except|whereas|then again|that said|on the other hand|having said that)\b/i,
-  ruminate:   /\b(because|since|which means|think|thought|realize|realized|know|wonder|wondering|understand|make sense|figure out|figured|why|reason|meaning|perhaps|maybe|consider|reflect|question|ask myself|can't stop thinking|keep thinking|keep coming back|over and over)\b/gi,
-  clout:      /\b(i know|definitely|clearly|obviously|certainly|absolutely|always|everyone|nobody|must|should|have to|need to|important|significant|no doubt)\b/gi,
-  entity:     /\b(my|her|his|their)\s+(mother|father|mom|dad|sister|brother|partner|husband|wife|girlfriend|boyfriend|friend|best friend|boss|manager|teacher|therapist|ex|family|parents|parent|children|kids|son|daughter|grandmother|grandfather|grandma|grandpa)\b/gi,
-  deflect:    /\b(i don't know|not sure|hard to say|i guess|kind of|sort of|not really|it's fine|i'm fine|just fine|okay i guess|nothing specific|nothing in particular|everything's fine|it is what it is|doesn't matter|not important)\b/gi
-};
-
-function countMatches(re, text) {
-  const r = new RegExp(re.source, re.flags.replace('g','') + 'g');
-  return (text.match(r) || []).length;
-}
-
-function extractFeatures(text, sentiment) {
-  const lower = text.toLowerCase();
-  const words = lower.split(/\s+/).filter(Boolean);
-  const wc = Math.max(words.length, 1);
-  const sentences = text.split(/[.!?;]+/).filter(s => s.trim().length > 3);
-
-  // Adversative clause splitting — weigh honest clause 2x
-  const advMatch = lower.match(RE.adversative);
-  let honestText = text;
-  if (advMatch) {
-    const idx = lower.indexOf(advMatch[0]);
-    honestText = text.slice(idx + advMatch[0].length).trim();
-  }
-  const honLow = honestText.toLowerCase();
-
-  // Basic rates
-  const firstPersonDensity  = countMatches(RE.iOnly, lower) / wc;
-  const thirdPersonDensity  = countMatches(RE.thirdPer, lower) / wc;
-  const passiveCount        = countMatches(RE.passive, text);
-  const negationCount       = countMatches(RE.negation, honLow);
-  const somaticCount        = countMatches(RE.somatic, lower);
-  const mortalityCount      = countMatches(RE.mortality, lower);
-  const metaphorCount       = countMatches(RE.metaphor, text);
-  const pastCount           = countMatches(RE.past, honLow);
-  const futureCount         = countMatches(RE.future, honLow);
-  const ruminationCount     = countMatches(RE.ruminate, honLow);
-  const cloutCount          = countMatches(RE.clout, honLow);
-  const personalDensity     = countMatches(RE.personal, lower) / wc;
-
-  // Temporal orientation
-  const tenseTotal = pastCount + futureCount + 1;
-  const pastRatio   = pastCount / tenseTotal;
-  const futureRatio = futureCount / tenseTotal;
-
-  // Valence collision per sentence (VADER pos+neg both present)
-  let valenceCollisions = 0;
-  sentences.forEach(s => {
-    const sv = vaderSentiment(s);
-    if (sv.pos > 0.25 && sv.neg > 0.25) valenceCollisions++;
-  });
-
-  // Deflection signal
-  const hasDeflectPhrase = RE.deflect.test(lower); RE.deflect.lastIndex = 0;
-  const specificity = Math.min(1, (personalDensity * 3) + (metaphorCount / wc) * 10);
-  const deflectionSignal = hasDeflectPhrase ? 1 :
-    (wc < 15 && firstPersonDensity < 0.05) ? 0.8 :
-    (firstPersonDensity < 0.04 && specificity < 0.25) ? 0.65 : 0;
-
-  // Salient phrase for mirror prompts
-  let salientPhrase = null;
-  const frags = text.split(/[.!?;]+/)
-    .map(s => s.trim())
-    .filter(s => s.length > 14 && s.length < 120)
-    .filter(s => countMatches(RE.personal, s.toLowerCase()) > 0 || countMatches(RE.metaphor, s) > 0);
-
-  RE.metaphor.lastIndex = 0;
-  if (frags.length > 0) {
-    const met = frags.filter(f => RE.metaphor.test(f));
-    RE.metaphor.lastIndex = 0;
-    salientPhrase = met.length > 0 ? met[0] : frags[0];
-  }
-
-  return {
-    wc, firstPersonDensity, thirdPersonDensity,
-    passiveCount, negationCount, somaticCount, mortalityCount,
-    metaphorCount, pastCount, futureCount, ruminationCount, cloutCount,
-    pastRatio, futureRatio, valenceCollisions, deflectionSignal,
-    salientPhrase, honestText,
-    emotionalIntensity: Math.min(1,
-      Math.abs(sentiment.compound) * 0.5 +
-      (somaticCount > 0 ? 0.15 : 0) +
-      (mortalityCount > 0 ? 0.2 : 0) +
-      (metaphorCount > 0 ? 0.1 : 0) +
-      (wc > 35 ? 0.1 : 0)
-    )
-  };
-}
-
-/* ─── EVIDENCE MAPPER ───────────────────────────────────── */
-// Maps psycholinguistic features + sentiment → per-dimension (pos, neg) evidence
-
-function mapEvidence(features, sentiment) {
-  const f = features; const s = sentiment;
-  const ev = {};
-  DIM_KEYS.forEach(k => { ev[k] = { pos: 0, neg: 0, words: [] }; });
-
-  const negAmp = 1 + (s.neg * 0.4);
-  const posAmp = 1 + (s.pos * 0.25);
-
-  function add(k, amt, type = 'pos', word = null) {
-    ev[k][type] += Math.max(0, amt);
-    if (word && !ev[k].words.includes(word)) ev[k].words.push(word);
-  }
-
-  // ── LEXICON MATCHING ──────────────────────────────────────────────────────
-  // Normalise per-match weight by lexicon size so a dimension with 40 entries
-  // does NOT accumulate 4× faster than one with 10 entries.
-  // Base weight is calibrated to a reference lexicon of 20 terms.
-  const LEX_REFERENCE_SIZE = 20;
-
-  const fullLow = features.honestText.toLowerCase();
-
-  DIM_KEYS.forEach(dk => {
-    const lex = LEX[dk];
-    if (!lex) return;
-
-    const posNorm = (LEX_REFERENCE_SIZE / Math.max(LEX_REFERENCE_SIZE, lex.pos.length)) * 0.8;
-    const negNorm = (LEX_REFERENCE_SIZE / Math.max(LEX_REFERENCE_SIZE, lex.neg.length)) * 0.5;
-
-    lex.pos.forEach(kw => {
-      const re = kw.includes(' ')
-        ? new RegExp(kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'i')
-        : new RegExp('\\b' + kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\b', 'i');
-      if (re.test(fullLow)) add(dk, posNorm, 'pos', kw);
-    });
-
-    lex.neg.forEach(kw => {
-      const re = kw.includes(' ')
-        ? new RegExp(kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'i')
-        : new RegExp('\\b' + kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\b', 'i');
-      if (re.test(fullLow)) add(dk, negNorm, 'neg', kw);
-    });
-  });
-
-  // ── FEATURE-DERIVED SIGNALS ───────────────────────────────────────────────
-  // Psycholinguistic features routed to their empirically validated constructs.
-  // Each framework's feature channels map to its DEFINING characteristics —
-  // not just adjacency. 3 channels per dimension, framework budget equalised.
-
-  // TRAUMA — wound-specific feature anchors
-  // abandon: separation-absence markers (past-lock, mortality, other-erasure)
-  add('trauma_abandon', f.mortalityCount      * 0.55 * negAmp, 'pos', 'mortality');
-  add('trauma_abandon', f.pastRatio > 0.65    ? 0.50 * negAmp : 0, 'pos', 'past-anchor');
-  add('trauma_abandon', f.thirdPersonDensity  * 1.20 * negAmp, 'pos', 'other-absent');
-  // shame: internalisation markers (passive agency, somatic encoding, mixed-valence)
-  add('trauma_shame',   f.passiveCount        * 0.50 * negAmp, 'pos', 'passive-agency');
-  add('trauma_shame',   f.somaticCount        * 0.40 * negAmp, 'pos', 'somatic');
-  add('trauma_shame',   f.valenceCollisions   * 0.50 * negAmp, 'pos', 'ambivalence');
-  // control: vigilance-register (negation-density, future-scan, cognitive-loop)
-  add('trauma_control', f.negationCount       * 0.35 * negAmp, 'pos');
-  add('trauma_control', f.futureRatio > 0.55  ? 0.55 * negAmp : 0, 'pos', 'future-scan');
-  add('trauma_control', f.ruminationCount     * 0.30 * negAmp, 'pos', 'cognitive-loop');
-
-  // ATTACHMENT — present-tense relational strategies
-  // anxious: hyperactivation (high self-ref + rumination + ambivalence)
-  add('att_anxious',  f.firstPersonDensity    * 2.20 * negAmp, 'pos');
-  add('att_anxious',  f.ruminationCount       * 0.38 * negAmp, 'pos', 'rumination');
-  add('att_anxious',  f.valenceCollisions     * 0.42 * negAmp, 'pos', 'push-pull-affect');
-  // avoidant: deactivation (self-erasure + passive distance + deflection-as-avoidance)
-  add('att_avoidant', (f.firstPersonDensity < 0.06 && f.wc > 20) ? 0.55 : 0, 'pos', 'self-erasure');
-  add('att_avoidant', f.passiveCount          * 0.48, 'pos', 'passive-distance');
-  add('att_avoidant', f.deflectionSignal      * 0.82, 'pos', 'deflection');
-  // fearful: approach-avoidance (valence-collision is the structural tell)
-  add('att_fearful',  f.valenceCollisions     * 0.72 * negAmp, 'pos', 'approach-avoidance');
-  add('att_fearful',  f.metaphorCount         * 0.38 * negAmp, 'pos', 'indirect-expression');
-  add('att_fearful',  (f.pastRatio > 0.6 && f.firstPersonDensity > 0.08) ? 0.42 * negAmp : 0, 'pos', 'wound-self-ref');
-
-  // MBTI — cognitive processing register (not personality content)
-  // I: internal-orientation (low self-assertion + observer framing + passive construction)
-  add('mbti_i', (1 - f.firstPersonDensity)    * 0.48, 'pos');
-  add('mbti_i', f.thirdPersonDensity           * 0.42, 'pos');
-  add('mbti_i', f.passiveCount > 0             ? 0.28 : 0, 'pos', 'observer');
-  // N: abstract processing (metaphor density + meaning-seeking rumination + elaboration)
-  add('mbti_n', f.metaphorCount               * 0.58, 'pos', 'metaphor');
-  add('mbti_n', f.ruminationCount             * 0.22, 'pos', 'meaning-seeking');
-  add('mbti_n', f.wc > 40 && f.firstPersonDensity < 0.12 ? 0.32 : 0, 'pos', 'abstract-density');
-  // F: affect-led register (somatic + emotional valence intensity + relational collision)
-  add('mbti_f', f.somaticCount                * 0.42, 'pos', 'somatic');
-  add('mbti_f', Math.abs(s.compound)          * 0.52, 'pos', 'valence-intensity');
-  add('mbti_f', f.valenceCollisions           * 0.28, 'pos', 'affective-weight');
-  // P: open-ended register (low closure-clout + future-open + low planning-negation)
-  add('mbti_p', f.cloutCount > 2              ? 0.38 : 0, 'neg', 'closure→J');
-  add('mbti_p', f.futureRatio > 0.45          ? 0.42 : 0, 'pos', 'open-future');
-  add('mbti_p', f.negationCount               * 0.14, 'neg', 'decisive-negation→J');
-
-  // ENNEAGRAM — three intelligence centers, each anchored distinctly
-  // Heart (2/3/4): identity-image register (self-ref density + emotional intensity + expressive language)
-  add('enn_heart', f.firstPersonDensity       * 1.85, 'pos');
-  add('enn_heart', Math.abs(s.compound)       * 0.42, 'pos', 'emotional-register');
-  add('enn_heart', f.metaphorCount            * 0.22, 'pos', 'expressive-style');
-  // Head (5/6/7): fear-information register (over-analysis + anticipatory-scan + uncertainty-negation)
-  add('enn_head',  f.ruminationCount          * 0.52, 'pos', 'over-analysis');
-  add('enn_head',  f.futureRatio > 0.40       ? 0.52 * negAmp : 0, 'pos', 'anticipatory');
-  add('enn_head',  f.negationCount            * 0.28 * negAmp, 'pos', 'uncertainty-negation');
-  // Body (8/9/1): somatic-instinct register (gut language + boundary-assertion + active agency)
-  add('enn_body',  f.somaticCount             * 0.52, 'pos', 'somatic-instinct');
-  add('enn_body',  f.negationCount            * 0.22, 'pos', 'boundary-assertion');
-  add('enn_body',  f.passiveCount > 1         ? 0.32 : 0, 'neg', 'active-voice→body');
-
-  // BIG FIVE — 5 dims × 2 core channels (budget preserved via lower weights)
-  // Open: curiosity register (metaphor + intellectual elaboration)
-  add('b5_open',  f.metaphorCount             * 0.42, 'pos', 'metaphor');
-  add('b5_open',  f.wc > 50                   ? 0.22 : 0, 'pos', 'elaboration');
-  add('b5_open',  f.ruminationCount           * 0.16, 'pos', 'curiosity');
-  // Cons: self-regulation register (clout-certainty + planning-future + non-deflection)
-  add('b5_cons',  f.cloutCount                * 0.30, 'pos', 'decisiveness');
-  add('b5_cons',  f.futureRatio > 0.45        ? 0.30 : 0, 'pos', 'planning');
-  add('b5_cons',  f.deflectionSignal > 0.5    ? 0.32 : 0, 'neg', 'avoidance→low-C');
-  // Extra: social-energy register (high self-assertion + positive-affect expressiveness)
-  add('b5_extra', f.firstPersonDensity        * 1.15 * (s.pos > 0.3 ? 1.2 : 1), 'pos');
-  add('b5_extra', s.pos                       * 0.48 * posAmp, 'pos');
-  add('b5_extra', f.deflectionSignal > 0.5    ? 0.32 : 0, 'neg');
-  // Agree: prosocial register (positive-other-valence + other-reference + non-dominance)
-  add('b5_agree', s.pos                       * 0.48 * posAmp, 'pos');
-  add('b5_agree', f.thirdPersonDensity        * 0.48, 'pos', 'other-orientation');
-  add('b5_agree', f.cloutCount > 3            ? 0.32 : 0, 'neg', 'dominance→low-A');
-  // Neuro: distress-reactivity register (neg-affect + negation-loop + distress-somatic)
-  add('b5_neuro', s.neg                       * 1.45 * negAmp, 'pos', 'neg-affect');
-  add('b5_neuro', f.negationCount             * 0.28 * negAmp, 'pos', 'negation-loop');
-  add('b5_neuro', f.somaticCount              * 0.22 * negAmp, 'pos', 'distress-somatic');
-
-  // HEXACO — 2 dims × 3 full channels (compensated for 2-dim framework)
-  // HH: sincerity register (anti-authority-claim + anti-performance + self-effacing)
-  add('hex_hh',   f.cloutCount > 3            ? f.cloutCount * 0.28 : 0, 'neg', 'authority-claim');
-  add('hex_hh',   f.deflectionSignal > 0.5    ? 0.48 : 0, 'neg', 'performance-register');
-  add('hex_hh',   f.firstPersonDensity < 0.07 && f.wc > 25 ? 0.50 * posAmp : 0, 'pos', 'self-effacing');
-  // EM: empathic-sentimentality register (somatic + neg-affect + emotional-processing)
-  add('hex_em',   f.somaticCount              * 0.58, 'pos', 'somatic');
-  add('hex_em',   s.neg                       * 0.80, 'pos', 'neg-affect');
-  add('hex_em',   f.ruminationCount           * 0.32, 'pos', 'emotional-processing');
-
-  // DARK TRIAD — 3 clinically distinct registers
-  // Narc: grandiosity (excess self-ref above norm + certainty-claim + self-celebratory)
-  add('dark_narc', f.firstPersonDensity > 0.14 ? (f.firstPersonDensity - 0.14) * 3.5 : 0, 'pos', 'excess-self-ref');
-  add('dark_narc', f.cloutCount               * 0.58, 'pos', 'certainty-claim');
-  add('dark_narc', s.pos > 0.5 && f.cloutCount > 1 ? 0.42 : 0, 'pos', 'self-celebratory');
-  // Mach: strategic register (other-as-object + obscured-agency + cold-analysis)
-  add('dark_mach', f.thirdPersonDensity       * 1.35, 'pos', 'other-as-object');
-  add('dark_mach', f.passiveCount             * 0.48, 'pos', 'agency-obscured');
-  add('dark_mach', f.ruminationCount > 3 && s.neg < 0.15 ? 0.42 : 0, 'pos', 'cold-analysis');
-  // Psyc: callousness (emotional-flatness + somatic-absence + detached-from-harm)
-  add('dark_psyc', f.emotionalIntensity < 0.10 && f.wc > 20 ? 0.65 : 0, 'pos', 'flat-affect');
-  add('dark_psyc', f.somaticCount < 1 && f.wc > 30 ? 0.38 : 0, 'pos', 'somatic-absence');
-  add('dark_psyc', s.neg < 0.04 && f.mortalityCount > 0 ? 0.52 : 0, 'pos', 'harm-detachment');
-
-  // LIGHT TRIAD — 3 genuinely distinct positive registers
-  // Kant: principled-other-regard (other-present + non-dominance + cost-bearing language)
-  add('light_kant', f.thirdPersonDensity      * 0.58 * posAmp, 'pos', 'other-present');
-  add('light_kant', f.cloutCount < 2 && f.wc > 20 ? 0.42 * posAmp : 0, 'pos', 'non-dominant');
-  add('light_kant', f.mortalityCount > 0 && s.pos > 0.15 ? 0.48 * posAmp : 0, 'pos', 'meaning-in-harm');
-  // Hum: belief-in-people (positive-valence + other-positive framing + warm-metaphor)
-  add('light_hum',  s.pos > 0.3              ? s.pos * 0.88 * posAmp : 0, 'pos', 'positive-affect');
-  add('light_hum',  f.thirdPersonDensity > 0.05 && s.pos > 0.2 ? 0.42 * posAmp : 0, 'pos', 'other-positive');
-  add('light_hum',  f.metaphorCount > 0 && s.pos > 0.2 ? 0.32 * posAmp : 0, 'pos', 'warm-language');
-  // Faith: benevolent-world (future-positive + low-negation register + hopeful-processing)
-  add('light_faith', f.futureRatio > 0.35    ? 0.52 * posAmp : 0, 'pos', 'future-positive');
-  add('light_faith', s.pos > 0.4             ? 0.42 * posAmp : 0, 'pos', 'world-positive');
-  add('light_faith', f.negationCount < 2 && f.wc > 25 ? 0.32 * posAmp : 0, 'pos', 'low-negation');
-
-  // SCHWARTZ — 2 dims × 3 full channels (compensated for 2-dim framework)
-  // ST (self-transcendence): other-welfare motivation (other-ref + other-future + meaning-beyond-self)
-  add('sch_st', f.thirdPersonDensity          * 0.85 * posAmp, 'pos', 'other-reference');
-  add('sch_st', f.futureRatio > 0.30 && s.pos > 0.15 ? 0.52 * posAmp : 0, 'pos', 'future-other');
-  add('sch_st', f.mortalityCount > 0 && s.pos > 0.20 ? 0.58 * posAmp : 0, 'pos', 'meaning-beyond-self');
-  // SE (self-enhancement): achievement-drive (authority-claim + self-assertion + goal-orientation)
-  add('sch_se', f.cloutCount                  * 0.58, 'pos', 'authority-claim');
-  add('sch_se', f.firstPersonDensity > 0.12 && f.cloutCount > 1 ? 0.52 : 0, 'pos', 'self-assertion');
-  add('sch_se', f.futureRatio > 0.40 && f.cloutCount > 1 ? 0.38 : 0, 'pos', 'goal-orientation');
-
-  // ── PER-FRAMEWORK BUDGET NORMALISATION ───────────────────────────────────
-  // After all signals are computed, cap each framework's total positive evidence
-  // to a shared budget (TARGET_FW_BUDGET). This ensures Big Five (5 dims) cannot
-  // accumulate more total mass per turn than HEXACO (2 dims), because the
-  // measurements must be comparable across frameworks.
-  //
-  // Budget is applied at the framework level; individual dim ratios are preserved.
-
-  const TARGET_FW_BUDGET = 2.0; // total pos evidence units per framework per turn
-
-  FRAMEWORKS.forEach(fw => {
-    const totalPos = fw.dims.reduce((sum, d) => sum + ev[d.k].pos, 0);
-    if (totalPos > TARGET_FW_BUDGET) {
-      const scale = TARGET_FW_BUDGET / totalPos;
-      fw.dims.forEach(d => {
-        ev[d.k].pos *= scale;
-        // Scale neg proportionally to maintain signal ratio integrity
-        ev[d.k].neg *= scale;
-      });
-    }
-  });
-
-  return ev;
-}
-
-/* ─── BAYESIAN ENGINE ───────────────────────────────────── */
-
-const LEARNING_RATE  = 0.5;
-const CONF_SCALE     = 8;     // half-saturation at ~8 turns of evidence
-
-function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
-
-function bayesUpdate(acc, evidence) {
-  // Sigmoid squash prevents runaway accumulation from verbose responses
-  const dAlpha = sigmoid(evidence.pos) * LEARNING_RATE;
-  const dBeta  = sigmoid(evidence.neg) * LEARNING_RATE;
-
-  const a = acc.alpha + dAlpha;
-  const b = acc.beta  + dBeta;
-
-  const mean = a / (a + b);
-  // Evidence mass (subtract priors of 1 each)
-  const mass = Math.max(0, a + b - 2);
-  const confidence = 0.95 * (1 - Math.exp(-mass / CONF_SCALE));
-  const uncertainty = Math.sqrt((a * b) / (Math.pow(a + b, 2) * (a + b + 1)));
-
-  return { alpha: a, beta: b, mean, confidence, uncertainty, words: evidence.words || [] };
-}
-
-/* ─── PROFILE STATE ─────────────────────────────────────── */
-
-function initProfile() {
-  const accumulators = {};
-  DIM_KEYS.forEach(k => {
-    accumulators[k] = { alpha: 1, beta: 1, mean: 0.5, confidence: 0, uncertainty: 0.289, words: [] };
-  });
-  return {
-    turn: 0,
-    accumulators,
-    sentimentHistory: [],
-    sessionWords: [],
-    deflectionTurns: [],
-    intenseTurns: [],
-    styleCumulative: {
-      pastTotal: 0, futureTotal: 0, metaphorTotal: 0,
-      ruminationTotal: 0, somaticTotal: 0, negationTotal: 0,
-      valenceCollisionTotal: 0, wordTotal: 0, deflections: 0
-    },
-    questionHistory: [],
-    userPhrases: []
-  };
-}
-
-function updateProfile(profile, text) {
-  const p = JSON.parse(JSON.stringify(profile));  // immutable copy
-  p.turn++;
-
-  const sentiment  = vaderSentiment(text);
-  const features   = extractFeatures(text, sentiment);
-  const evidence   = mapEvidence(features, sentiment);
-
-  // Update accumulators
-  DIM_KEYS.forEach(k => {
-    p.accumulators[k] = bayesUpdate(p.accumulators[k], evidence[k]);
-    // Merge new evidence words
-    const newWords = (evidence[k].words || []).filter(w => !p.accumulators[k].words.includes(w));
-    p.accumulators[k].words = [...(p.accumulators[k].words || []), ...newWords].slice(-8);
-  });
-
-  // Sentiment arc
-  p.sentimentHistory.push({ turn: p.turn, ...sentiment });
-
-  // Style cumulatives
-  const sc = p.styleCumulative;
-  sc.pastTotal       += features.pastCount;
-  sc.futureTotal     += features.futureCount;
-  sc.metaphorTotal   += features.metaphorCount;
-  sc.ruminationTotal += features.ruminationCount;
-  sc.somaticTotal    += features.somaticCount;
-  sc.negationTotal   += features.negationCount;
-  sc.valenceCollisionTotal += features.valenceCollisions;
-  sc.wordTotal       += features.wc;
-
-  if (features.deflectionSignal > 0.5) {
-    sc.deflections++;
-    p.deflectionTurns.push(p.turn);
-  }
-  if (features.emotionalIntensity > 0.45) p.intenseTurns.push(p.turn);
-
-  if (features.salientPhrase) p.userPhrases.push(features.salientPhrase);
-
-  // Compute volatility (std dev of compound arc)
-  const compounds = p.sentimentHistory.map(s => s.compound);
-  const mean = compounds.reduce((a,b) => a+b, 0) / compounds.length;
-  const variance = compounds.reduce((s, c) => s + Math.pow(c - mean, 2), 0) / compounds.length;
-  p.sentimentVolatility = Math.sqrt(variance);
-
-  // Readiness: emotional presence + specificity - recent deflections
-  const recentDeflect = p.deflectionTurns.filter(t => p.turn - t <= 2).length;
-  const recentIntense = p.intenseTurns.filter(t => p.turn - t <= 2).length;
-  p.readiness = Math.max(0, Math.min(1,
-    0.5
-    - recentDeflect * 0.22
-    + recentIntense * 0.18
-    + features.emotionalIntensity * 0.18
-    + Math.min(features.metaphorCount * 0.1, 0.12)
-    - p.sentimentVolatility * 0.10
-  ));
-
-  return { profile: p, features, sentiment, evidence };
-}
-
-/* ─── QUESTION POOL (120 questions, 9 frameworks) ──────── */
-// Each: { t: text, fw: framework, dk: dim key or null, r: readiness required, depth: 0-3, s: style }
+/* Generated from inline scripts in index.html for parity. */
 
 const Q = [
-// ── OPENERS (framework-neutral) ─────────
-{t:"How's your day been — anything on your mind?",                                            fw:null,dk:null,r:0,depth:0,s:'opener'},
-{t:"What's been on your mind lately — anything you keep coming back to?",                     fw:null,dk:null,r:0,depth:0,s:'opener'},
-{t:"Is there something you've been meaning to sit with but keep putting off?",               fw:null,dk:null,r:0,depth:0,s:'opener'},
-{t:"What's something small that's been bothering you more than it probably should?",         fw:null,dk:null,r:0,depth:0,s:'opener'},
-{t:"What would feel like a relief to say right now — even just to yourself?",               fw:null,dk:null,r:0,depth:0,s:'opener'},
-
-// ── TRAUMA — ABANDONMENT ──────────────
-{t:"Is there someone in your life you've been thinking about a lot lately?",                  fw:'trauma',dk:'trauma_abandon',r:0,depth:0,s:'reflective'},
-{t:"When someone goes quiet on you — what tends to happen inside?",                          fw:'trauma',dk:'trauma_abandon',r:0,depth:1,s:'reflective'},
-{t:"What's the version of being left that you never quite got over?",                        fw:'trauma',dk:'trauma_abandon',r:1,depth:2,s:'temporal'},
-{t:"Is there someone you've been waiting to hear from, without letting yourself admit it?",  fw:'trauma',dk:'trauma_abandon',r:2,depth:2,s:'probe'},
-{t:"What would it actually mean to you if someone just... stayed?",                          fw:'trauma',dk:'trauma_abandon',r:1,depth:2,s:'ambivalence'},
-{t:"Is there a version of leaving that you did to yourself, before someone else could?",     fw:'trauma',dk:'trauma_abandon',r:2,depth:3,s:'depth'},
-{t:"Do you ever find yourself bracing for people to go — even when there's no signal they will?",fw:'trauma',dk:'trauma_abandon',r:1,depth:2,s:'reflective'},
-{t:"What kind of silence feels like abandonment to you?",                                    fw:'trauma',dk:'trauma_abandon',r:2,depth:3,s:'depth'},
-
-// ── TRAUMA — SHAME ────────────────────
-{t:"What do you do when you need to decompress — really decompress?",                        fw:'trauma',dk:'trauma_shame',r:0,depth:0,s:'opener'},
-{t:"Is there a part of yourself that you keep pretty protected — that most people don't see?",fw:'trauma',dk:'trauma_shame',r:0,depth:1,s:'reflective'},
-{t:"What's something about you that people don't usually get right when they first meet you?",fw:'trauma',dk:'trauma_shame',r:0,depth:1,s:'reflective'},
-{t:"Is there something you did — or didn't do — that you haven't quite let go of?",         fw:'trauma',dk:'trauma_shame',r:1,depth:2,s:'reflective'},
-{t:"What do you say to yourself when you think no one is listening?",                        fw:'trauma',dk:'trauma_shame',r:1,depth:2,s:'cognitive'},
-{t:"When you imagine someone truly seeing all of you — what feels risky about that?",        fw:'trauma',dk:'trauma_shame',r:2,depth:3,s:'depth'},
-{t:"What's the thing about yourself that you most wish were different?",                     fw:'trauma',dk:'trauma_shame',r:1,depth:2,s:'probe'},
-{t:"Is there something you've done that you haven't been able to forgive yourself for?",    fw:'trauma',dk:'trauma_shame',r:2,depth:3,s:'depth'},
-
-// ── TRAUMA — CONTROL ──────────────────
-{t:"How do you usually handle things when they feel out of control?",                        fw:'trauma',dk:'trauma_control',r:0,depth:1,s:'reflective'},
-{t:"What's the thing you hold onto most tightly when things get uncertain?",                 fw:'trauma',dk:'trauma_control',r:0,depth:1,s:'reflective'},
-{t:"When was the last time something happened that you couldn't prepare for?",               fw:'trauma',dk:'trauma_control',r:1,depth:2,s:'temporal'},
-{t:"Is there something you've been managing for so long you've forgotten what rest feels like?",fw:'trauma',dk:'trauma_control',r:1,depth:2,s:'probe'},
-{t:"What does it feel like in your body when things slip out of your hands?",                fw:'trauma',dk:'trauma_control',r:2,depth:3,s:'somatic'},
-{t:"What would it cost you to stop watching everything so closely?",                         fw:'trauma',dk:'trauma_control',r:2,depth:3,s:'depth'},
-{t:"Is there something you trust yourself to control that actually can't be controlled?",   fw:'trauma',dk:'trauma_control',r:2,depth:3,s:'contradiction'},
-
-// ── ATTACHMENT ────────────────────────
-{t:"Is there someone in your life who you feel consistently understood by?",                 fw:'attachment',dk:'att_anxious',r:0,depth:0,s:'reflective'},
-{t:"When someone doesn't respond right away, what do you do with that feeling?",            fw:'attachment',dk:'att_anxious',r:0,depth:1,s:'reflective'},
-{t:"What's the most you'd let yourself need from someone before it felt like too much?",    fw:'attachment',dk:'att_anxious',r:1,depth:2,s:'probe'},
-{t:"When do you feel safest in a relationship — and what makes that feel fragile?",         fw:'attachment',dk:'att_anxious',r:1,depth:2,s:'ambivalence'},
-{t:"What would you do if someone gave you exactly what you wanted — and stayed?",           fw:'attachment',dk:'att_fearful',r:2,depth:3,s:'depth'},
-{t:"Do you find it easier to need someone less than to risk being disappointed?",           fw:'attachment',dk:'att_avoidant',r:1,depth:2,s:'probe'},
-{t:"Is there closeness you want that you don't quite let yourself have?",                   fw:'attachment',dk:'att_fearful',r:2,depth:3,s:'depth'},
-{t:"What does real intimacy look like versus what you actually allow yourself?",            fw:'attachment',dk:'att_fearful',r:2,depth:3,s:'probe'},
-{t:"Is there a moment when you pulled back from someone — and you're not sure why?",        fw:'attachment',dk:'att_avoidant',r:1,depth:2,s:'reflective'},
-{t:"What usually happens right before you shut down emotionally?",                          fw:'attachment',dk:'att_avoidant',r:1,depth:2,s:'probe'},
-
-// ── MBTI TENDENCIES ───────────────────
-{t:"When you're working through something difficult, do you prefer to think it through alone first or talk it out?",fw:'mbti',dk:'mbti_i',r:0,depth:0,s:'reflective'},
-{t:"What do you find most draining about social situations?",                               fw:'mbti',dk:'mbti_i',r:0,depth:1,s:'probe'},
-{t:"When you read a story or watch something, what stays with you longest — the plot or what it means?",fw:'mbti',dk:'mbti_n',r:0,depth:0,s:'reflective'},
-{t:"Is there a pattern you keep noticing in your life — something you can't quite name but can feel?",fw:'mbti',dk:'mbti_n',r:1,depth:2,s:'reflective'},
-{t:"When you have to make a big decision, does logic or how you feel tend to win?",         fw:'mbti',dk:'mbti_f',r:0,depth:1,s:'reflective'},
-{t:"Is there something you know is logical but can't make yourself feel okay about?",       fw:'mbti',dk:'mbti_f',r:1,depth:2,s:'contradiction'},
-{t:"What does your ideal unscheduled Saturday look like?",                                  fw:'mbti',dk:'mbti_p',r:0,depth:0,s:'opener'},
-{t:"Is there something you've been putting off committing to — and what's underneath that?",fw:'mbti',dk:'mbti_p',r:1,depth:2,s:'probe'},
-
-// ── ENNEAGRAM ─────────────────────────
-{t:"How much of what you present to the world matches who you actually are?",               fw:'enneagram',dk:'enn_heart',r:0,depth:1,s:'reflective'},
-{t:"Is there a version of you that comes out when you feel truly seen — and how different is that person?",fw:'enneagram',dk:'enn_heart',r:1,depth:2,s:'depth'},
-{t:"When did you first start anticipating problems before they happened?",                   fw:'enneagram',dk:'enn_head',r:1,depth:2,s:'temporal'},
-{t:"What's the worst-case scenario that lives rent-free in your head?",                     fw:'enneagram',dk:'enn_head',r:1,depth:2,s:'probe'},
-{t:"When something feels deeply wrong or unfair — where does that land in your body?",     fw:'enneagram',dk:'enn_body',r:1,depth:2,s:'somatic'},
-{t:"Is there something you never fully get over — you just manage it?",                     fw:'enneagram',dk:'enn_body',r:1,depth:2,s:'reflective'},
-
-// ── BIG FIVE ──────────────────────────
-{t:"What kind of idea or problem do you find yourself unable to leave alone?",              fw:'big5',dk:'b5_open',r:0,depth:1,s:'reflective'},
-{t:"What does your ideal day of unstructured time look like?",                              fw:'big5',dk:'b5_open',r:0,depth:0,s:'opener'},
-{t:"When you commit to something — what does it feel like when you don't follow through?", fw:'big5',dk:'b5_cons',r:1,depth:2,s:'reflective'},
-{t:"What's your relationship like with unfinished things?",                                 fw:'big5',dk:'b5_cons',r:0,depth:1,s:'reflective'},
-{t:"Where do you get your energy — from people, or from stepping away from them?",          fw:'big5',dk:'b5_extra',r:0,depth:0,s:'opener'},
-{t:"What's something you wish you could just say without thinking about how it lands?",    fw:'big5',dk:'b5_agree',r:1,depth:2,s:'probe'},
-{t:"Is there someone in your life you find hard to say no to — and do you know why?",      fw:'big5',dk:'b5_agree',r:1,depth:2,s:'relational'},
-{t:"What's the texture of your inner voice on a hard day?",                                 fw:'big5',dk:'b5_neuro',r:1,depth:2,s:'cognitive'},
-{t:"When something goes wrong, how long does it usually take to feel like yourself again?",fw:'big5',dk:'b5_neuro',r:0,depth:1,s:'reflective'},
-
-// ── HEXACO ────────────────────────────
-{t:"Is there something you've done that you could have gotten away with — and didn't?",    fw:'hexaco',dk:'hex_hh',r:1,depth:2,s:'probe'},
-{t:"What would you do if you knew no one would ever find out?",                             fw:'hexaco',dk:'hex_hh',r:1,depth:2,s:'probe'},
-{t:"When something difficult is happening, do you tend to carry it alone or reach out?",   fw:'hexaco',dk:'hex_em',r:0,depth:1,s:'reflective'},
-{t:"What does it take for you to actually ask someone for help?",                           fw:'hexaco',dk:'hex_em',r:1,depth:2,s:'probe'},
-
-// ── DARK TRIAD ────────────────────────
-{t:"When you've gotten something you wanted through a social situation — how did you do it?",fw:'dark',dk:'dark_narc',r:0,depth:1,s:'reflective'},
-{t:"What do most people not understand about how capable you actually are?",                fw:'dark',dk:'dark_narc',r:1,depth:2,s:'probe'},
-{t:"When you're trying to get something done — how do you think about the people involved?",fw:'dark',dk:'dark_mach',r:0,depth:1,s:'reflective'},
-{t:"Is there a situation where you've had to manage someone to get an outcome you needed?", fw:'dark',dk:'dark_mach',r:1,depth:2,s:'probe'},
-{t:"When someone is visibly upset — what's your first internal reaction?",                  fw:'dark',dk:'dark_psyc',r:0,depth:1,s:'reflective'},
-{t:"Is there something that upsets other people that genuinely doesn't affect you?",        fw:'dark',dk:'dark_psyc',r:1,depth:2,s:'probe'},
-
-// ── LIGHT TRIAD ───────────────────────
-{t:"When you've helped someone with nothing to gain — what was going through your mind?",  fw:'light',dk:'light_kant',r:0,depth:1,s:'reflective'},
-{t:"Is there someone whose autonomy you've protected at some cost to yourself?",            fw:'light',dk:'light_kant',r:1,depth:2,s:'probe'},
-{t:"When you meet a stranger — what do you assume about them before they say anything?",   fw:'light',dk:'light_hum',r:0,depth:1,s:'reflective'},
-{t:"When has someone surprised you with unexpected goodness — what did that do to you?",   fw:'light',dk:'light_hum',r:0,depth:1,s:'reflective'},
-{t:"What would it feel like to live in a world where most people were basically trying?",  fw:'light',dk:'light_faith',r:1,depth:2,s:'hypothetical'},
-{t:"What makes you feel connected to something larger than yourself?",                      fw:'light',dk:'light_faith',r:1,depth:2,s:'reflective'},
-
-// ── SCHWARTZ VALUES ───────────────────
-{t:"What do you want to leave behind — not in things, but in how you made people feel?",  fw:'schwartz',dk:'sch_st',r:0,depth:1,s:'reflective'},
-{t:"Is there something you're building or doing that you hope outlasts you?",              fw:'schwartz',dk:'sch_st',r:1,depth:2,s:'probe'},
-{t:"What does success actually look like to you — and how much of that is about other people seeing it?",fw:'schwartz',dk:'sch_se',r:1,depth:2,s:'probe'},
-{t:"When you imagine your best year ever — what's in it?",                                 fw:'schwartz',dk:'sch_se',r:0,depth:1,s:'reflective'},
-{t:"What would feel like enough — to know your life mattered?",                            fw:'schwartz',dk:'sch_st',r:2,depth:3,s:'depth'},
-{t:"If the work you've put in were never recognized — would it still have been worth it?", fw:'schwartz',dk:'sch_se',r:2,depth:3,s:'contradiction'},
-
-// ── GRIEF / LOSS ──────────────────────
-{t:"What's something you've lost that people around you didn't quite understand was a loss?",fw:'trauma',dk:'trauma_shame',r:0,depth:1,s:'reflective'},
-{t:"Is there someone you've never quite finished grieving?",                                 fw:'trauma',dk:'trauma_abandon',r:1,depth:2,s:'temporal'},
-{t:"Is there a version of your life you miss without quite calling it grief?",               fw:'trauma',dk:'trauma_abandon',r:1,depth:2,s:'probe'},
-{t:"What do you wish you'd said before something ended?",                                   fw:'trauma',dk:'trauma_shame',r:2,depth:3,s:'temporal'},
-
-// ── BELONGING ─────────────────────────
-{t:"Where do you feel most like yourself?",                                                  fw:'big5',dk:'b5_extra',r:0,depth:0,s:'reflective'},
-{t:"Is there a group where you've always felt slightly on the outside?",                    fw:'attachment',dk:'att_anxious',r:1,depth:2,s:'probe'},
-{t:"Who do you become when you're trying to fit in somewhere that doesn't quite fit?",     fw:'enneagram',dk:'enn_heart',r:2,depth:3,s:'cognitive'},
-{t:"What do you usually keep to yourself around people you'd like to be closer to?",       fw:'attachment',dk:'att_avoidant',r:1,depth:2,s:'probe'},
+// ── OPENERS ───────────────────────────
+{t:"To start gently: what has taken the most mental energy this week?",                      fw:'big5',dk:'b5_neuro',r:0,depth:1,s:'opener'},
+{t:"What feels steady in your life right now, even if other parts feel noisy?",              fw:'attachment',dk:'att_anxious',r:0,depth:1,s:'opener'},
+{t:"If today had one emotional headline, what would it be?",                                  fw:'enneagram',dk:'enn_head',r:0,depth:1,s:'opener'},
 
 // ── WORTH / PERFORMANCE ───────────────
 {t:"When do you feel most at ease — like you don't have to prove anything?",               fw:'hexaco',dk:'hex_hh',r:0,depth:1,s:'reflective'},
@@ -1544,6 +239,7 @@ let radarChart = null;
 let sentimentChart = null;
 
 function initCharts() {
+  if (!window.Chart) return;
   const AMBER = 'rgba(200,146,42,0.85)';
   const AMBER_FILL = 'rgba(200,146,42,0.12)';
   const GRID = 'rgba(100,80,50,0.2)';
@@ -1680,6 +376,9 @@ function renderScorePanel(profile) {
 
       const row = document.createElement('div');
       row.className = 'fw-dim';
+      const hue = Math.round(8 + (pct * 1.16)); // red→amber→green across 0-100
+      row.style.setProperty('--score-hue', `${Math.max(8, Math.min(124, hue))}`);
+      row.classList.add('score-updated');
 
       const topRow = document.createElement('div');
       topRow.className = 'fw-dim-row';
@@ -1771,6 +470,67 @@ const MODEL_CANDIDATES = [
   }
 ];
 const TMP_MODEL_CACHE_NAME = 'linguainsight-tmp-models-v1';
+const CHART_CDN_URL = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';
+const ORT_CDN_URL = 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js';
+let chartLoaderPromise = null;
+let ortLoaderPromise = null;
+
+function ensureChartLoaded(timeoutMs = 5000) {
+  if (window.Chart) return Promise.resolve(true);
+  if (chartLoaderPromise) return chartLoaderPromise;
+  chartLoaderPromise = new Promise(resolve => {
+    const existing = document.querySelector(`script[src="${CHART_CDN_URL}"]`);
+    if (existing) {
+      existing.addEventListener('load', () => resolve(!!window.Chart), { once: true });
+      existing.addEventListener('error', () => resolve(false), { once: true });
+      return;
+    }
+    const tag = document.createElement('script');
+    tag.src = CHART_CDN_URL;
+    tag.async = true;
+    tag.defer = true;
+    const timer = setTimeout(() => resolve(false), timeoutMs);
+    tag.onload = () => {
+      clearTimeout(timer);
+      resolve(!!window.Chart);
+    };
+    tag.onerror = () => {
+      clearTimeout(timer);
+      resolve(false);
+    };
+    document.head.appendChild(tag);
+  });
+  return chartLoaderPromise;
+}
+
+function ensureOrtLoaded(timeoutMs = 7000) {
+  if (window.ort) return Promise.resolve(true);
+  if (ortLoaderPromise) return ortLoaderPromise;
+  ortLoaderPromise = new Promise(resolve => {
+    const existing = document.querySelector(`script[data-ort-loader="1"]`);
+    if (existing) {
+      existing.addEventListener('load', () => resolve(!!window.ort), { once: true });
+      existing.addEventListener('error', () => resolve(false), { once: true });
+      return;
+    }
+    const tag = document.createElement('script');
+    tag.src = ORT_CDN_URL;
+    tag.async = true;
+    tag.defer = true;
+    tag.dataset.ortLoader = '1';
+    const timer = setTimeout(() => resolve(false), timeoutMs);
+    tag.onload = () => {
+      clearTimeout(timer);
+      resolve(!!window.ort);
+    };
+    tag.onerror = () => {
+      clearTimeout(timer);
+      resolve(false);
+    };
+    document.head.appendChild(tag);
+  });
+  return ortLoaderPromise;
+}
 
 function selectModelCandidate() {
   const mem = navigator.deviceMemory || 4;
@@ -1804,9 +564,24 @@ const multimodal = {
   media: { stream: null, ctx: null, analyser: null, data: null }
 };
 
+function setMmLoader(active, progress = 0, label = 'loading') {
+  const loader = document.getElementById('mm-loader');
+  const fill = document.getElementById('mm-loader-fill');
+  const pct = document.getElementById('mm-loader-pct');
+  const text = document.getElementById('mm-loader-label');
+  if (!loader || !fill || !pct || !text) return;
+  if (active) loader.classList.add('visible');
+  else loader.classList.remove('visible');
+  const safeProgress = Math.max(0, Math.min(100, Math.round(progress)));
+  fill.style.width = `${safeProgress}%`;
+  pct.textContent = `${safeProgress}%`;
+  text.textContent = label;
+}
+
 async function initMultimodalEngine() {
   const statusEl = document.getElementById('mm-status');
   if (!statusEl) return;
+  const ortReady = await ensureOrtLoaded();
   const configured = new URLSearchParams(window.location.search).get('fusion_onnx');
   const picked = configured ? { id: 'custom', url: configured, key: 'custom' } : selectModelCandidate();
   multimodal.modelUrl = picked.url;
@@ -1815,23 +590,30 @@ async function initMultimodalEngine() {
     if (configured) multimodal.modelUrl = configured;
   }
 
-  if (!window.ort || !multimodal.modelUrl) {
+  if (!ortReady || !window.ort || !multimodal.modelUrl) {
+    setMmLoader(false, 0, 'disabled');
     statusEl.innerHTML = `MM emotion: <strong>text heuristic</strong> · mode: text-only · rec: ${PRETRAINED_MODEL_SUITE.textEmotion.id} + ${PRETRAINED_MODEL_SUITE.audioEmotion.id}`;
     return;
   }
 
   try {
+    setMmLoader(true, 8, 'loading runtime');
     statusEl.innerHTML = `MM emotion: <strong>loading onnx</strong> · model: ${picked.id} · cache: tmp`;
+    setMmLoader(true, 35, 'caching model');
     const cachedModelUrl = await cacheModelInTmp(multimodal.modelUrl);
     if (multimodal.modelBlobUrl && multimodal.modelBlobUrl.startsWith('blob:')) URL.revokeObjectURL(multimodal.modelBlobUrl);
     multimodal.modelBlobUrl = cachedModelUrl;
+    setMmLoader(true, 72, 'creating session');
     multimodal.session = await ort.InferenceSession.create(multimodal.modelBlobUrl, {
       executionProviders: ['wasm']
     });
+    setMmLoader(true, 100, 'ready');
     statusEl.innerHTML = `MM emotion: <strong>onnx ready</strong> · mode: text-only · model: ${picked.id}`;
     statusEl.innerHTML = `MM emotion: <strong>onnx ready</strong> · mode: text-only · fusion: ${PRETRAINED_MODEL_SUITE.fusionOnnx.id}`;
+    setTimeout(() => setMmLoader(false, 100, 'ready'), 900);
   } catch (err) {
     console.warn('ONNX model failed to load; falling back to heuristic fusion.', err);
+    setMmLoader(false, 0, 'fallback');
     statusEl.innerHTML = 'MM emotion: <strong>fallback active</strong> · mode: text-only';
   }
 }
@@ -2425,6 +1207,95 @@ async function requestHFDeepDive(report, profile, cognitiveProfile, mmScores) {
   }
 }
 
+function parseTurns(inputText = '') {
+  if (inputText && typeof inputText === 'string') {
+    return inputText
+      .split(/\n+/)
+      .map((line, idx) => ({ id: `A${idx + 1}`, text: line.trim() }))
+      .filter(t => t.text.length > 0)
+      .map(t => {
+        const tokens = simpleTokens(t.text);
+        const words = Math.max(tokens.length, 1);
+        const hedging = (t.text.match(/\b(maybe|perhaps|sort of|kind of|i think|i guess|possibly)\b/gi) || []).length;
+        const fillers = (t.text.match(/\b(um+|uh+|erm+|like)\b/gi) || []).length;
+        const thirdPerson = tokens.filter(w => ['they', 'them', 'their', 'he', 'she'].includes(w)).length;
+        return {
+          ...t,
+          tokens: tokens.length,
+          lexical_diversity: +estimateMTLD(tokens).toFixed(3),
+          syntactic_complexity: +syntacticComplexity(t.text).toFixed(3),
+          filler_ratio: +(fillers / words).toFixed(3),
+          hedging_frequency: hedging,
+          pronouns: pronounRatio(tokens),
+          third_person_ratio: +(thirdPerson / words).toFixed(3)
+        };
+      });
+  }
+  return extractSubjectTurns();
+}
+
+function runJSMetrics(turn) {
+  return {
+    lexical_diversity: turn.lexical_diversity,
+    syntactic_complexity: turn.syntactic_complexity,
+    filler_ratio: turn.filler_ratio,
+    hedging_frequency: turn.hedging_frequency,
+    pronouns: turn.pronouns,
+    third_person_ratio: turn.third_person_ratio
+  };
+}
+
+async function runONNX(turnText, profileCtx, sentiment, mmScores) {
+  return runCognitiveLinguistV2(turnText, profileCtx, sentiment, mmScores);
+}
+
+function aggregateModes(turns, selectedModes, profile, cognitiveProfile, mmScores) {
+  const metrics = {};
+  if (selectedModes.includes('A')) metrics.mode_a = modeAFromTurns(turns, cognitiveProfile);
+  if (selectedModes.includes('B')) metrics.mode_b = modeBFromSession(profile, turns, mmScores);
+  if (selectedModes.includes('C')) metrics.mode_c = modeCFromTurns(turns, cognitiveProfile);
+  return metrics;
+}
+
+function computeTransitionAnalytics(turns, profile) {
+  return buildTransitionAnalytics(turns, profile);
+}
+
+function generateSessionArc(metrics, learningMode = true) {
+  const a = metrics.mode_a || { cognitive_load_trend: 'stable' };
+  const b = metrics.mode_b || { volatility_index: 'medium' };
+  const c = metrics.mode_c || { cohesion_score: 50, defensiveness_indicator: 'not elevated' };
+  return learningMode
+    ? `The session shows a ${a.cognitive_load_trend} cognitive-load trajectory with ${b.volatility_index} emotional volatility. *Why this matters:* shifts in load and emotion can reflect recall pressure, uncertainty, or threat sensitivity. Cohesion is ${c.cohesion_score}/100 with defensiveness marked as ${c.defensiveness_indicator}.`
+    : `Session trend: cognitive load ${a.cognitive_load_trend}, emotional volatility ${b.volatility_index}, cohesion ${c.cohesion_score}/100.`;
+}
+
+async function enrichWithHF(report, profile, cognitiveProfile, mmScores) {
+  const hf = await requestHFDeepDive(report, profile, cognitiveProfile, mmScores);
+  return {
+    enabled: !!hf.enabled,
+    model_used: hf.model || null,
+    follow_up_questions: hf.follow_up_questions || [],
+    deeper_explanation: hf.explanation || '',
+    status: hf.status || 'disabled',
+    error: hf.error || null
+  };
+}
+
+function selfCritique(output) {
+  const log = [...(output.self_critique_log || [])];
+  if (!output.transition_analytics?.length) {
+    log.push({ stage: 'data_integrity', issue: 'No transition analytics available.', action: 'Need at least 2 responses for transition analysis.' });
+  }
+  if (!output.metrics || Object.keys(output.metrics).length === 0) {
+    log.push({ stage: 'mode_mapping', issue: 'No active mode metrics produced.', action: 'Enable at least one mode (A/B/C).' });
+  }
+  if (output.deep_nlp?.enabled && output.deep_nlp.status !== 'ok') {
+    log.push({ stage: 'deep_nlp', issue: `Deep NLP status is ${output.deep_nlp.status}.`, action: 'Fallback to local metrics and retry deep NLP if desired.' });
+  }
+  return log;
+}
+
 async function generateLinguaInsightReport(profile, cognitiveProfile, mmScores, modes = LINGUA_MODES) {
   const turns = parseTurns();
   const metrics = aggregateModes(turns, modes, profile, cognitiveProfile, mmScores);
@@ -2470,19 +1341,21 @@ async function generateLinguaInsightReport(profile, cognitiveProfile, mmScores, 
     self_critique_log: selfCritiqueLog
   };
 
-  const hfDeepDive = await requestHFDeepDive(baseReport, profile, cognitiveProfile, mmScores);
-  if (hfDeepDive.enabled && hfDeepDive.status !== 'ok') {
+  const deepNlp = await enrichWithHF(baseReport, profile, cognitiveProfile, mmScores);
+  if (deepNlp.enabled && deepNlp.status !== 'ok') {
     selfCritiqueLog.push({
-      stage: 'hf_deep_nlp',
-      issue: `Hugging Face deep NLP unavailable (${hfDeepDive.status}).`,
+      stage: 'deep_nlp',
+      issue: `Hugging Face deep NLP unavailable (${deepNlp.status}).`,
       action: 'Using local psycholinguistic interpretation only.'
     });
   }
 
-  return {
+  const finalized = {
     ...baseReport,
-    hf_deep_dive: hfDeepDive
+    deep_nlp: deepNlp
   };
+  finalized.self_critique_log = selfCritique(finalized);
+  return finalized;
 }
 
 function renderLinguaInsightReport(report) {
@@ -2491,31 +1364,45 @@ function renderLinguaInsightReport(report) {
   const metaEl = document.getElementById('report-meta');
   const critiqueEl = document.getElementById('report-critique');
   if (!arcEl || !metaEl || !critiqueEl || !report) return;
-  const hfQuestions = report.hf_deep_dive?.follow_up_questions || [];
+  const deepNlp = report.deep_nlp || { enabled: false, status: 'disabled' };
+  const hfQuestions = deepNlp.follow_up_questions || [];
   const questionList = hfQuestions.length
     ? `<br><br><strong>Suggested follow-up questions</strong><br>${hfQuestions.map((q, i) => `${i + 1}. ${escapeHTML(q)}`).join('<br>')}`
     : '';
-  arcEl.innerHTML = (report.session_arc || 'No arc generated yet.') + questionList;
+  const deepExplanation = deepNlp.deeper_explanation
+    ? `<br><br><strong>Deep NLP enrichment</strong><br>${escapeHTML(deepNlp.deeper_explanation)}`
+    : '';
+  arcEl.innerHTML = (report.session_arc || 'No arc generated yet.') + deepExplanation + questionList;
   metaEl.textContent = `Modes: ${(report.modes_selected || []).join(', ') || 'none'} · ONNX available: ${report.onnx_status?.available ? 'yes' : 'no'} · Fallback: ${report.onnx_status?.fallback_used ? 'yes' : 'no'}`;
   const critiques = (report.self_critique_log || []).map(c => `• [${c.stage}] ${c.issue} → ${c.action}`).join('\n');
-  const hfLine = report.hf_deep_dive?.enabled
-    ? `\n• [hf_deep_nlp] status=${report.hf_deep_dive.status}${report.hf_deep_dive.model ? ` model=${report.hf_deep_dive.model}` : ''}${report.hf_deep_dive.error ? ` error=${report.hf_deep_dive.error}` : ''}`
+  const hfLine = deepNlp.enabled
+    ? `\n• [deep_nlp] status=${deepNlp.status}${deepNlp.model_used ? ` model=${deepNlp.model_used}` : ''}${deepNlp.error ? ` error=${deepNlp.error}` : ''}`
     : '';
   critiqueEl.textContent = (critiques || 'No major critique flags for this turn.') + hfLine;
 }
 
 function copyLinguaInsightJson() {
   const payload = window.latestLinguaInsightReport || profile?.latestLinguaInsightReport;
-  if (!payload) return;
+  if (!payload) {
+    flashUIFeedback('No JSON is available yet. Complete at least one analyzed turn.');
+    return;
+  }
   const text = JSON.stringify(payload, null, 2);
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).catch(() => {});
+    navigator.clipboard.writeText(text)
+      .then(() => flashUIFeedback('JSON copied to clipboard.', 'ok'))
+      .catch(() => flashUIFeedback('Clipboard copy failed in this browser context.'));
+  } else {
+    flashUIFeedback('Clipboard API is unavailable in this browser context.');
   }
 }
 
 function downloadLinguaInsightJson() {
   const payload = window.latestLinguaInsightReport || profile?.latestLinguaInsightReport;
-  if (!payload) return;
+  if (!payload) {
+    flashUIFeedback('No JSON is available yet. Complete at least one analyzed turn.');
+    return;
+  }
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -2524,6 +1411,7 @@ function downloadLinguaInsightJson() {
   a.click();
   a.remove();
   URL.revokeObjectURL(a.href);
+  flashUIFeedback('JSON download started.', 'ok');
 }
 
 /* ─── STATUS BAR UPDATE ─────────────────────────────────── */
@@ -2614,100 +1502,22 @@ function addMsg(role, text) {
   messages.scrollTop = messages.scrollHeight;
 }
 
-function showThinking(initialStatus = 'Starting analysis…') {
+function showThinking() {
   const messages = document.getElementById('chat-messages');
   const div = document.createElement('div');
   div.className = 'msg ai'; div.id = 'thinking-msg';
   div.innerHTML = `
     <div class="msg-role">Linguistic Insight Profiler</div>
     <div class="msg-body">
-      <div id="thinking-status">${escapeHTML(initialStatus)}</div>
       <div class="thinking-dots"><span></span><span></span><span></span></div>
     </div>`;
   messages.appendChild(div);
   messages.scrollTop = messages.scrollHeight;
 }
 
-function updateThinkingStatus(statusText) {
-  const status = document.getElementById('thinking-status');
-  if (status) status.textContent = statusText;
-}
-
 function removeThinking() {
   const t = document.getElementById('thinking-msg');
   if (t) t.remove();
-}
-
-function openChatInputPopup() {
-  const modal = document.getElementById('chat-input-popup');
-  const baseInput = document.getElementById('user-input');
-  const popupInput = document.getElementById('popup-user-input');
-  if (!modal || !baseInput || !popupInput || baseInput.disabled) return;
-  popupInput.value = baseInput.value;
-  updatePopupComposerMeta();
-  modal.classList.add('visible');
-  modal.setAttribute('aria-hidden', 'false');
-  setTimeout(() => popupInput.focus(), 10);
-}
-
-function closeChatInputPopup() {
-  const modal = document.getElementById('chat-input-popup');
-  if (!modal) return;
-  modal.classList.remove('visible');
-  modal.setAttribute('aria-hidden', 'true');
-  document.getElementById('user-input')?.focus();
-}
-
-function applyPopupDraft(sendImmediately = false) {
-  const baseInput = document.getElementById('user-input');
-  const popupInput = document.getElementById('popup-user-input');
-  if (!baseInput || !popupInput) return;
-  baseInput.value = popupInput.value;
-  baseInput.style.height = 'auto';
-  baseInput.style.height = Math.min(baseInput.scrollHeight, 120) + 'px';
-  closeChatInputPopup();
-  if (sendImmediately) send();
-}
-
-function updatePopupComposerMeta() {
-  const popupInput = document.getElementById('popup-user-input');
-  const charCount = document.getElementById('popup-char-count');
-  if (!popupInput || !charCount) return;
-  charCount.textContent = `${popupInput.value.length} chars`;
-}
-
-function formatProcessingError(stage, err) {
-  const msg = err?.message ? String(err.message) : 'Unknown processing error.';
-  const likelyNetwork = /network|fetch|timeout|http_/i.test(msg);
-  if (likelyNetwork) {
-    return `Network/API issue while ${stage}. Please verify connectivity and try again.`;
-  }
-  return `Unable to continue while ${stage}. ${msg.slice(0, 180)}`;
-}
-
-function isTransientProcessingError(err) {
-  const msg = err?.message ? String(err.message).toLowerCase() : '';
-  return /network|timeout|temporar|429|503|504|fetch|rate limit|econnreset/.test(msg);
-}
-
-function logPipelineError(stage, err, context = {}) {
-  const entry = {
-    id: `mm-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
-    stage,
-    message: err?.message || 'Unknown error',
-    stack: err?.stack || 'No stack available',
-    context: {
-      turn: profile?.turn || 0,
-      timestamp: new Date().toISOString(),
-      ...context
-    }
-  };
-
-  window.mmPipelineErrors = window.mmPipelineErrors || [];
-  window.mmPipelineErrors.push(entry);
-  if (window.mmPipelineErrors.length > 100) window.mmPipelineErrors.shift();
-  console.error(`[PipelineError:${entry.id}] stage=${stage}`, entry);
-  return entry;
 }
 
 function validateSystemWiring(currentProfile) {
@@ -2745,9 +1555,34 @@ function normalizeReportShape(report = {}) {
 let profile = null;
 let sessionActive = false;
 let lastFeatures = null;
-let inputAutoSelectTimer = null;
+let feedbackTimer = null;
 
-function beginSession() {
+function flashUIFeedback(message, type = 'error') {
+  const el = document.getElementById('ui-feedback');
+  if (!el) return;
+  el.textContent = message;
+  el.classList.remove('error', 'ok', 'visible');
+  el.classList.add(type === 'ok' ? 'ok' : 'error');
+  void el.offsetWidth;
+  el.classList.add('visible');
+  if (feedbackTimer) clearTimeout(feedbackTimer);
+  feedbackTimer = setTimeout(() => el.classList.remove('visible'), 1700);
+}
+
+function setSendButtonState(busy) {
+  const btn = document.getElementById('send-btn');
+  if (!btn) return;
+  btn.disabled = !!busy;
+  btn.textContent = busy ? 'Thinking…' : 'Send';
+}
+
+async function beginSession() {
+  if (sessionActive) {
+    flashUIFeedback('Session is already active.', 'ok');
+    return;
+  }
+
+async function beginSession() {
   document.getElementById('intro').classList.add('fading');
   setTimeout(() => {
     document.getElementById('intro').style.display = 'none';
@@ -2758,6 +1593,10 @@ function beginSession() {
   const wiringCheck = validateSystemWiring(profile);
   if (!wiringCheck.ok) {
     console.warn('System wiring check failed:', wiringCheck);
+  }
+  const chartReady = await ensureChartLoaded();
+  if (!chartReady) {
+    addMsg('sys', 'Visualization engine not ready yet. Retrying with reduced telemetry mode.');
   }
   initCharts();
   initMultimodalEngine();
@@ -2775,9 +1614,7 @@ function beginSession() {
     self_critique_log: [{ stage: 'data_integrity', issue: 'Insufficient turns at session start.', action: 'Collect at least 3 responses for trend stability.' }]
   });
   sessionActive = true;
-  document.getElementById('user-input').disabled = false;
-  document.getElementById('send-btn').disabled = false;
-  document.getElementById('popup-input-btn').disabled = false;
+  setSendButtonState(false);
   if (!wiringCheck.ok) {
     addMsg('sys', `Wiring check warning. Missing IDs: ${wiringCheck.missingDomIds.join(', ') || 'none'} · Missing accumulators: ${wiringCheck.missingAccumulators.join(', ') || 'none'}`);
   }
@@ -2788,114 +1625,39 @@ function beginSession() {
     profile.questionHistory.push({ t: opener.t, fw: null });
     addMsg('ai', opener.t);
     document.getElementById('user-input').focus();
-    scheduleInputAutoSelect();
   }, 500);
-  document.getElementById('popup-input-btn').disabled = false;
 }
 
 async function send() {
   const input = document.getElementById('user-input');
   const text = input.value.trim();
-  if (!text || !sessionActive) return;
-  closeChatInputPopup();
+  if (!sessionActive) {
+    flashUIFeedback('Start the session first to send responses.');
+    return;
+  }
+  if (!text) {
+    flashUIFeedback('Response is empty. Please type before sending.');
+    return;
+  }
 
   input.value = '';
   input.style.height = 'auto';
-  document.getElementById('send-btn').disabled = true;
-  document.getElementById('popup-input-btn').disabled = true;
+  setSendButtonState(true);
 
   addMsg('user', escapeHTML(text));
-  showThinking('Queued. Preparing your response for analysis…');
-  let progressHeartbeat = null;
-  let activeStage = 'initializing request';
-  const stageDurations = {};
+  showThinking();
 
   try {
-    const runStage = async (stageLabel, handler, options = {}) => {
-      const retries = Number.isInteger(options.retries) ? options.retries : 0;
-      const retryDelayMs = typeof options.retryDelayMs === 'number' ? options.retryDelayMs : 350;
-      let attempts = 0;
-      let lastErr = null;
-
-      while (attempts <= retries) {
-        const startedAt = performance.now();
-        const attemptLabel = attempts > 0 ? `${stageLabel} (retry ${attempts}/${retries})` : stageLabel;
-        attempts += 1;
-        lastErr = null;
-        activeStage = attemptLabel;
-        updateThinkingStatus(attemptLabel);
-        try {
-          const result = await handler();
-          stageDurations[stageLabel] = Math.round(performance.now() - startedAt);
-          return result;
-        } catch (err) {
-          lastErr = err;
-          const elapsed = Math.round(performance.now() - startedAt);
-          stageDurations[stageLabel] = elapsed;
-          const shouldRetry = attempts <= retries && isTransientProcessingError(err);
-          logPipelineError(stageLabel, err, { attempt: attempts, retries, elapsed_ms: elapsed, retrying: shouldRetry });
-          if (!shouldRetry) break;
-          updateThinkingStatus(`${stageLabel} stalled, retrying…`);
-          await new Promise(r => setTimeout(r, retryDelayMs));
-        }
-      }
-
-      throw lastErr || new Error(`Unknown stage failure (${stageLabel})`);
-    };
-
-    const runStageWithFallback = async (stageLabel, handler, fallbackFactory, options = {}) => {
-      activeStage = stageLabel;
-      try {
-        return await runStage(stageLabel, handler, options);
-      } catch (err) {
-        logPipelineError(stageLabel, err, { fallback_applied: true });
-        return fallbackFactory(err, null);
-        const logged = logPipelineError(stageLabel, err, { fallback_applied: true });
-        addMsg('sys', `Notice: ${stageLabel} degraded gracefully (ref: ${logged.id}).`);
-        return fallbackFactory(err, logged);
-      }
-    };
-
-    progressHeartbeat = setInterval(() => {
-      updateThinkingStatus(`Still working — ${activeStage}…`);
-    }, 2400);
-
     // Simulate brief processing pause (realistic + allows for animation to render)
-    await runStage('stabilizing input', async () => {
-      await new Promise(r => setTimeout(r, 420 + Math.random() * 280));
-    });
+    await new Promise(r => setTimeout(r, 420 + Math.random() * 280));
 
     // Update profile
-    const result = await runStage('extracting language features', async () => updateProfile(profile, text));
+    const result = updateProfile(profile, text);
     profile = result.profile;
     lastFeatures = result.features;
-    const mmScores = await runStageWithFallback(
-      'evaluating multimodal emotion signals',
-      async () => updateMultimodalEmotion(text, result.sentiment),
-      () => ({ analytical: 1, neutral: 0.7, fallback_used: true })
-    );
-    const cognitiveProfile = await runStageWithFallback(
-      'running deep cognitive analysis',
-      async () => runCognitiveLinguistV2(text, profile, result.sentiment, mmScores),
-      () => ({
-        profile_id: 'fallback',
-        status: 'degraded_fallback',
-        summary: 'Deep cognitive analysis unavailable for this turn.',
-        feature_vectors: { status: 'fallback', dominant_emotion: 'analytical' }
-      }),
-      { retries: 1, retryDelayMs: 500 }
-    );
-    const linguaInsightReport = await runStageWithFallback(
-      'building educational report',
-      async () => generateLinguaInsightReport(profile, cognitiveProfile, mmScores, getSelectedModesFromUI()),
-      () => ({
-        modes_selected: getSelectedModesFromUI(),
-        session_arc: 'Report generation temporarily unavailable. Core diagnostics still updated.',
-        onnx_status: { available: !!multimodal.session, fallback_used: true },
-        self_critique_log: [{ stage: 'report_generation', issue: 'generation_failed', action: 'retry_next_turn' }]
-      }),
-      { retries: 1, retryDelayMs: 650 }
-    );
+    const mmScores = await updateMultimodalEmotion(text, result.sentiment);
+    const cognitiveProfile = await runCognitiveLinguistV2(text, profile, result.sentiment, mmScores);
+    const linguaInsightReport = await generateLinguaInsightReport(profile, cognitiveProfile, mmScores, getSelectedModesFromUI());
     profile.latestCognitiveProfile = cognitiveProfile;
     profile.latestLinguaInsightReport = linguaInsightReport;
     window.latestCognitiveProfile = cognitiveProfile;
@@ -2912,18 +1674,14 @@ async function send() {
     console.log('Volatility:', profile.sentimentVolatility);
     console.log('Cognitive Linguist v2 JSON:', cognitiveProfile);
     console.log('LinguaInsight report JSON:', linguaInsightReport);
-    console.log('Stage durations (ms):', stageDurations);
     console.groupEnd();
 
     // Update all visualizations
-    await runStage('updating visual diagnostics', async () => {
-      updateCharts(profile);
-      renderScorePanel(profile);
-      updateStatus(profile);
-      updateNarrative(profile);
-    });
+    updateCharts(profile);
+    renderScorePanel(profile);
+    updateStatus(profile);
+    updateNarrative(profile);
 
-    clearInterval(progressHeartbeat);
     removeThinking();
 
     // Phase-1 → Reveal at turn 17
@@ -2932,8 +1690,8 @@ async function send() {
         addMsg('sys', 'Phase I complete. Generating full profile...');
         setTimeout(() => showReveal(), 1400);
       }, 600);
+      setSendButtonState(false);
       document.getElementById('send-btn').disabled = false;
-      document.getElementById('popup-input-btn').disabled = false;
       return;
     }
 
@@ -2941,29 +1699,25 @@ async function send() {
     const next = selectNextQuestion(profile, result.features);
     setTimeout(() => {
       addMsg('ai', next.text);
+      setSendButtonState(false);
       document.getElementById('send-btn').disabled = false;
-      document.getElementById('popup-input-btn').disabled = false;
       document.getElementById('user-input').focus();
-      scheduleInputAutoSelect();
     }, 180);
   } catch (err) {
-    clearInterval(progressHeartbeat);
-    logPipelineError(activeStage, err, { fatal: true, input_length: text.length });
     console.error('Send pipeline failed:', err);
     removeThinking();
+    addMsg('sys', 'Processing error detected. Pipeline kept state intact; please try sending again.');
+    flashUIFeedback('Unable to process that response right now.');
+    setSendButtonState(false);
     document.getElementById('send-btn').disabled = false;
-    document.getElementById('popup-input-btn').disabled = false;
-    scheduleInputAutoSelect();
-    const logged = logPipelineError(activeStage, err, { fatal: true, input_length: text.length });
-    console.error('Send pipeline failed:', err);
-    removeThinking();
-    addMsg('sys', `Processing error detected. ${formatProcessingError(activeStage, err)} (ref: ${logged.id})`);
-    document.getElementById('send-btn').disabled = false;
-    document.getElementById('popup-input-btn').disabled = false;
   }
 }
 
 function continueSession() {
+  if (!profile) {
+    flashUIFeedback('No active profile. Start a new session first.');
+    return;
+  }
   document.getElementById('reveal').classList.remove('visible');
   sessionActive = true;
   document.getElementById('phase-label').textContent = 'Phase II — Uncertainty Reduction';
@@ -3035,13 +1789,11 @@ function showReveal() {
 }
 
 function restartSession() {
+  flashUIFeedback('Starting a new session.', 'ok');
   document.getElementById('reveal').classList.remove('visible');
   document.getElementById('chat-messages').innerHTML = '';
   profile = initProfile();
   sessionActive = true;
-  document.getElementById('user-input').disabled = false;
-  document.getElementById('send-btn').disabled = false;
-  document.getElementById('popup-input-btn').disabled = false;
   updateCharts(profile);
   renderScorePanel(profile);
   updateStatus(profile);
@@ -3053,28 +1805,13 @@ function restartSession() {
   setTimeout(() => {
     addMsg('ai', opener.t);
     document.getElementById('user-input').focus();
-    scheduleInputAutoSelect();
   }, 200);
-  document.getElementById('popup-input-btn').disabled = false;
 }
 
 function escapeHTML(str) {
   const d = document.createElement('div');
   d.textContent = str;
   return d.innerHTML;
-}
-
-function scheduleInputAutoSelect() {
-  if (inputAutoSelectTimer) clearTimeout(inputAutoSelectTimer);
-  inputAutoSelectTimer = setTimeout(() => {
-    const input = document.getElementById('user-input');
-    const popup = document.getElementById('chat-input-popup');
-    if (!sessionActive || !input || input.disabled) return;
-    if (popup?.classList.contains('visible')) return;
-    input.focus({ preventScroll: true });
-    const len = input.value.length;
-    input.setSelectionRange(len, len);
-  }, 15000);
 }
 
 /* ─── INPUT BEHAVIOR ────────────────────────────────────── */
@@ -3084,50 +1821,13 @@ document.getElementById('user-input').addEventListener('keydown', e => {
     e.preventDefault();
     send();
   }
-  scheduleInputAutoSelect();
 });
 
 document.getElementById('user-input').addEventListener('input', function () {
   this.style.height = 'auto';
   this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-  scheduleInputAutoSelect();
 });
-
-document.getElementById('user-input').addEventListener('click', function () {
-  this.focus({ preventScroll: true });
-  const len = this.value.length;
-  this.setSelectionRange(len, len);
-  scheduleInputAutoSelect();
-});
-
-document.getElementById('user-input').addEventListener('touchstart', function () {
-  this.focus({ preventScroll: true });
-  scheduleInputAutoSelect();
-}, { passive: true });
-
-document.getElementById('popup-user-input').addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeChatInputPopup();
-  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') applyPopupDraft(true);
-  scheduleInputAutoSelect();
-});
-
-document.getElementById('popup-user-input').addEventListener('input', () => {
-  updatePopupComposerMeta();
-  scheduleInputAutoSelect();
-document.getElementById('chat-input-popup').addEventListener('click', e => {
-  if (e.target?.id === 'chat-input-popup') closeChatInputPopup();
-});
-
-document.getElementById('popup-user-input').addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeChatInputPopup();
-  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') applyPopupDraft(true);
-});
-
-document.getElementById('chat-input-popup').addEventListener('click', e => {
-  if (e.target?.id === 'chat-input-popup') closeChatInputPopup();
-});
-
-
+}
 
 const SCHEMA = {
   "dimensions": {
@@ -4286,8 +2986,6 @@ const SCHEMA = {
   }
 };
 
-
-
 /* ───────── FULL PARITY ENGINE ───────── */
 
 function evaluateCondition(val, cond) {
@@ -4424,8 +3122,6 @@ function updateAccuracy(profile, schema) {
   return profile;
 }
 
-
-
 /* ───────── WARM QUESTION SYSTEM ───────── */
 
 function entropy(scores) {
@@ -4459,8 +3155,6 @@ function selectNextQuestionWarm(profile) {
     mode: "FOCUS"
   };
 }
-
-
 
 /* ===== 2026 RESEARCH-ALIGNED OVERRIDE ENGINE ===== */
 (function(){
@@ -5068,24 +3762,76 @@ function selectNextQuestionWarm(profile) {
   renderScorePanel = function(profile){
     const panel = document.getElementById('scores-col');
     if (!panel) return;
-    const groups = FRAMEWORKS.map(fw => {
-      const rows = fw.dims.map(d => {
+    const sectionHead = panel.querySelector('.viz-zone-head');
+    panel.innerHTML = '';
+    if (sectionHead) panel.appendChild(sectionHead);
+    const fragment = document.createDocumentFragment();
+
+    FRAMEWORKS.forEach(fw => {
+      const group = document.createElement('div');
+      group.className = 'fw-group';
+
+      const header = document.createElement('div');
+      header.className = 'fw-group-header';
+      header.textContent = fw.label;
+      group.appendChild(header);
+
+      fw.dims.forEach(d => {
         const a = profile.accumulators[d.k];
         const pct = Math.round(a.mean * 100);
         const conf = Math.round(a.confidence * 100);
+
+        const row = document.createElement('div');
+        row.className = 'fw-dim score-updated';
+        const hue = Math.round(8 + (pct * 1.16)); // red→amber→green across 0-100
+        row.style.setProperty('--score-hue', `${Math.max(8, Math.min(124, hue))}`);
+
+        const topRow = document.createElement('div');
+        topRow.className = 'fw-dim-row';
+
+        const dimName = document.createElement('span');
+        dimName.className = 'fw-dim-name';
+        dimName.textContent = d.label;
+
+        const barWrap = document.createElement('div');
+        barWrap.className = 'fw-bar-wrap';
+        const bar = document.createElement('div');
+        bar.className = 'fw-bar';
+        bar.style.width = `${pct}%`;
+        barWrap.appendChild(bar);
+
+        const score = document.createElement('span');
+        score.className = 'fw-score';
+        score.textContent = `${pct}`;
+
+        const confEl = document.createElement('span');
+        confEl.className = 'fw-conf';
+        confEl.textContent = `${conf}%`;
+
+        topRow.append(dimName, barWrap, score, confEl);
+
+        const evRow = document.createElement('div');
+        evRow.className = 'fw-evidence';
         const evidence = (a.words || []).slice(0, 5);
-        return `<div class="fw-dim">
-          <div class="fw-dim-row">
-            <span class="fw-dim-name">${d.label}</span>
-            <div class="fw-bar-wrap"><div class="fw-bar" style="width:${pct}%"></div></div>
-            <span class="fw-score">${pct}</span>
-            <span class="fw-conf">${conf}%</span>
-          </div>
-          <div class="fw-evidence">${evidence.length ? `Evidence: ${evidence.map(w => `<em>${w}</em>`).join(', ')}` : 'Hover for evidence — no signals yet.'}</div>
-        </div>`;
-      }).join('');
-      return `<div class="fw-group"><div class="fw-group-header">${fw.label}</div>${rows}</div>`;
-    }).join('');
-    panel.innerHTML = groups;
+        if (evidence.length) {
+          evRow.append('Evidence: ');
+          evidence.forEach((w, idx) => {
+            const em = document.createElement('em');
+            em.textContent = w;
+            evRow.appendChild(em);
+            if (idx < evidence.length - 1) evRow.append(', ');
+          });
+        } else {
+          evRow.textContent = 'Hover for evidence — no signals yet.';
+        }
+
+        row.append(topRow, evRow);
+        group.appendChild(row);
+      });
+
+      fragment.appendChild(group);
+    });
+
+    panel.appendChild(fragment);
   };
 })();

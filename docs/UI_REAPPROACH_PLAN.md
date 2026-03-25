@@ -208,3 +208,11 @@ The UI re-approach is complete when:
 ## 8) Immediate next step (recommended)
 
 Execute **Phase 0 + Phase 1** first, in one PR, with strict “no behavior change” scope. This gives the biggest stability gain while minimizing risk to profiling functionality.
+
+
+## 9) March 2026 Execution Update
+
+- Runtime JavaScript has been moved back to `src/main.js` and is loaded from `index.html` via a single deferred script tag.
+- `src/main.js` is now kept in parity with the previously inline scripts to reduce bootstrap breakage risk.
+- ONNX initialization includes visible progress feedback (spinner + progress bar + label + percentage).
+- `styles/app.css` now includes matching `.mm-loader*` styles so extracted-CSS migrations remain consistent.
