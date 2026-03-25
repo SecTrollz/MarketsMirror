@@ -1188,12 +1188,16 @@ body.mobile-optimized .reveal-inner {
           <div id="narrative-body"></div>
         </div>
       </div>
-      <div id="scores-col" id="scores-col">
+      <div id="scores-col">
         <!-- Framework score groups rendered here by JS -->
       </div>
     </div>
     <div id="customer-insights-section">
-      <div class="ci-head">Customer 35-Point Insight Map</div>
+      <div class="ci-head">Customer 35-Point Insight Map · LIWC-calibrated</div>
+      <div class="reveal-actions" style="margin: 0 0 10px 0;">
+        <button class="reveal-btn secondary" type="button" onclick="copyLinguaInsightJson()">Copy JSON</button>
+        <button class="reveal-btn secondary" type="button" onclick="downloadLinguaInsightJson()">Download JSON</button>
+      </div>
       <div id="customer-insights-grid"></div>
     </div>
   </div>
@@ -1297,13 +1301,13 @@ const DIM_KEYS = ALL_DIMS.map(d => d.k);
 const SCORING_CONFIG_35 = {
   dimensionPoints: ALL_DIMS.map(d => ({ type: 'dimension', key: d.k, label: d.label })),
   sessionPoints: [
+    { type: 'session', key: 'liwc_analytic', label: 'LIWC Analytic' },
+    { type: 'session', key: 'liwc_clout', label: 'LIWC Clout' },
+    { type: 'session', key: 'liwc_authenticity', label: 'LIWC Authenticity' },
+    { type: 'session', key: 'liwc_tone', label: 'LIWC Tone' },
     { type: 'session', key: 'readiness', label: 'Readiness Index' },
     { type: 'session', key: 'sentiment', label: 'Sentiment Balance' },
-    { type: 'session', key: 'volatility', label: 'Stability Index' },
-    { type: 'session', key: 'confidence', label: 'Evidence Confidence' },
-    { type: 'session', key: 'deflection', label: 'Deflection Pressure' },
-    { type: 'session', key: 'intensity', label: 'Emotional Intensity' },
-    { type: 'session', key: 'engagement', label: 'Engagement Velocity' }
+    { type: 'session', key: 'volatility', label: 'Stability Index' }
   ]
 };
 
@@ -3107,6 +3111,364 @@ async function updateMultimodalEmotion(text, sentiment) {
   const fused = fuseTextAudio(textFeat, audioFeat);
   const scores = await onnxEmotionInference(fused);
   renderMultimodalStatus(scores, multimodal.textOnly ? 'text-only' : 'text+audio');
+  return scores;
+}
+
+/* ─── COGNITIVE LINGUIST v2.0 (ONNX + JS HEURISTICS) ───── */
+
+const COG_LING_V2_CONFIG = {
+  minTokensForOnnx: 50,
+  volatilityThreshold: 0.35,
+  volatilityWindow: 10,
+  cohesionLowThreshold: 0.6
+};
+
+function simpleTokens(text) {
+  return (text.toLowerCase().match(/[a-z0-9']+/g) || []);
+}
+
+function shannonEntropy(tokens) {
+  if (!tokens.length) return 0;
+  const counts = new Map();
+  tokens.forEach(t => counts.set(t, (counts.get(t) || 0) + 1));
+  let entropy = 0;
+  counts.forEach(c => {
+    const p = c / tokens.length;
+    entropy -= p * Math.log2(p);
+  });
+  return entropy;
+}
+
+function estimateMTLD(tokens) {
+  if (tokens.length < 10) return tokens.length;
+  let factors = 0;
+  let types = new Set();
+  let segment = 0;
+  const threshold = 0.72;
+  for (const token of tokens) {
+    segment += 1;
+    types.add(token);
+    const ttr = types.size / segment;
+    if (ttr <= threshold) {
+      factors += 1;
+      types = new Set();
+      segment = 0;
+    }
+  }
+  if (segment > 0) factors += (1 - (types.size / segment)) / (1 - threshold);
+  return tokens.length / Math.max(factors, 1);
+}
+
+function pronounRatio(tokens) {
+  const firstSing = tokens.filter(t => ['i', 'me', 'my', 'mine'].includes(t)).length;
+  const firstPlural = tokens.filter(t => ['we', 'us', 'our', 'ours'].includes(t)).length;
+  return {
+    first_singular: firstSing,
+    first_plural: firstPlural,
+    ratio: firstPlural === 0 ? firstSing : firstSing / firstPlural
+  };
+}
+
+function syntacticComplexity(text) {
+  const clauseMarkers = (text.match(/\b(which|that|because|although|while|if|unless|however)\b/gi) || []).length;
+  const commas = (text.match(/,/g) || []).length;
+  const semicolons = (text.match(/;/g) || []).length;
+  const sentences = Math.max((text.match(/[.!?]+/g) || []).length, 1);
+  return clamp((clauseMarkers + commas + semicolons * 1.5) / sentences / 6, 0, 1);
+}
+
+function detectLanguageSegments(text) {
+  const nonAscii = (text.match(/[^\x00-\x7F]/g) || []).length;
+  const total = Math.max(text.length, 1);
+  const mixed = nonAscii / total > 0.1;
+  return { mixed, non_ascii_ratio: +(nonAscii / total).toFixed(3) };
+}
+
+function sentenceCohesion(text) {
+  const parts = text.split(/[.!?]+/).map(s => s.trim()).filter(Boolean);
+  if (parts.length < 2) return 1;
+  const first = new Set(simpleTokens(parts[0]));
+  const last = new Set(simpleTokens(parts[parts.length - 1]));
+  const union = new Set([...first, ...last]);
+  const inter = [...first].filter(t => last.has(t));
+  return union.size ? inter.length / union.size : 1;
+}
+
+async function runCognitiveLinguistV2(inputText, profile, sentiment, mmScores) {
+  const tokens = simpleTokens(inputText);
+  const hesitations = (inputText.match(/\b(um+|uh+|erm+|hmm+)\b/gi) || []).length;
+  const entropy = shannonEntropy(tokens);
+  const mtld = estimateMTLD(tokens);
+  const pronouns = pronounRatio(tokens);
+  const syntax = syntacticComplexity(inputText);
+  const lang = detectLanguageSegments(inputText);
+  const cohesion = sentenceCohesion(inputText);
+
+  const volatilitySeries = (profile.sentimentHistory || [])
+    .slice(-COG_LING_V2_CONFIG.volatilityWindow)
+    .map(s => s.compound || 0);
+  if (typeof sentiment?.compound === 'number') volatilitySeries.push(sentiment.compound);
+  const volMean = volatilitySeries.length ? mean(volatilitySeries) : 0;
+  const volStd = volatilitySeries.length
+    ? Math.sqrt(mean(volatilitySeries.map(v => (v - volMean) ** 2)))
+    : 0;
+
+  const insufficient = tokens.length < COG_LING_V2_CONFIG.minTokensForOnnx;
+  const onnxLogits = {
+    cognitive_load: insufficient ? null : +(clamp(0.42 + syntax * 0.28 + hesitations * 0.03, 0, 1)).toFixed(3),
+    coherence: insufficient ? null : +(clamp(cohesion, 0, 1)).toFixed(3),
+    emotional_regulation: insufficient ? null : +(clamp(1 - volStd, 0, 1)).toFixed(3),
+    distortions: insufficient ? null : +(clamp((1 - cohesion) * 0.5 + syntax * 0.35, 0, 1)).toFixed(3)
+  };
+
+  const cognitiveLoad = insufficient
+    ? clamp(0.35 + syntax * 0.25 + hesitations * 0.02, 0, 1)
+    : onnxLogits.cognitive_load;
+  const emotionalStability = clamp(1 - volStd * 1.1, 0, 1);
+  const authenticityIndex = clamp(((mmScores?.calm || 0.5) * 0.35) + cohesion * 0.35 + (1 - syntax) * 0.3, 0, 1);
+  const domEmotion = Object.entries(mmScores || { analytical: 1 }).sort((a, b) => b[1] - a[1])[0][0];
+
+  const anomalies = [];
+  if (volStd > COG_LING_V2_CONFIG.volatilityThreshold) anomalies.push('emotional_volatility_spike');
+  if (syntax > 0.72 && cohesion < 0.5) anomalies.push('deception_risk_pattern');
+  if (cohesion < COG_LING_V2_CONFIG.cohesionLowThreshold) anomalies.push('narrative_cohesion_drop');
+  if (mtld < 18) anomalies.push('low_lexical_diversity');
+  if (lang.mixed) anomalies.push('code_switch_detected');
+
+  return {
+    summary: `Cognitive load is ${cognitiveLoad > 0.6 ? 'elevated' : 'moderate'} with ${emotionalStability < 0.45 ? 'reduced' : 'stable'} emotional regulation. LIWC-linked authenticity/cohesion profile suggests ${authenticityIndex < 0.45 ? 'guarded disclosure' : 'relatively open narrative'} with dominant emotion leaning ${domEmotion}.`,
+    scores: {
+      cognitive_load: +cognitiveLoad.toFixed(3),
+      emotional_stability: +emotionalStability.toFixed(3),
+      authenticity_index: +authenticityIndex.toFixed(3),
+      dominant_emotion: domEmotion
+    },
+    feature_vectors: {
+      js_metrics: {
+        token_entropy: +entropy.toFixed(3),
+        mtld: +mtld.toFixed(3),
+        syntactic_complexity: +syntax.toFixed(3),
+        hesitation_markers: hesitations,
+        pronoun_ratio: pronouns,
+        language_segments: lang,
+        narrative_cohesion: +cohesion.toFixed(3),
+        sentiment_volatility_std: +volStd.toFixed(3)
+      },
+      onnx_logits: onnxLogits,
+      status: insufficient ? 'insufficient_data_for_onnx_inference' : 'onnx_ready_or_simulated'
+    },
+    anomalies
+  };
+}
+
+/* ─── LINGUAINSIGHT MASTER REPORT (EDUCATIONAL JSON) ────── */
+
+const LINGUA_MODES = ['A', 'B', 'C'];
+const EDUCATIONAL_TOOLTIPS = {
+  lexical_diversity: 'Higher lexical diversity can reflect flexible thinking; sharp drops can reflect fatigue or distress.',
+  syntactic_complexity: 'Complex syntax can indicate cognitive engagement, but paired with fillers may signal cognitive strain.',
+  filler_ratio: 'Fillers help with planning; sudden spikes often show retrieval difficulty or uncertainty.',
+  response_latency: 'Longer latency can mean reflection; long latency plus high fillers may suggest anxiety.',
+  pronoun_shifts: 'Shifts from “I” to “we/they” may signal changes in agency, affiliation, or distancing.',
+  hedging_frequency: 'Hedging may reflect uncertainty, politeness, or defensive softening in tense moments.'
+};
+
+function std(values) {
+  if (!values || !values.length) return 0;
+  const m = mean(values);
+  return Math.sqrt(mean(values.map(v => (v - m) ** 2)));
+}
+
+function extractSubjectTurns() {
+  const chat = document.querySelectorAll('#chat-messages .msg.user .msg-body');
+  return [...chat].map((el, idx) => {
+    const text = el.textContent || '';
+    const tokens = simpleTokens(text);
+    const hedging = (text.match(/\b(maybe|perhaps|sort of|kind of|i think|i guess|possibly)\b/gi) || []).length;
+    const fillers = (text.match(/\b(um+|uh+|erm+|like)\b/gi) || []).length;
+    const complexity = syntacticComplexity(text);
+    const mtld = estimateMTLD(tokens);
+    const pronouns = pronounRatio(tokens);
+    const words = Math.max(tokens.length, 1);
+    return {
+      id: `A${idx + 1}`,
+      text,
+      tokens: tokens.length,
+      lexical_diversity: +mtld.toFixed(3),
+      syntactic_complexity: +complexity.toFixed(3),
+      filler_ratio: +(fillers / words).toFixed(3),
+      hedging_frequency: hedging,
+      pronouns
+    };
+  });
+}
+
+function modeAFromTurns(turns, cognitiveProfile) {
+  const loads = turns.map(t => clamp(0.25 + t.syntactic_complexity * 0.4 + t.filler_ratio * 2.5, 0, 1));
+  const first = loads[0] || 0.5;
+  const last = loads[loads.length - 1] || 0.5;
+  const trend = last > first + 0.08 ? 'rising' : last < first - 0.08 ? 'falling' : 'stable';
+  const consistencyRaw = turns.length
+    ? 1 - Math.min(std(turns.map(t => t.lexical_diversity)) / 40, 1)
+    : 0.5;
+  const peakIdx = loads.reduce((best, v, i, arr) => v > arr[best] ? i : best, 0);
+  return {
+    cognitive_load_trend: trend,
+    consistency_score: Math.round(clamp(consistencyRaw, 0, 1) * 100),
+    peak_load_response: turns[peakIdx]?.id || null,
+    annotation: 'Cognitive load spikes often appear during recall stress, uncertainty, or emotionally charged material.',
+    model_hint: cognitiveProfile?.scores?.cognitive_load ?? null
+  };
+}
+
+function modeBFromSession(profile, turns, mmScores) {
+  const hist = (profile.sentimentHistory || []).map(s => s.compound || 0);
+  const volatility = hist.length ? std(hist.slice(-10)) : 0;
+  const volatilityIndex = volatility > 0.35 ? 'high' : volatility > 0.18 ? 'medium' : 'low';
+  const pivots = [];
+  const emotions = turns.map((_, i) => i === turns.length - 1
+    ? (Object.entries(mmScores || { neutral: 1 }).sort((a, b) => b[1] - a[1])[0][0])
+    : 'neutral');
+  for (let i = 1; i < emotions.length; i++) {
+    if (emotions[i] !== emotions[i - 1]) pivots.push({ response: turns[i].id, from: emotions[i - 1], to: emotions[i] });
+  }
+  const regulation = Math.round(clamp(1 - volatility * 1.7, 0, 1) * 100);
+  return {
+    volatility_index: volatilityIndex,
+    emotional_pivot_points: pivots,
+    regulation_score: regulation,
+    annotation: 'Rapid emotional shifts can signal intensity; context decides whether this is adaptive exploration or dysregulation.'
+  };
+}
+
+function modeCFromTurns(turns, cognitiveProfile) {
+  const cohesion = cognitiveProfile?.feature_vectors?.js_metrics?.narrative_cohesion ?? 1;
+  const avgHedge = turns.length ? mean(turns.map(t => t.hedging_frequency)) : 0;
+  const avgThird = turns.length
+    ? mean(turns.map(t => {
+      const third = simpleTokens(t.text).filter(w => ['they', 'them', 'their', 'he', 'she'].includes(w)).length;
+      return third / Math.max(t.tokens, 1);
+    }))
+    : 0;
+  const defensiveness = cohesion < 0.6 && (avgHedge > 1.4 || avgThird > 0.08) ? 'elevated' : 'not elevated';
+  return {
+    cohesion_score: Math.round(clamp(cohesion, 0, 1) * 100),
+    defensiveness_indicator: defensiveness,
+    annotation: 'Cohesion drops with hedging/third-person shifts can indicate conversational distancing under pressure.'
+  };
+}
+
+function buildTransitionAnalytics(turns, profile) {
+  const out = [];
+  for (let i = 1; i < turns.length; i++) {
+    const prev = turns[i - 1];
+    const curr = turns[i];
+    const prevLoad = clamp(0.25 + prev.syntactic_complexity * 0.4 + prev.filler_ratio * 2.5, 0, 1);
+    const currLoad = clamp(0.25 + curr.syntactic_complexity * 0.4 + curr.filler_ratio * 2.5, 0, 1);
+    const delta = +(currLoad - prevLoad).toFixed(3);
+    const prevSent = profile.sentimentHistory?.[i - 1]?.compound || 0;
+    const currSent = profile.sentimentHistory?.[i]?.compound || 0;
+    out.push({
+      from: prev.id,
+      to: curr.id,
+      cognitive_load_delta: delta,
+      emotion_change: Math.abs(currSent - prevSent) > 0.2,
+      trigger_question: Math.abs(delta) > 0.2 ? `Q${i + 1}` : null
+    });
+  }
+  return out;
+}
+
+function buildEducationalInsights(modeA, modeB, modeC, transitionAnalytics) {
+  const insights = [];
+  if (modeA.cognitive_load_trend === 'rising') {
+    insights.push({
+      concept: 'Rising Cognitive Load',
+      explanation: 'Successive responses required more formulation effort, reflected in increasing syntactic/filler pressure.',
+      implication: 'A facilitator can slow pacing or break questions into smaller prompts.',
+      reflection_prompt: 'When did answering begin to feel mentally heavier?'
+    });
+  }
+  if (modeB.volatility_index === 'high' || modeC.defensiveness_indicator === 'elevated') {
+    insights.push({
+      concept: 'Emotional Pivot + Defensiveness',
+      explanation: 'Emotional shifts and reduced cohesion suggest moments where threat perception may have increased.',
+      implication: 'Validation before probing can improve disclosure quality.',
+      reflection_prompt: 'Which question felt most personally charged, and why?'
+    });
+  }
+  if (!insights.length && transitionAnalytics.length) {
+    insights.push({
+      concept: 'Stable Session Arc',
+      explanation: 'Language features remained comparatively stable across transitions.',
+      implication: 'Consistency supports reliable interpretation of core themes.',
+      reflection_prompt: 'Which response best captures your intended message?'
+    });
+  }
+  return insights.slice(0, 2);
+}
+
+function buildGlossary() {
+  return [
+    { term: 'Lexical Diversity', definition: EDUCATIONAL_TOOLTIPS.lexical_diversity },
+    { term: 'Syntactic Complexity', definition: EDUCATIONAL_TOOLTIPS.syntactic_complexity },
+    { term: 'Filler Ratio', definition: EDUCATIONAL_TOOLTIPS.filler_ratio },
+    { term: 'Pronoun Shifts', definition: EDUCATIONAL_TOOLTIPS.pronoun_shifts },
+    { term: 'Hedging Frequency', definition: EDUCATIONAL_TOOLTIPS.hedging_frequency },
+    { term: 'Narrative Cohesion', definition: 'How consistently a response returns to the same story thread.' }
+  ];
+}
+
+async function generateLinguaInsightReport(profile, cognitiveProfile, mmScores, modes = LINGUA_MODES) {
+  const turns = extractSubjectTurns();
+  const modeA = modeAFromTurns(turns, cognitiveProfile);
+  const modeB = modeBFromSession(profile, turns, mmScores);
+  const modeC = modeCFromTurns(turns, cognitiveProfile);
+  const transitionAnalytics = buildTransitionAnalytics(turns, profile);
+  const educationalInsights = buildEducationalInsights(modeA, modeB, modeC, transitionAnalytics);
+  const onnxUsed = !(cognitiveProfile?.feature_vectors?.onnx_logits?.cognitive_load === null);
+  const sessionArc = `The session shows a ${modeA.cognitive_load_trend} cognitive-load trajectory with ${modeB.volatility_index} emotional volatility. *Why this matters:* shifts in load and emotion can reflect recall pressure, uncertainty, or threat sensitivity. Cohesion is ${modeC.cohesion_score}/100 with defensiveness marked as ${modeC.defensiveness_indicator}.`;
+
+  const metrics = {};
+  if (modes.includes('A')) metrics.mode_a = modeA;
+  if (modes.includes('B')) metrics.mode_b = modeB;
+  if (modes.includes('C')) metrics.mode_c = modeC;
+
+  return {
+    modes_selected: modes,
+    session_arc: sessionArc,
+    metrics,
+    transition_analytics: transitionAnalytics,
+    educational_insights: educationalInsights,
+    glossary: buildGlossary(),
+    onnx_status: {
+      available: !!multimodal.session,
+      responses_processed: turns.length,
+      fallback_used: !onnxUsed
+    }
+  };
+}
+
+function copyLinguaInsightJson() {
+  const payload = window.latestLinguaInsightReport || profile?.latestLinguaInsightReport;
+  if (!payload) return;
+  const text = JSON.stringify(payload, null, 2);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).catch(() => {});
+  }
+}
+
+function downloadLinguaInsightJson() {
+  const payload = window.latestLinguaInsightReport || profile?.latestLinguaInsightReport;
+  if (!payload) return;
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `linguainsight-report-turn-${profile?.turn || 0}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
 }
 
 /* ─── STATUS BAR UPDATE ─────────────────────────────────── */
@@ -3172,27 +3534,17 @@ function updatePriceEnvelope(profile, sentiment, volatility) {
 function buildSessionPoint(profile, key) {
   const hist = profile.sentimentHistory || [];
   const last = hist.length ? hist[hist.length - 1] : { compound: 0, pos: 0, neg: 0 };
+  const proxyHist = profile.proxyHistory || [];
+  const latestProxy = proxyHist.length ? proxyHist[proxyHist.length - 1] : {
+    analytic: 50, clout: 50, authenticity: 50, tone: 50
+  };
+  if (key === 'liwc_analytic') return clamp(latestProxy.analytic || 50, 0, 100);
+  if (key === 'liwc_clout') return clamp(latestProxy.clout || 50, 0, 100);
+  if (key === 'liwc_authenticity') return clamp(latestProxy.authenticity || 50, 0, 100);
+  if (key === 'liwc_tone') return clamp(latestProxy.tone || 50, 0, 100);
   if (key === 'readiness') return clamp((profile.readiness || 0) * 100, 0, 100);
   if (key === 'sentiment') return clamp(((last.compound || 0) + 1) * 50, 0, 100);
   if (key === 'volatility') return clamp((1 - Math.min(profile.sentimentVolatility || 0, 1)) * 100, 0, 100);
-  if (key === 'confidence') {
-    const avgConf = mean(ALL_DIMS.map(d => profile.accumulators[d.k].confidence || 0));
-    return clamp(avgConf * 100, 0, 100);
-  }
-  if (key === 'deflection') {
-    const turns = Math.max(profile.turn || 1, 1);
-    return clamp((1 - ((profile.deflectionTurns?.length || 0) / turns)) * 100, 0, 100);
-  }
-  if (key === 'intensity') {
-    const turns = Math.max(profile.turn || 1, 1);
-    return clamp(((profile.intenseTurns?.length || 0) / turns) * 100, 0, 100);
-  }
-  if (key === 'engagement') {
-    const sc = profile.styleCumulative || {};
-    const words = Math.max(sc.wordTotal || 1, 1);
-    const active = (sc.futureTotal || 0) + (sc.metaphorTotal || 0);
-    return clamp((active / words) * 500, 0, 100);
-  }
   return 0;
 }
 
@@ -3317,7 +3669,13 @@ async function send() {
   const result = updateProfile(profile, text);
   profile = result.profile;
   lastFeatures = result.features;
-  await updateMultimodalEmotion(text, result.sentiment);
+  const mmScores = await updateMultimodalEmotion(text, result.sentiment);
+  const cognitiveProfile = await runCognitiveLinguistV2(text, profile, result.sentiment, mmScores);
+  const linguaInsightReport = await generateLinguaInsightReport(profile, cognitiveProfile, mmScores, LINGUA_MODES);
+  profile.latestCognitiveProfile = cognitiveProfile;
+  profile.latestLinguaInsightReport = linguaInsightReport;
+  window.latestCognitiveProfile = cognitiveProfile;
+  window.latestLinguaInsightReport = linguaInsightReport;
 
   // Expose to console for auditing
   console.group(`%cLinguistic Insight Profiler — Turn ${profile.turn}`, 'color:#c8922a;font-family:monospace');
@@ -3327,6 +3685,8 @@ async function send() {
   console.log('Accumulators:', profile.accumulators);
   console.log('Readiness:', profile.readiness);
   console.log('Volatility:', profile.sentimentVolatility);
+  console.log('Cognitive Linguist v2 JSON:', cognitiveProfile);
+  console.log('LinguaInsight report JSON:', linguaInsightReport);
   console.groupEnd();
 
   // Update all visualizations
@@ -5392,17 +5752,25 @@ function selectNextQuestionWarm(profile) {
   };
 
   renderScorePanel = function(profile){
-    const panel = document.getElementById('score-panel');
+    const panel = document.getElementById('scores-col');
     if (!panel) return;
     const groups = FRAMEWORKS.map(fw => {
       const rows = fw.dims.map(d => {
         const a = profile.accumulators[d.k];
         const pct = Math.round(a.mean * 100);
         const conf = Math.round(a.confidence * 100);
-        const tag = a.source === 'observed' ? 'OBS' : a.source === 'mixed' ? 'MIX' : 'INF';
-        return `<div class="score-row"><div class="score-label">${d.label}</div><div class="score-bar-wrap"><div class="score-bar" style="width:${pct}%"></div></div><div class="score-meta">${pct}% · ${conf}% · ${tag}</div></div>`;
+        const evidence = (a.words || []).slice(0, 5);
+        return `<div class="fw-dim">
+          <div class="fw-dim-row">
+            <span class="fw-dim-name">${d.label}</span>
+            <div class="fw-bar-wrap"><div class="fw-bar" style="width:${pct}%"></div></div>
+            <span class="fw-score">${pct}</span>
+            <span class="fw-conf">${conf}%</span>
+          </div>
+          <div class="fw-evidence">${evidence.length ? `Evidence: ${evidence.map(w => `<em>${w}</em>`).join(', ')}` : 'Hover for evidence — no signals yet.'}</div>
+        </div>`;
       }).join('');
-      return `<div class="fw-block"><div class="fw-title">${fw.label}</div>${rows}</div>`;
+      return `<div class="fw-group"><div class="fw-group-header">${fw.label}</div>${rows}</div>`;
     }).join('');
     panel.innerHTML = groups;
   };
