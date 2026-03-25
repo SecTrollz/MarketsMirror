@@ -1978,6 +1978,9 @@ function ensureChartLoaded(timeoutMs = 5000) {
     tag.onerror = () => {
       settle(false);
     };
+    const timer = setTimeout(() => settle(!!window.Chart), timeoutMs);
+    tag.onload = () => settle(!!window.Chart);
+    tag.onerror = () => settle(false);
     document.head.appendChild(tag);
   });
   return chartLoaderPromise;
