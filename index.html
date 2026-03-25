@@ -3025,10 +3025,15 @@ async function cacheModelInTmp(url) {
 const multimodal = {
   modelUrl: '', // Set to your ONNX model path when available.
   modelBlobUrl: '',
+
+const multimodal = {
+  modelUrl: '', // Set to your ONNX model path when available.
   session: null,
   textOnly: true,
   emaScores: { calm: 0.25, stressed: 0.25, guarded: 0.25, engaged: 0.25 },
   fixedAudio: { rms: 0, zcr: 0, flux: 0 }
+  latestAudio: { rms: 0, zcr: 0, flux: 0 },
+  media: { stream: null, ctx: null, analyser: null, data: null }
 };
 
 async function initMultimodalEngine() {
@@ -3037,6 +3042,10 @@ async function initMultimodalEngine() {
   const configured = new URLSearchParams(window.location.search).get('fusion_onnx');
   const picked = configured ? { id: 'custom', url: configured, key: 'custom' } : selectModelCandidate();
   multimodal.modelUrl = picked.url;
+  if (!multimodal.modelUrl) {
+    const configured = new URLSearchParams(window.location.search).get('fusion_onnx');
+    if (configured) multimodal.modelUrl = configured;
+  }
 
   if (!window.ort || !multimodal.modelUrl) {
     statusEl.innerHTML = `MM emotion: <strong>text heuristic</strong> · mode: text-only · rec: ${PRETRAINED_MODEL_SUITE.textEmotion.id} + ${PRETRAINED_MODEL_SUITE.audioEmotion.id}`;
@@ -3052,10 +3061,62 @@ async function initMultimodalEngine() {
       executionProviders: ['wasm']
     });
     statusEl.innerHTML = `MM emotion: <strong>onnx ready</strong> · mode: text-only · model: ${picked.id}`;
+    multimodal.session = await ort.InferenceSession.create(multimodal.modelUrl, {
+      executionProviders: ['wasm']
+    });
+    statusEl.innerHTML = `MM emotion: <strong>onnx ready</strong> · mode: text-only · fusion: ${PRETRAINED_MODEL_SUITE.fusionOnnx.id}`;
   } catch (err) {
     console.warn('ONNX model failed to load; falling back to heuristic fusion.', err);
     statusEl.innerHTML = 'MM emotion: <strong>fallback active</strong> · mode: text-only';
   }
+}
+
+async function enableAudioFusion() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
+  if (multimodal.media.analyser) return true;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = ctx.createMediaStreamSource(stream);
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 1024;
+    source.connect(analyser);
+    multimodal.media = {
+      stream,
+      ctx,
+      analyser,
+      data: new Float32Array(analyser.fftSize)
+    };
+    multimodal.textOnly = false;
+    return true;
+  } catch (err) {
+    console.warn('Audio fusion disabled (permission/device unavailable).', err);
+    return false;
+  }
+}
+
+function sampleAudioFeatures() {
+  const { analyser, data } = multimodal.media;
+  if (!analyser || !data) return multimodal.latestAudio;
+  analyser.getFloatTimeDomainData(data);
+
+  let sq = 0;
+  let zeroCross = 0;
+  let flux = 0;
+  let prev = data[0] || 0;
+  for (let i = 0; i < data.length; i++) {
+    const v = data[i];
+    sq += v * v;
+    if ((v >= 0 && prev < 0) || (v < 0 && prev >= 0)) zeroCross += 1;
+    flux += Math.abs(v - prev);
+    prev = v;
+  }
+  multimodal.latestAudio = {
+    rms: Math.sqrt(sq / data.length),
+    zcr: zeroCross / data.length,
+    flux: flux / data.length
+  };
+  return multimodal.latestAudio;
 }
 
 function textEmotionFeatures(text, sentiment) {
@@ -3135,6 +3196,10 @@ async function updateMultimodalEmotion(text, sentiment) {
   const fused = fuseTextAudio(textFeat, audioFeat);
   const scores = await onnxEmotionInference(fused);
   renderMultimodalStatus(scores, 'text-only');
+  const audioFeat = multimodal.textOnly ? multimodal.latestAudio : sampleAudioFeatures();
+  const fused = fuseTextAudio(textFeat, audioFeat);
+  const scores = await onnxEmotionInference(fused);
+  renderMultimodalStatus(scores, multimodal.textOnly ? 'text-only' : 'text+audio');
   return scores;
 }
 
@@ -3384,6 +3449,13 @@ function modeBFromSession(profile, turns, mmScores) {
   const regulation = turns.length > 1
     ? Math.round(clamp((smoothTransitions / (turns.length - 1)) * (1 - volatility), 0, 1) * 100)
     : Math.round(clamp(1 - volatility * 1.7, 0, 1) * 100);
+  const emotions = turns.map((_, i) => i === turns.length - 1
+    ? (Object.entries(mmScores || { neutral: 1 }).sort((a, b) => b[1] - a[1])[0][0])
+    : 'neutral');
+  for (let i = 1; i < emotions.length; i++) {
+    if (emotions[i] !== emotions[i - 1]) pivots.push({ response: turns[i].id, from: emotions[i - 1], to: emotions[i] });
+  }
+  const regulation = Math.round(clamp(1 - volatility * 1.7, 0, 1) * 100);
   return {
     volatility_index: volatilityIndex,
     emotional_pivot_points: pivots,
@@ -3433,6 +3505,12 @@ function buildTransitionAnalytics(turns, profile) {
       emotion_change: Math.abs(currSent - prevSent) > 0.2,
       trigger_question: triggerQuestion,
       trigger_question_text: triggerQuestionText
+    out.push({
+      from: prev.id,
+      to: curr.id,
+      cognitive_load_delta: delta,
+      emotion_change: Math.abs(currSent - prevSent) > 0.2,
+      trigger_question: Math.abs(delta) > 0.2 ? `Q${i + 1}` : null
     });
   }
   return out;
@@ -3694,6 +3772,11 @@ function beginSession() {
   profile = initProfile();
   initCharts();
   initMultimodalEngine();
+  enableAudioFusion().then(enabled => {
+    if (!enabled) return;
+    const statusEl = document.getElementById('mm-status');
+    if (statusEl) statusEl.innerHTML = 'MM emotion: <strong>audio connected</strong> · mode: text+audio';
+  });
   renderScorePanel(profile);
   renderCustomerInsights(profile);
   renderLinguaInsightReport({
