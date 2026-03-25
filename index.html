@@ -2990,6 +2990,8 @@ const multimodal = {
   textOnly: true,
   emaScores: { calm: 0.25, stressed: 0.25, guarded: 0.25, engaged: 0.25 },
   fixedAudio: { rms: 0, zcr: 0, flux: 0 }
+  latestAudio: { rms: 0, zcr: 0, flux: 0 },
+  media: { stream: null, ctx: null, analyser: null, data: null }
 };
 
 async function initMultimodalEngine() {
@@ -3014,6 +3016,54 @@ async function initMultimodalEngine() {
     console.warn('ONNX model failed to load; falling back to heuristic fusion.', err);
     statusEl.innerHTML = 'MM emotion: <strong>fallback active</strong> · mode: text-only';
   }
+}
+
+async function enableAudioFusion() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
+  if (multimodal.media.analyser) return true;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = ctx.createMediaStreamSource(stream);
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 1024;
+    source.connect(analyser);
+    multimodal.media = {
+      stream,
+      ctx,
+      analyser,
+      data: new Float32Array(analyser.fftSize)
+    };
+    multimodal.textOnly = false;
+    return true;
+  } catch (err) {
+    console.warn('Audio fusion disabled (permission/device unavailable).', err);
+    return false;
+  }
+}
+
+function sampleAudioFeatures() {
+  const { analyser, data } = multimodal.media;
+  if (!analyser || !data) return multimodal.latestAudio;
+  analyser.getFloatTimeDomainData(data);
+
+  let sq = 0;
+  let zeroCross = 0;
+  let flux = 0;
+  let prev = data[0] || 0;
+  for (let i = 0; i < data.length; i++) {
+    const v = data[i];
+    sq += v * v;
+    if ((v >= 0 && prev < 0) || (v < 0 && prev >= 0)) zeroCross += 1;
+    flux += Math.abs(v - prev);
+    prev = v;
+  }
+  multimodal.latestAudio = {
+    rms: Math.sqrt(sq / data.length),
+    zcr: zeroCross / data.length,
+    flux: flux / data.length
+  };
+  return multimodal.latestAudio;
 }
 
 function textEmotionFeatures(text, sentiment) {
@@ -3093,6 +3143,10 @@ async function updateMultimodalEmotion(text, sentiment) {
   const fused = fuseTextAudio(textFeat, audioFeat);
   const scores = await onnxEmotionInference(fused);
   renderMultimodalStatus(scores, 'text-only');
+  const audioFeat = multimodal.textOnly ? multimodal.latestAudio : sampleAudioFeatures();
+  const fused = fuseTextAudio(textFeat, audioFeat);
+  const scores = await onnxEmotionInference(fused);
+  renderMultimodalStatus(scores, multimodal.textOnly ? 'text-only' : 'text+audio');
   return scores;
 }
 
@@ -3607,6 +3661,11 @@ function beginSession() {
   profile = initProfile();
   initCharts();
   initMultimodalEngine();
+  enableAudioFusion().then(enabled => {
+    if (!enabled) return;
+    const statusEl = document.getElementById('mm-status');
+    if (statusEl) statusEl.innerHTML = 'MM emotion: <strong>audio connected</strong> · mode: text+audio';
+  });
   renderScorePanel(profile);
   renderCustomerInsights(profile);
   renderLinguaInsightReport({
