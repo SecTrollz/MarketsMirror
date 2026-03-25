@@ -66,6 +66,7 @@
     <div class="chat-input-wrap">
       <div class="chat-input-row">
         <textarea id="user-input" rows="1" placeholder="Respond naturally. There are no right answers." disabled></textarea>
+        <button id="popup-input-btn" type="button" onclick="openChatInputPopup()" disabled>Expand</button>
         <button id="send-btn" onclick="send()" disabled>Send</button>
       </div>
       <div class="turn-counter" id="turn-counter">Turn 0 / 17</div>
@@ -156,6 +157,27 @@
     </div>
   </div>
 
+</div>
+
+<div id="chat-input-popup" class="chat-popup" aria-hidden="true">
+  <div class="chat-popup-card" role="dialog" aria-modal="true" aria-labelledby="chat-popup-title" aria-describedby="chat-popup-subtitle">
+    <div class="chat-popup-head">
+      <div>
+        <div id="chat-popup-title" class="chat-popup-title">Chat Interface Overlay</div>
+        <div id="chat-popup-subtitle" class="chat-popup-subtitle">Draft a full response, then apply or send instantly.</div>
+      </div>
+      <button class="chat-popup-close" type="button" onclick="closeChatInputPopup()">Close</button>
+    </div>
+    <div class="chat-popup-toolbar">
+      <span class="chat-popup-count" id="popup-char-count">0 chars</span>
+      <span class="chat-popup-shortcuts">Shortcuts: Esc closes · Ctrl/Cmd + Enter sends</span>
+    </div>
+    <textarea id="popup-user-input" rows="8" placeholder="Draft your response here..."></textarea>
+    <div class="chat-popup-actions">
+      <button class="chat-popup-btn secondary" type="button" onclick="applyPopupDraft(false)">Apply Draft</button>
+      <button class="chat-popup-btn primary" type="button" onclick="applyPopupDraft(true)">Apply + Send</button>
+    </div>
+  </div>
 </div>
 
 <!-- ═══════════════════════════════════ REVEAL ══ -->
