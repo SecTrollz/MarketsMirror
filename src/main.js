@@ -2676,35 +2676,17 @@ function beginSession() {
   }, 620);
 
   profile = initProfile();
-  sessionActive = true;
   const wiringCheck = validateSystemWiring(profile);
   if (!wiringCheck.ok) {
     console.warn('System wiring check failed:', wiringCheck);
   }
-
-  try {
-    initCharts();
-  } catch (err) {
-    console.error('Chart initialization failed. Continuing without chart rendering.', err);
-    addMsg('sys', 'Chart engine unavailable in this environment; chat and profiling remain active.');
-  }
-
-  try {
-    initMultimodalEngine();
-  } catch (err) {
-    console.error('Multimodal initialization failed. Falling back to text-only mode.', err);
-    const statusEl = document.getElementById('mm-status');
-    if (statusEl) statusEl.innerHTML = 'MM emotion: <strong>degraded</strong> · mode: text-only fallback';
-  }
-
+  initCharts();
+  initMultimodalEngine();
   enableAudioFusion().then(enabled => {
     if (!enabled) return;
     const statusEl = document.getElementById('mm-status');
     if (statusEl) statusEl.innerHTML = 'MM emotion: <strong>audio connected</strong> · mode: text+audio';
-  }).catch(err => {
-    console.warn('Audio fusion initialization skipped.', err);
   });
-
   renderScorePanel(profile);
   renderCustomerInsights(profile);
   renderLinguaInsightReport({
@@ -2713,6 +2695,7 @@ function beginSession() {
     onnx_status: { available: !!multimodal.session, fallback_used: true },
     self_critique_log: [{ stage: 'data_integrity', issue: 'Insufficient turns at session start.', action: 'Collect at least 3 responses for trend stability.' }]
   });
+  sessionActive = true;
   if (!wiringCheck.ok) {
     addMsg('sys', `Wiring check warning. Missing IDs: ${wiringCheck.missingDomIds.join(', ') || 'none'} · Missing accumulators: ${wiringCheck.missingAccumulators.join(', ') || 'none'}`);
   }
@@ -4872,3 +4855,4 @@ function selectNextQuestionWarm(profile) {
     panel.innerHTML = groups;
   };
 })();
+
