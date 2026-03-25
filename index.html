@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MarketsMirror — Psycholinguistic Intelligence</title>
+<title>Linguistic Insight Profiler — Psycholinguistic Intelligence</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,700;1,300&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&display=swap" rel="stylesheet">
@@ -558,10 +558,10 @@ body {
   <!-- LEFT: CHAT -->
   <div id="left-panel">
     <div class="chat-header">
-      <span class="chat-logo">MarketsMirror</span>
+      <span class="chat-logo">Linguistic Insight Profiler</span>
       <span class="chat-phase">
         <span class="chat-phase-dot"></span>
-        <span id="phase-label">Phase I — Core Profiling</span>
+        <span id="phase-label">Phase I — Evidence-Gathering</span>
       </span>
     </div>
     <div id="chat-messages"></div>
@@ -2336,7 +2336,7 @@ function updateStatus(profile) {
     `Turn ${profile.turn} / ${profile.turn < 17 ? 17 : '∞'}`;
 
   const phaseLabel = document.getElementById('phase-label');
-  if (profile.turn >= 17) phaseLabel.textContent = 'Phase II — Deep Refinement';
+  if (profile.turn >= 17) phaseLabel.textContent = 'Phase II — Uncertainty Reduction';
 }
 
 /* ─── NARRATIVE UPDATE ──────────────────────────────────── */
@@ -2356,7 +2356,7 @@ function addMsg(role, text) {
   const div = document.createElement('div');
   div.className = `msg ${role}`;
 
-  const roleLabel = { ai: 'MarketsMirror', user: 'You', sys: 'System' }[role];
+  const roleLabel = { ai: 'Linguistic Insight Profiler', user: 'You', sys: 'System' }[role];
   div.innerHTML = `
     <div class="msg-role">${roleLabel}</div>
     <div class="msg-body">${text}</div>
@@ -2370,7 +2370,7 @@ function showThinking() {
   const div = document.createElement('div');
   div.className = 'msg ai'; div.id = 'thinking-msg';
   div.innerHTML = `
-    <div class="msg-role">MarketsMirror</div>
+    <div class="msg-role">Linguistic Insight Profiler</div>
     <div class="msg-body">
       <div class="thinking-dots"><span></span><span></span><span></span></div>
     </div>`;
@@ -2431,7 +2431,7 @@ async function send() {
   lastFeatures = result.features;
 
   // Expose to console for auditing
-  console.group(`%cMarketsMirror — Turn ${profile.turn}`, 'color:#c8922a;font-family:monospace');
+  console.group(`%cLinguistic Insight Profiler — Turn ${profile.turn}`, 'color:#c8922a;font-family:monospace');
   console.log('Sentiment:', result.sentiment);
   console.log('Features:', result.features);
   console.log('Evidence delta:', result.evidence);
@@ -2470,7 +2470,7 @@ async function send() {
 function continueSession() {
   document.getElementById('reveal').classList.remove('visible');
   sessionActive = true;
-  document.getElementById('phase-label').textContent = 'Phase II — Deep Refinement';
+  document.getElementById('phase-label').textContent = 'Phase II — Uncertainty Reduction';
   addMsg('sys', 'Phase II — Deep refinement mode. Continue as long as you need.');
   const next = selectNextQuestion(profile, lastFeatures || {
     deflectionSignal: 0, salientPhrase: null, emotionalIntensity: 0.3
@@ -2547,7 +2547,7 @@ function restartSession() {
   renderScorePanel(profile);
   updateStatus(profile);
   document.getElementById('narrative-section').classList.remove('visible');
-  document.getElementById('phase-label').textContent = 'Phase I — Core Profiling';
+  document.getElementById('phase-label').textContent = 'Phase I — Evidence-Gathering';
 
   const opener = OPENERS[Math.floor(Math.random() * OPENERS.length)];
   profile.questionHistory.push({ t: opener.t, fw: null });
@@ -2577,5 +2577,1948 @@ document.getElementById('user-input').addEventListener('input', function () {
   this.style.height = Math.min(this.scrollHeight, 120) + 'px';
 });
 </script>
+
+<script>
+const SCHEMA = {
+  "dimensions": {
+    "trauma_abandon": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "infer_from_att_anxious",
+      "liw_categories": [
+        "negate",
+        "social",
+        "affect",
+        "cogproc"
+      ],
+      "lexical_markers": [
+        "left",
+        "alone",
+        "abandoned",
+        "rejected",
+        "they left",
+        "walked away"
+      ],
+      "feature_signals": [
+        {
+          "feature": "pastRatio",
+          "condition": ">0.65",
+          "contribution": 0.45
+        },
+        {
+          "feature": "negationCount",
+          "condition": ">4",
+          "contribution": 0.35
+        },
+        {
+          "feature": "clout",
+          "condition": "<45",
+          "contribution": 0.3
+        }
+      ]
+    },
+    "trauma_shame": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "infer_from_att_anxious",
+      "liw_categories": [
+        "affect",
+        "negemo",
+        "cogproc",
+        "negate"
+      ],
+      "lexical_markers": [
+        "shame",
+        "worthless",
+        "guilty",
+        "failure",
+        "embarrassed",
+        "not enough"
+      ],
+      "feature_signals": [
+        {
+          "feature": "rumination",
+          "condition": ">0.5",
+          "contribution": 0.5
+        },
+        {
+          "feature": "negationCount",
+          "condition": ">5",
+          "contribution": 0.4
+        },
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.15",
+          "contribution": 0.3
+        }
+      ]
+    },
+    "trauma_control": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "infer_from_att_avoidant",
+      "liw_categories": [
+        "cogproc",
+        "certain",
+        "negate",
+        "power"
+      ],
+      "lexical_markers": [
+        "control",
+        "manipulated",
+        "powerless",
+        "forced",
+        "dominated",
+        "no choice"
+      ],
+      "feature_signals": [
+        {
+          "feature": "negationCount",
+          "condition": ">4",
+          "contribution": 0.4
+        },
+        {
+          "feature": "clout",
+          "condition": "<50",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "trauma_betrayal": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "neutral",
+      "liw_categories": [
+        "negate",
+        "affect",
+        "social",
+        "anger"
+      ],
+      "lexical_markers": [
+        "betrayed",
+        "lied to",
+        "backstabbed",
+        "trust broken",
+        "deceived",
+        "unfaithful"
+      ],
+      "feature_signals": [
+        {
+          "feature": "negationCount",
+          "condition": ">3",
+          "contribution": 0.4
+        },
+        {
+          "feature": "valenceCollision",
+          "condition": ">2",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "att_anxious": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "i",
+        "negate",
+        "affect",
+        "anx"
+      ],
+      "lexical_markers": [
+        "need you",
+        "afraid to lose",
+        "cling",
+        "anxious about us",
+        "will you leave",
+        "reassure me"
+      ],
+      "feature_signals": [
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.12",
+          "contribution": 0.45
+        },
+        {
+          "feature": "rumination",
+          "condition": ">0.6",
+          "contribution": 0.4
+        },
+        {
+          "feature": "pastRatio",
+          "condition": ">0.55",
+          "contribution": 0.3
+        }
+      ]
+    },
+    "att_avoidant": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "negate",
+        "certain",
+        "you",
+        "cogproc"
+      ],
+      "lexical_markers": [
+        "space",
+        "independent",
+        "alone is fine",
+        "don't need",
+        "self reliant",
+        "no cling"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": ">60",
+          "contribution": 0.4
+        },
+        {
+          "feature": "negationCount",
+          "condition": ">4",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "att_fearful": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "neutral",
+      "liw_categories": [
+        "negate",
+        "affect",
+        "i",
+        "anx"
+      ],
+      "lexical_markers": [
+        "fear trust",
+        "want close but scared",
+        "push pull",
+        "mixed feelings",
+        "run away",
+        "need but doubt"
+      ],
+      "feature_signals": [
+        {
+          "feature": "rumination",
+          "condition": ">0.55",
+          "contribution": 0.45
+        },
+        {
+          "feature": "valenceCollision",
+          "condition": ">3",
+          "contribution": 0.4
+        }
+      ]
+    },
+    "att_secure": {
+      "compatibility": "moderate",
+      "evidence_weight": 0.55,
+      "signals_required": 2,
+      "confidence_saturation": 15,
+      "fallback": "1 - max(att_anxious, att_avoidant, att_fearful)",
+      "liw_categories": [
+        "we",
+        "certain",
+        "social",
+        "affect"
+      ],
+      "lexical_markers": [
+        "trust",
+        "balanced",
+        "secure together",
+        "safe",
+        "reliable",
+        "open communication"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": ">55",
+          "contribution": 0.4
+        },
+        {
+          "feature": "futureRatio",
+          "condition": ">0.4",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "mbti_i": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "i",
+        "cogproc",
+        "certain"
+      ],
+      "lexical_markers": [
+        "I think",
+        "myself",
+        "alone time",
+        "reflect",
+        "quiet",
+        "inner world"
+      ],
+      "feature_signals": [
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.13",
+          "contribution": 0.5
+        },
+        {
+          "feature": "clout",
+          "condition": "<55",
+          "contribution": 0.3
+        }
+      ]
+    },
+    "mbti_n": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "cogproc",
+        "insight",
+        "tentat"
+      ],
+      "lexical_markers": [
+        "imagine",
+        "future",
+        "idea",
+        "concept",
+        "possibility",
+        "abstract"
+      ],
+      "feature_signals": [
+        {
+          "feature": "metaphor",
+          "condition": ">2",
+          "contribution": 0.45
+        },
+        {
+          "feature": "futureRatio",
+          "condition": ">0.45",
+          "contribution": 0.4
+        }
+      ]
+    },
+    "mbti_f": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "affect",
+        "posemo",
+        "social"
+      ],
+      "lexical_markers": [
+        "feel",
+        "love",
+        "care",
+        "emotion",
+        "heart",
+        "kind"
+      ],
+      "feature_signals": [
+        {
+          "feature": "affect",
+          "condition": "high valence",
+          "contribution": 0.45
+        },
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.1",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "mbti_p": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "none",
+      "liw_categories": [
+        "tentat",
+        "cogproc",
+        "insight"
+      ],
+      "lexical_markers": [
+        "maybe",
+        "flexible",
+        "options",
+        "open ended",
+        "adapt",
+        "explore"
+      ],
+      "feature_signals": [
+        {
+          "feature": "futureRatio",
+          "condition": ">0.35",
+          "contribution": 0.4
+        },
+        {
+          "feature": "metaphor",
+          "condition": ">1",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "enn_head": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "cogproc",
+        "insight",
+        "certain"
+      ],
+      "lexical_markers": [
+        "think",
+        "analyze",
+        "logic",
+        "question",
+        "strategy",
+        "mind"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": ">50",
+          "contribution": 0.4
+        },
+        {
+          "feature": "certainty",
+          "condition": "high",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "enn_body": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "affect",
+        "anger",
+        "certain"
+      ],
+      "lexical_markers": [
+        "feel in gut",
+        "instinct",
+        "anger",
+        "protect",
+        "power",
+        "action"
+      ],
+      "feature_signals": [
+        {
+          "feature": "negationCount",
+          "condition": ">3",
+          "contribution": 0.45
+        },
+        {
+          "feature": "clout",
+          "condition": ">55",
+          "contribution": 0.3
+        }
+      ]
+    },
+    "enn_heart": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "none",
+      "liw_categories": [
+        "social",
+        "affect",
+        "posemo"
+      ],
+      "lexical_markers": [
+        "image",
+        "heart",
+        "identity",
+        "admire",
+        "connection",
+        "role"
+      ],
+      "feature_signals": [
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.12",
+          "contribution": 0.4
+        },
+        {
+          "feature": "social",
+          "condition": "high",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "enn_integration": {
+      "compatibility": "low",
+      "evidence_weight": 0.35,
+      "signals_required": 3,
+      "confidence_saturation": 20,
+      "fallback": "infer_from_head_body_heart",
+      "liw_categories": [
+        "cogproc",
+        "insight",
+        "affect"
+      ],
+      "lexical_markers": [
+        "balanced",
+        "whole",
+        "growth",
+        "integrated",
+        "evolve",
+        "peace"
+      ],
+      "feature_signals": [
+        {
+          "feature": "rumination",
+          "condition": "<0.3",
+          "contribution": 0.4
+        },
+        {
+          "feature": "clout",
+          "condition": ">60",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "b5_open": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "insight",
+        "cogproc",
+        "tentat"
+      ],
+      "lexical_markers": [
+        "new",
+        "curious",
+        "art",
+        "idea",
+        "adventure",
+        "creative"
+      ],
+      "feature_signals": [
+        {
+          "feature": "metaphor",
+          "condition": ">2",
+          "contribution": 0.45
+        },
+        {
+          "feature": "futureRatio",
+          "condition": ">0.4",
+          "contribution": 0.4
+        }
+      ]
+    },
+    "b5_cons": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "certain",
+        "cogproc",
+        "work"
+      ],
+      "lexical_markers": [
+        "plan",
+        "duty",
+        "reliable",
+        "organize",
+        "commit",
+        "responsible"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": ">60",
+          "contribution": 0.45
+        },
+        {
+          "feature": "futureRatio",
+          "condition": ">0.35",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "b5_extra": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "social",
+        "posemo",
+        "we"
+      ],
+      "lexical_markers": [
+        "party",
+        "talk",
+        "people",
+        "outgoing",
+        "energy",
+        "group"
+      ],
+      "feature_signals": [
+        {
+          "feature": "social",
+          "condition": "high",
+          "contribution": 0.5
+        },
+        {
+          "feature": "clout",
+          "condition": ">55",
+          "contribution": 0.3
+        }
+      ]
+    },
+    "b5_agree": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "social",
+        "posemo",
+        "affect"
+      ],
+      "lexical_markers": [
+        "help",
+        "kind",
+        "agree",
+        "compromise",
+        "nice",
+        "harmony"
+      ],
+      "feature_signals": [
+        {
+          "feature": "posemo",
+          "condition": "high",
+          "contribution": 0.45
+        },
+        {
+          "feature": "we",
+          "condition": "high",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "b5_neuro": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "negemo",
+        "anx",
+        "affect",
+        "negate"
+      ],
+      "lexical_markers": [
+        "worry",
+        "anxious",
+        "stress",
+        "overthink",
+        "fear",
+        "nervous"
+      ],
+      "feature_signals": [
+        {
+          "feature": "rumination",
+          "condition": ">0.55",
+          "contribution": 0.5
+        },
+        {
+          "feature": "negationCount",
+          "condition": ">5",
+          "contribution": 0.4
+        }
+      ]
+    },
+    "hex_em": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "anx",
+        "affect",
+        "negemo"
+      ],
+      "lexical_markers": [
+        "fear",
+        "anxiety",
+        "emotion",
+        "sensitive",
+        "vulnerable",
+        "feel deeply"
+      ],
+      "feature_signals": [
+        {
+          "feature": "rumination",
+          "condition": ">0.5",
+          "contribution": 0.45
+        },
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.14",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "hex_hh": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "none",
+      "liw_categories": [
+        "certain",
+        "posemo",
+        "social"
+      ],
+      "lexical_markers": [
+        "truth",
+        "honest",
+        "fair",
+        "sincere",
+        "loyal",
+        "integrity"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": ">55",
+          "contribution": 0.4
+        },
+        {
+          "feature": "posemo",
+          "condition": "high",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "dark_narc": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "neutral",
+      "liw_categories": [
+        "i",
+        "certain",
+        "posemo"
+      ],
+      "lexical_markers": [
+        "me",
+        "best",
+        "admire",
+        "superior",
+        "brilliant",
+        "deserve"
+      ],
+      "feature_signals": [
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.18",
+          "contribution": 0.5
+        },
+        {
+          "feature": "clout",
+          "condition": ">65",
+          "contribution": 0.4
+        }
+      ]
+    },
+    "dark_mach": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "neutral",
+      "liw_categories": [
+        "cogproc",
+        "certain",
+        "negate"
+      ],
+      "lexical_markers": [
+        "clever",
+        "manipulate",
+        "strategy",
+        "win",
+        "control",
+        "outsmart"
+      ],
+      "feature_signals": [
+        {
+          "feature": "certainty",
+          "condition": "high",
+          "contribution": 0.45
+        },
+        {
+          "feature": "negationCount",
+          "condition": ">4",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "dark_psyc": {
+      "compatibility": "moderate",
+      "evidence_weight": 0.55,
+      "signals_required": 2,
+      "confidence_saturation": 15,
+      "fallback": "neutral",
+      "liw_categories": [
+        "anger",
+        "affect",
+        "negate"
+      ],
+      "lexical_markers": [
+        "cold",
+        "hurt",
+        "no remorse",
+        "whatever",
+        "doesn't matter",
+        "use people"
+      ],
+      "feature_signals": [
+        {
+          "feature": "negationCount",
+          "condition": ">5",
+          "contribution": 0.4
+        },
+        {
+          "feature": "valenceCollision",
+          "condition": ">4",
+          "contribution": 0.3
+        }
+      ]
+    },
+    "dark_sadism": {
+      "compatibility": "low",
+      "evidence_weight": 0.35,
+      "signals_required": 3,
+      "confidence_saturation": 20,
+      "fallback": "suppress_reporting",
+      "liw_categories": [
+        "anger",
+        "affect",
+        "negemo"
+      ],
+      "lexical_markers": [
+        "pain",
+        "hurt others",
+        "cruel",
+        "enjoy suffering",
+        "torture",
+        "sadistic"
+      ],
+      "feature_signals": [
+        {
+          "feature": "negationCount",
+          "condition": ">6",
+          "contribution": 0.45
+        },
+        {
+          "feature": "valenceCollision",
+          "condition": ">5",
+          "contribution": 0.4
+        }
+      ]
+    },
+    "light_compassion": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "social",
+        "posemo",
+        "affect"
+      ],
+      "lexical_markers": [
+        "kind",
+        "help",
+        "empathy",
+        "care for others",
+        "support",
+        "understanding"
+      ],
+      "feature_signals": [
+        {
+          "feature": "we",
+          "condition": "high",
+          "contribution": 0.45
+        },
+        {
+          "feature": "posemo",
+          "condition": "high",
+          "contribution": 0.4
+        }
+      ]
+    },
+    "light_hum": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "none",
+      "liw_categories": [
+        "i",
+        "posemo",
+        "certain"
+      ],
+      "lexical_markers": [
+        "humble",
+        "modest",
+        "not special",
+        "ordinary",
+        "grateful",
+        "down to earth"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": "<60",
+          "contribution": 0.45
+        },
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.1",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "light_faith": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "none",
+      "liw_categories": [
+        "affect",
+        "social",
+        "certain"
+      ],
+      "lexical_markers": [
+        "believe",
+        "faith",
+        "hope",
+        "higher power",
+        "trust life",
+        "purpose"
+      ],
+      "feature_signals": [
+        {
+          "feature": "futureRatio",
+          "condition": ">0.4",
+          "contribution": 0.4
+        },
+        {
+          "feature": "posemo",
+          "condition": "high",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "light_kant": {
+      "compatibility": "moderate",
+      "evidence_weight": 0.55,
+      "signals_required": 2,
+      "confidence_saturation": 15,
+      "fallback": "neutral",
+      "liw_categories": [
+        "certain",
+        "cogproc",
+        "negate"
+      ],
+      "lexical_markers": [
+        "duty",
+        "rule",
+        "moral",
+        "right thing",
+        "principle",
+        "ethics"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": ">55",
+          "contribution": 0.4
+        },
+        {
+          "feature": "certainty",
+          "condition": "high",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "sch_st": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "we",
+        "social",
+        "posemo"
+      ],
+      "lexical_markers": [
+        "help world",
+        "universe",
+        "compassion",
+        "transcend",
+        "greater good",
+        "humanity"
+      ],
+      "feature_signals": [
+        {
+          "feature": "we",
+          "condition": "high",
+          "contribution": 0.5
+        },
+        {
+          "feature": "posemo",
+          "condition": "high",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "sch_se": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "i",
+        "certain",
+        "power"
+      ],
+      "lexical_markers": [
+        "power",
+        "success",
+        "money",
+        "achieve",
+        "status",
+        "win"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": ">65",
+          "contribution": 0.45
+        },
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.15",
+          "contribution": 0.4
+        }
+      ]
+    },
+    "sch_conservation": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "neutral",
+      "liw_categories": [
+        "certain",
+        "social",
+        "family"
+      ],
+      "lexical_markers": [
+        "tradition",
+        "family",
+        "safe",
+        "secure",
+        "loyalty",
+        "conform"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": ">50",
+          "contribution": 0.4
+        },
+        {
+          "feature": "certain",
+          "condition": "high",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "sch_openness": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "neutral",
+      "liw_categories": [
+        "insight",
+        "tentat",
+        "cogproc"
+      ],
+      "lexical_markers": [
+        "change",
+        "new",
+        "adventure",
+        "freedom",
+        "stimulate",
+        "exciting"
+      ],
+      "feature_signals": [
+        {
+          "feature": "futureRatio",
+          "condition": ">0.45",
+          "contribution": 0.45
+        },
+        {
+          "feature": "metaphor",
+          "condition": ">2",
+          "contribution": 0.35
+        }
+      ]
+    }
+  },
+  "meta": {
+    "accuracy_meta": {
+      "update_rule": "consistency between top 3 dimensions and userPhrases",
+      "initial_alpha": 1,
+      "initial_beta": 1,
+      "evidence_per_consistent_turn": 0.5
+    }
+  }
+};
+</script>
+
+<script>
+/* ───────── FULL PARITY ENGINE ───────── */
+
+function evaluateCondition(val, cond) {
+  if (val === undefined || val === null) return false;
+  if (cond.includes(">")) return val > parseFloat(cond.split(">")[1]);
+  if (cond.includes("<")) return val < parseFloat(cond.split("<")[1]);
+  return false;
+}
+
+function initEvidence(schema) {
+  const ev = {};
+  Object.keys(schema.dimensions).forEach(k => {
+    ev[k] = { score: 0, signals: 0, words: [] };
+  });
+  return ev;
+}
+
+function applyLexical(features, schema, ev) {
+  const text = (features.honestText || "").toLowerCase();
+
+  Object.entries(schema.dimensions).forEach(([key, cfg]) => {
+    (cfg.lexical_markers || []).forEach(marker => {
+      if (text.includes(marker.toLowerCase())) {
+        ev[key].score += cfg.evidence_weight || 0.5;
+        ev[key].signals += 1;
+        if (!ev[key].words.includes(marker)) ev[key].words.push(marker);
+      }
+    });
+  });
+}
+
+function applyFeatureSignals(features, schema, ev) {
+  Object.entries(schema.dimensions).forEach(([key, cfg]) => {
+    (cfg.feature_signals || []).forEach(sig => {
+      const val = features[sig.feature];
+      if (evaluateCondition(val, sig.condition)) {
+        ev[key].score += (sig.contribution || 0.3) * (cfg.evidence_weight || 0.5);
+        ev[key].signals += 1;
+      }
+    });
+  });
+}
+
+function applySignalThresholds(schema, ev) {
+  Object.entries(schema.dimensions).forEach(([key, cfg]) => {
+    const required = cfg.signals_required || 1;
+    if (ev[key].signals < required) {
+      ev[key].score *= 0.2;
+    }
+  });
+}
+
+function applySaturation(schema, ev) {
+  Object.entries(schema.dimensions).forEach(([key, cfg]) => {
+    const sat = cfg.confidence_saturation || 10;
+    ev[key].score = Math.tanh(ev[key].score / sat);
+  });
+}
+
+function applyFallbacks(schema, ev) {
+  Object.entries(schema.dimensions).forEach(([key, cfg]) => {
+    if (ev[key].score > 0.1) return;
+
+    const fb = cfg.fallback;
+    if (!fb) return;
+
+    if (fb.startsWith("infer_from_")) {
+      const ref = fb.replace("infer_from_", "");
+      if (ev[ref]) {
+        ev[key].score = ev[ref].score * 0.7;
+      }
+    }
+
+    if (fb === "1 - max(att_anxious, att_avoidant, att_fearful)") {
+      const vals = ["att_anxious","att_avoidant","att_fearful"]
+        .map(k => ev[k]?.score || 0);
+      ev[key].score = 1 - Math.max(...vals);
+    }
+
+    if (fb === "infer_from_head_body_heart") {
+      const vals = ["enn_head","enn_body","enn_heart"]
+        .map(k => ev[k]?.score || 0);
+      ev[key].score = vals.reduce((a,b)=>a+b,0)/3;
+    }
+  });
+}
+
+function normalize(ev) {
+  const vals = Object.values(ev).map(v => v.score);
+  const max = Math.max(...vals, 1);
+  Object.keys(ev).forEach(k => {
+    ev[k].score = ev[k].score / max;
+  });
+}
+
+function computeProfile(features) {
+  const schema = SCHEMA;
+
+  let ev = initEvidence(schema);
+
+  applyLexical(features, schema, ev);
+  applyFeatureSignals(features, schema, ev);
+
+  applySignalThresholds(schema, ev);
+  applySaturation(schema, ev);
+  applyFallbacks(schema, ev);
+  normalize(ev);
+
+  return ev;
+}
+
+/* ───────── META ACCURACY TRACKING ───────── */
+
+function updateAccuracy(profile, schema) {
+  if (!profile._meta) {
+    profile._meta = { alpha: 1, beta: 1 };
+  }
+
+  const topDims = Object.entries(profile)
+    .filter(([k,v]) => v.score !== undefined)
+    .sort((a,b)=>b[1].score - a[1].score)
+    .slice(0,3)
+    .map(x=>x[0]);
+
+  const phrases = profile.userPhrases || [];
+
+  let consistent = phrases.some(p =>
+    topDims.some(d => p.toLowerCase().includes(d.split("_")[1]))
+  );
+
+  if (consistent) profile._meta.alpha += 0.5;
+  else profile._meta.beta += 0.5;
+
+  return profile;
+}
+</script>
+
+<script>
+/* ───────── WARM QUESTION SYSTEM ───────── */
+
+function entropy(scores) {
+  const vals = Object.values(scores).map(v => v.score || 0);
+  const sum = vals.reduce((a,b)=>a+b,0) || 1;
+
+  return -vals.reduce((acc,v)=>{
+    const p = v/sum;
+    return acc + (p>0 ? p*Math.log(p) : 0);
+  },0);
+}
+
+function selectNextQuestionWarm(profile) {
+  const ent = entropy(profile);
+
+  if (ent > 2.5) {
+    return {
+      text: "There's a few directions here — what feels most important right now?",
+      mode: "EXPLORE"
+    };
+  }
+
+  const sorted = Object.entries(profile)
+    .filter(([k,v]) => v.score !== undefined)
+    .sort((a,b)=>b[1].score - a[1].score);
+
+  const top = sorted[0]?.[0] || "your experience";
+
+  return {
+    text: `I'm noticing something around ${top.replace("_"," ")} — can you expand on that?`,
+    mode: "FOCUS"
+  };
+}
+</script>
+
+
+<script>
+/* ===== 2026 RESEARCH-ALIGNED OVERRIDE ENGINE ===== */
+(function(){
+  const clamp = (v, lo=0, hi=1) => Math.max(lo, Math.min(hi, v));
+  const sum = arr => arr.reduce((a,b)=>a+b,0);
+  const mean = arr => arr.length ? sum(arr)/arr.length : 0;
+  const uniq = arr => [...new Set(arr.filter(Boolean))];
+
+  const OPEN_DICT = {
+    article: /\b(a|an|the)\b/gi,
+    prep: /\b(in|on|at|by|for|with|without|under|over|between|through|around|against|toward|from|into|onto|across|within)\b/gi,
+    conj: /\b(and|or|but|because|so|although|though|while|whereas|yet|however)\b/gi,
+    aux: /\b(am|is|are|was|were|be|been|being|do|does|did|have|has|had|can|could|should|would|may|might|must)\b/gi,
+    social: /\b(friend|friends|family|partner|relationship|team|people|person|coworker|group|community|together|belong|support|close|trust|intimacy|connection|alone|lonely)\b/gi,
+    affect_pos: /\b(happy|glad|grateful|excited|hopeful|relieved|joy|love|calm|content|good|great|better|warm|connected|safe)\b/gi,
+    affect_neg: /\b(sad|hurt|angry|afraid|anxious|ashamed|guilty|bad|terrible|upset|lonely|scared|worried|broken|empty|resentful|regret)\b/gi,
+    anger: /\b(angry|mad|furious|irritated|annoyed|resentful|pissed|rage)\b/gi,
+    anxiety: /\b(anxious|worried|panic|panicked|fear|afraid|uneasy|nervous|tense|dread)\b/gi,
+    sadness: /\b(sad|down|empty|grief|grieving|cry|cried|hopeless|lonely|hurt|loss)\b/gi,
+    cogproc: /\b(think|thought|know|understand|wonder|because|realize|reason|why|meaning|consider|reflect|question|process|figure out)\b/gi,
+    insight: /\b(realize|understand|learned|noticed|recognize|aware|clarity|insight|it hit me)\b/gi,
+    causal: /\b(because|since|therefore|so that|which means|as a result|led to)\b/gi,
+    tentative: /\b(maybe|perhaps|might|could|i guess|sort of|kind of|possibly|not sure|unclear|seems)\b/gi,
+    certainty: /\b(always|never|definitely|absolutely|clearly|obviously|certain|must|can't deny|no doubt)\b/gi,
+    discrep: /\b(should|would|could|wish|if only|supposed to|meant to|ought)\b/gi,
+    reward: /\b(success|recognition|win|achieve|reward|status|admire|impress|attention|praise|approval|valuable)\b/gi,
+    risk: /\b(risk|danger|unsafe|threat|guard|protect|prevent|avoid|watch|scan|vigilant|brace)\b/gi,
+    affiliation: /\b(together|belong|close|care|support|with you|with them|bond|connect|community|loyal)\b/gi,
+    morality: /\b(right|wrong|fair|unfair|ethical|honest|dishonest|integrity|principle|duty|ought)\b/gi,
+    humility: /\b(maybe i'm wrong|i may be wrong|i don't know|still learning|humble|small part|not above|grace|mercy)\b/gi,
+    power: /\b(control|dominant|power|in charge|status|influence|lead|authority|command|superior)\b/gi,
+    body: /\b(body|chest|stomach|gut|jaw|hands|skin|breath|breathing|heart|tight|tense|ache|numb|shaking|racing)\b/gi,
+    future: /\b(will|going to|plan|soon|future|someday|next|eventually|hope to)\b/gi,
+    past: /\b(was|were|used to|before|back then|years ago|when i was|once|previously|earlier)\b/gi,
+    second: /\b(you|your|yours|yourself)\b/gi,
+    first: /\b(i|me|my|mine|myself|i'm|i've|i'd)\b/gi,
+    third: /\b(they|them|their|he|she|his|her|it|its)\b/gi,
+    absolutist: /\b(always|never|nothing|everything|completely|totally|entirely|everyone|no one)\b/gi,
+    repair: /\b(apologize|repair|make it right|own it|accountable|forgive|amends)\b/gi,
+    pleasure: /\b(enjoy|fun|play|light|laugh|adventure|interesting|curious|new|novel)\b/gi,
+    duty: /\b(should|must|duty|responsibility|obligation|disciplined|order|routine|structure)\b/gi
+  };
+
+  function countRE(re, text){
+    const flags = re.flags.includes('g') ? re.flags : re.flags + 'g';
+    const rr = new RegExp(re.source, flags);
+    return (text.match(rr) || []).length;
+  }
+
+  function tokenize(text){
+    return (text.toLowerCase().match(/[a-z]+(?:'[a-z]+)?/g) || []);
+  }
+
+  function pct(count, total){ return total ? count / total : 0; }
+
+  function safeFeatureValue(features, name){
+    if (features[name] !== undefined) return features[name];
+    const aliases = {
+      clout: 'liwcClout',
+      analytic: 'liwcAnalytic',
+      authenticity: 'liwcAuthenticity',
+      tone: 'liwcTone',
+      affect: 'affectDensity',
+      cogproc: 'cognitiveDensity',
+      negate: 'negationCount',
+      social: 'socialDensity',
+      reward: 'rewardDensity',
+      risk: 'riskDensity'
+    };
+    if (aliases[name] && features[aliases[name]] !== undefined) return features[aliases[name]];
+    return undefined;
+  }
+
+  function evaluateConditionFull(val, cond){
+    if (val === undefined || val === null || !cond) return false;
+    const m = String(cond).trim().match(/^(>=|<=|>|<|==)?\s*(-?\d+(?:\.\d+)?)$/);
+    if (!m) return false;
+    const op = m[1] || '==';
+    const rhs = parseFloat(m[2]);
+    if (op === '>') return val > rhs;
+    if (op === '<') return val < rhs;
+    if (op === '>=') return val >= rhs;
+    if (op === '<=') return val <= rhs;
+    return val === rhs;
+  }
+
+  function deriveSignals(text, sentiment, legacy){
+    const lower = text.toLowerCase();
+    const tokens = tokenize(text);
+    const wc = Math.max(tokens.length, 1);
+    const sentences = text.split(/[.!?]+/).map(s => s.trim()).filter(Boolean);
+    const sentenceLens = sentences.map(s => tokenize(s).length).filter(Boolean);
+    const uniqCount = new Set(tokens).size;
+    const first = countRE(OPEN_DICT.first, lower);
+    const second = countRE(OPEN_DICT.second, lower);
+    const third = countRE(OPEN_DICT.third, lower);
+    const article = countRE(OPEN_DICT.article, lower);
+    const prep = countRE(OPEN_DICT.prep, lower);
+    const conj = countRE(OPEN_DICT.conj, lower);
+    const aux = countRE(OPEN_DICT.aux, lower);
+    const social = countRE(OPEN_DICT.social, lower);
+    const affectPos = countRE(OPEN_DICT.affect_pos, lower);
+    const affectNeg = countRE(OPEN_DICT.affect_neg, lower);
+    const anger = countRE(OPEN_DICT.anger, lower);
+    const anxiety = countRE(OPEN_DICT.anxiety, lower);
+    const sadness = countRE(OPEN_DICT.sadness, lower);
+    const cogproc = countRE(OPEN_DICT.cogproc, lower);
+    const insight = countRE(OPEN_DICT.insight, lower);
+    const causal = countRE(OPEN_DICT.causal, lower);
+    const tentative = countRE(OPEN_DICT.tentative, lower);
+    const certainty = countRE(OPEN_DICT.certainty, lower);
+    const discrep = countRE(OPEN_DICT.discrep, lower);
+    const reward = countRE(OPEN_DICT.reward, lower);
+    const risk = countRE(OPEN_DICT.risk, lower);
+    const affiliation = countRE(OPEN_DICT.affiliation, lower);
+    const morality = countRE(OPEN_DICT.morality, lower);
+    const humility = countRE(OPEN_DICT.humility, lower);
+    const power = countRE(OPEN_DICT.power, lower);
+    const body = countRE(OPEN_DICT.body, lower);
+    const future = countRE(OPEN_DICT.future, lower);
+    const past = countRE(OPEN_DICT.past, lower);
+    const absolutist = countRE(OPEN_DICT.absolutist, lower);
+    const repair = countRE(OPEN_DICT.repair, lower);
+    const pleasure = countRE(OPEN_DICT.pleasure, lower);
+    const duty = countRE(OPEN_DICT.duty, lower);
+    const quoteCount = (text.match(/["“”]/g) || []).length;
+    const questionCount = (text.match(/\?/g) || []).length;
+    const exclaimCount = (text.match(/!/g) || []).length;
+    const commaCount = (text.match(/,/g) || []).length;
+
+    const functionWordDensity = pct(article + prep + conj + aux + first + second + third, wc);
+    const affectDensity = pct(affectPos + affectNeg, wc);
+    const cognitiveDensity = pct(cogproc + insight + causal, wc);
+    const socialDensity = pct(social, wc);
+    const riskDensity = pct(risk, wc);
+    const rewardDensity = pct(reward, wc);
+    const affiliationDensity = pct(affiliation, wc);
+    const discrepancyDensity = pct(discrep, wc);
+    const certaintyDensity = pct(certainty, wc);
+    const tentativeDensity = pct(tentative, wc);
+    const absolutistDensity = pct(absolutist, wc);
+    const bodyDensity = pct(body, wc);
+    const powerDensity = pct(power, wc);
+    const moralityDensity = pct(morality, wc);
+    const humilityDensity = pct(humility, wc);
+    const ttr = uniqCount / wc;
+    const avgSentenceLength = sentenceLens.length ? mean(sentenceLens) : wc;
+    const pronounBalance = pct(first - third, wc);
+    const selfOtherGap = clamp((first - (second + third)) / wc, -1, 1);
+    const timeSpan = pct(future - past, wc);
+    const contradictionSignal = clamp((legacy.valenceCollisions || 0) * 0.28 + absolutistDensity * 2.0 + discrepancyDensity * 1.8, 0, 1.5);
+    const guardSignal = clamp(riskDensity * 7 + (legacy.negationCount || 0) / 18 + certaintyDensity * 2.5, 0, 1.5);
+    const opennessSignal = clamp(ttr * 1.4 + cognitiveDensity * 2.8 + (legacy.metaphorCount || 0) / 10 + pleasure / 20, 0, 1.5);
+    const orderSignal = clamp(duty / 10 + certainty / 12 + future / 15 - tentative / 20 - (legacy.deflectionSignal || 0) * 0.5, 0, 1.5);
+    const warmthSignal = clamp(affiliationDensity * 8 + socialDensity * 4 + repair / 10 + (sentiment.pos * 0.8), 0, 1.5);
+    const distressSignal = clamp(sentiment.neg * 1.3 + bodyDensity * 4 + (legacy.negationCount || 0) / 15 + anxiety / 12 + sadness / 12, 0, 1.5);
+    const dominanceSignal = clamp(powerDensity * 8 + certaintyDensity * 4 + (legacy.cloutCount || 0) / 14 - humilityDensity * 4, 0, 1.5);
+
+    const liwcAnalytic = clamp(50 + (article + prep - first - second) * 4 + avgSentenceLength * 1.2 + cogproc * 1.5 - exclaimCount * 3, 1, 99);
+    const liwcClout = clamp(50 + second * 5 - first * 3 + certainty * 4 + power * 4 - tentative * 3, 1, 99);
+    const liwcAuthenticity = clamp(50 + first * 5 + sadness * 2 + anxiety * 2 - quoteCount * 2 - certainty * 2 + humility * 5, 1, 99);
+    const liwcTone = clamp(50 + (sentiment.pos - sentiment.neg) * 45 + affectPos * 2 - affectNeg * 2, 1, 99);
+
+    return {
+      wc,
+      tokenCount: wc,
+      uniqueCount: uniqCount,
+      lexicalDiversity: ttr,
+      avgSentenceLength,
+      functionWordDensity,
+      affectDensity,
+      cognitiveDensity,
+      socialDensity,
+      rewardDensity,
+      riskDensity,
+      affiliationDensity,
+      discrepancyDensity,
+      certaintyDensity,
+      tentativeDensity,
+      absolutistDensity,
+      bodyDensity,
+      powerDensity,
+      moralityDensity,
+      humilityDensity,
+      firstCount: first,
+      secondCount: second,
+      thirdCount: third,
+      selfOtherGap,
+      pronounBalance,
+      timeSpan,
+      contradictionSignal,
+      guardSignal,
+      opennessSignal,
+      orderSignal,
+      warmthSignal,
+      distressSignal,
+      dominanceSignal,
+      questionCount,
+      exclaimCount,
+      commaCount,
+      liwcAnalytic,
+      liwcClout,
+      liwcAuthenticity,
+      liwcTone,
+      clout: liwcClout,
+      analytic: liwcAnalytic,
+      authenticity: liwcAuthenticity,
+      tone: liwcTone,
+      anxietyDensity: pct(anxiety, wc),
+      angerDensity: pct(anger, wc),
+      sadnessDensity: pct(sadness, wc),
+      positiveAffectDensity: pct(affectPos, wc),
+      negativeAffectDensity: pct(affectNeg, wc),
+      moralityCount: morality,
+      repairCount: repair,
+      pleasureCount: pleasure,
+      dutyCount: duty
+    };
+  }
+
+  function initEvidenceFrame(){
+    const out = {};
+    DIM_KEYS.forEach(k => {
+      out[k] = { observed: 0, inferred: 0, neg: 0, signalCount: 0, coverage: 0, words: [], notes: [] };
+    });
+    return out;
+  }
+
+  function addEv(bucket, key, amt, type='observed', token=null, note=null){
+    if (!bucket[key]) return;
+    bucket[key][type] += Math.max(0, amt || 0);
+    if (type !== 'neg') bucket[key].coverage += Math.max(0, amt || 0) * 0.6;
+    if (amt > 0) bucket[key].signalCount += 1;
+    if (token && !bucket[key].words.includes(token)) bucket[key].words.push(token);
+    if (note && !bucket[key].notes.includes(note)) bucket[key].notes.push(note);
+  }
+
+  function applySchemaEvidence(text, features, ev){
+    const lower = (text || '').toLowerCase();
+    const schema = (typeof SCHEMA !== 'undefined' && SCHEMA.dimensions) ? SCHEMA.dimensions : {};
+    for (const [key, cfg] of Object.entries(schema)) {
+      const lex = cfg.lexical_markers || [];
+      const lexNorm = Math.max(0.18, (cfg.evidence_weight || 0.5) / Math.max(lex.length, 4));
+      for (const marker of lex) {
+        const esc = marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = marker.includes(' ') ? new RegExp(esc, 'i') : new RegExp('\\b' + esc + '\\b', 'i');
+        if (re.test(lower)) addEv(ev, key, lexNorm, 'observed', marker, 'lexical');
+      }
+      for (const sig of (cfg.feature_signals || [])) {
+        const val = safeFeatureValue(features, sig.feature);
+        if (evaluateConditionFull(val, sig.condition)) {
+          const amt = (sig.contribution || 0.25) * (cfg.evidence_weight || 0.5);
+          addEv(ev, key, amt, 'observed', sig.feature, 'feature');
+        }
+      }
+      const cats = cfg.liw_categories || [];
+      for (const cat of cats) {
+        const proxy = safeFeatureValue(features, cat);
+        if (proxy === undefined || proxy === null) continue;
+        const normalized = proxy > 1 ? proxy / 100 : proxy;
+        const amt = clamp(normalized, 0, 1) * 0.18;
+        if (amt > 0.02) addEv(ev, key, amt, 'observed', cat, 'liwc-proxy');
+      }
+    }
+  }
+
+  function applyDimensionSpecificEvidence(features, sentiment, ev){
+    const f = features;
+    const s = sentiment;
+    addEv(ev,'trauma_abandon', clamp((f.thirdPersonDensity||0)*2.2 + (f.pastRatio||0)*0.6 + f.sadnessDensity*4 + f.socialDensity*1.5,0,1.8), 'observed', 'abandon-pattern');
+    addEv(ev,'trauma_shame', clamp((f.passiveCount||0)/6 + f.bodyDensity*4 + f.negativeAffectDensity*4 + f.liwcAuthenticity/250,0,1.6), 'observed', 'shame-pattern');
+    addEv(ev,'trauma_control', clamp(f.guardSignal + f.futureRatio*0.5 + f.cognitiveDensity*1.5,0,1.8), 'observed', 'control-pattern');
+    addEv(ev,'trauma_betrayal', clamp(f.thirdPersonDensity*1.6 + f.angerDensity*5 + f.negationCount/12 + f.valenceCollisions*0.25,0,1.7), 'observed', 'betrayal-pattern');
+
+    addEv(ev,'att_anxious', clamp((f.firstPersonDensity||0)*3.2 + (f.ruminationCount||0)/10 + f.questionCount/6 + f.contradictionSignal*0.6,0,1.9), 'observed', 'anxious-attachment');
+    addEv(ev,'att_avoidant', clamp(((f.firstPersonDensity||0) < 0.055 ? 0.45 : 0) + (f.deflectionSignal||0)*0.9 + (f.socialDensity < 0.03 ? 0.25 : 0),0,1.4), 'observed', 'avoidant-attachment');
+    addEv(ev,'att_fearful', clamp(f.contradictionSignal + f.valenceCollisions*0.35 + (f.firstPersonDensity||0)*0.8,0,1.8), 'observed', 'fearful-attachment');
+
+    addEv(ev,'mbti_i', clamp((1-(f.firstPersonDensity||0))*0.35 + f.thirdPersonDensity*1.2 + (f.socialDensity < 0.04 ? 0.25 : 0),0,1.2), 'observed', 'introversion-proxy');
+    addEv(ev,'mbti_n', clamp(f.opennessSignal + f.metaphorCount/8 + f.cognitiveDensity*2,0,1.8), 'observed', 'intuition-proxy');
+    addEv(ev,'mbti_f', clamp(f.bodyDensity*3 + f.affectDensity*4 + Math.abs(s.compound)*0.5,0,1.5), 'observed', 'feeling-proxy');
+    addEv(ev,'mbti_p', clamp(f.tentativeDensity*4 + (f.futureRatio>0.42?0.15:0) - f.orderSignal*0.25 + 0.35,0,1.2), 'observed', 'perceiving-proxy');
+
+    addEv(ev,'enn_head', clamp(f.guardSignal + f.cognitiveDensity*2.2 + f.riskDensity*3.5,0,1.8), 'observed', 'head-center');
+    addEv(ev,'enn_body', clamp(f.bodyDensity*4 + f.negationCount/14 + f.powerDensity*2,0,1.6), 'observed', 'body-center');
+    addEv(ev,'enn_heart', clamp((f.firstPersonDensity||0)*2.5 + f.affectDensity*3 + f.rewardDensity*2.5,0,1.7), 'observed', 'heart-center');
+
+    addEv(ev,'b5_open', clamp(f.opennessSignal + f.lexicalDiversity*0.8,0,1.8), 'observed', 'open-proxy');
+    addEv(ev,'b5_cons', clamp(f.orderSignal + f.futureRatio*0.4,0,1.6), 'observed', 'cons-proxy');
+    addEv(ev,'b5_extra', clamp((f.socialDensity*4) + (f.positiveAffectDensity*3) + Math.max(0, f.liwcClout-50)/100,0,1.5), 'observed', 'extra-proxy');
+    addEv(ev,'b5_agree', clamp(f.warmthSignal + f.humilityDensity*2 - f.powerDensity*1.2,0,1.7), 'observed', 'agree-proxy');
+    addEv(ev,'b5_neuro', clamp(f.distressSignal + f.absolutistDensity*2,0,1.9), 'observed', 'neuro-proxy');
+
+    addEv(ev,'hex_em', clamp(f.warmthSignal*0.6 + f.distressSignal*0.8 + f.bodyDensity*2.5,0,1.7), 'observed', 'emotionality-proxy');
+    addEv(ev,'hex_hh', clamp(f.humilityDensity*4 + f.moralityDensity*2 + f.repairCount/6 - f.dominanceSignal*0.35,0,1.5), 'observed', 'honesty-humility-proxy');
+
+    addEv(ev,'dark_narc', clamp(f.rewardDensity*4 + f.dominanceSignal*0.8 + Math.max(0,(f.firstPersonDensity||0)-0.11)*6,0,1.6), 'observed', 'narc-proxy');
+    addEv(ev,'dark_mach', clamp(f.powerDensity*3.2 + f.socialDensity*1.2 + f.certaintyDensity*2 - f.humilityDensity*2,0,1.5), 'observed', 'mach-proxy');
+    addEv(ev,'dark_psyc', clamp(f.angerDensity*4 + f.absolutistDensity*2.5 + Math.max(0,(f.liwcAuthenticity<35?0.25:0)) - f.affiliationDensity*2,0,1.4), 'observed', 'psych-proxy');
+    addEv(ev,'dark_sadism', clamp(f.angerDensity*4 + f.powerDensity*2.5 + (s.neg>0.55?0.25:0) - f.warmthSignal*0.5,0,1.3), 'observed', 'sadism-proxy');
+
+    addEv(ev,'light_compassion', clamp(f.warmthSignal + f.repairCount/8 + f.affiliationDensity*3,0,1.6), 'observed', 'compassion-proxy');
+    addEv(ev,'light_hum', clamp(f.humilityDensity*4 + f.liwcAuthenticity/120 + (f.certaintyDensity<0.03?0.15:0),0,1.4), 'observed', 'humility-proxy');
+    addEv(ev,'light_faith', clamp(f.warmthSignal*0.6 + f.moralityDensity*2 + f.futureRatio*0.3,0,1.3), 'observed', 'faith-proxy');
+    addEv(ev,'light_kant', clamp(f.moralityDensity*4 + f.dutyCount/8 + f.orderSignal*0.5,0,1.6), 'observed', 'kant-proxy');
+
+    addEv(ev,'sch_st', clamp(f.rewardDensity*3 + f.powerDensity*2 + f.futureRatio*0.3,0,1.5), 'observed', 'achievement-values');
+    addEv(ev,'sch_se', clamp(f.pleasureCount/8 + f.opennessSignal*0.6 + f.positiveAffectDensity*2.5,0,1.4), 'observed', 'self-direction-values');
+    addEv(ev,'sch_conservation', clamp(f.orderSignal + f.riskDensity*2.5 + f.dutyCount/10,0,1.6), 'observed', 'conservation-values');
+    addEv(ev,'sch_openness', clamp(f.opennessSignal + f.pleasureCount/8 + f.tentativeDensity*1.5,0,1.6), 'observed', 'openness-values');
+
+    const negativeDims = ['dark_narc','dark_mach','dark_psyc','dark_sadism'];
+    negativeDims.forEach(k => addEv(ev, k, clamp(f.warmthSignal*0.4 + f.humilityDensity*2,0,0.9), 'neg', 'prosocial-counterweight'));
+    addEv(ev,'b5_neuro', clamp(f.positiveAffectDensity*1.2 + f.futureRatio*0.2,0,0.8), 'neg', 'stability-counterweight');
+    addEv(ev,'trauma_control', clamp(f.tentativeDensity*1.4 + f.humilityDensity,0,0.7), 'neg', 'flexibility-counterweight');
+    addEv(ev,'att_avoidant', clamp(f.affiliationDensity*2 + f.warmthSignal*0.6,0,0.8), 'neg', 'closeness-counterweight');
+  }
+
+  function applyFallbackInference(ev){
+    const getObs = k => (ev[k]?.observed || 0);
+    const fallback = (typeof SCHEMA !== 'undefined' && SCHEMA.dimensions) ? SCHEMA.dimensions : {};
+    for (const [key, cfg] of Object.entries(fallback)) {
+      const fb = cfg.fallback;
+      if (!fb || getObs(key) > 0.35) continue;
+      if (fb.startsWith('infer_from_')) {
+        const ref = fb.replace('infer_from_','');
+        if (ev[ref]) addEv(ev, key, (ev[ref].observed || 0) * 0.35, 'inferred', ref, 'fallback');
+      } else if (fb === '1 - max(att_anxious, att_avoidant, att_fearful)') {
+        const m = Math.max(getObs('att_anxious'), getObs('att_avoidant'), getObs('att_fearful'));
+        addEv(ev, key, clamp(1 - m, 0, 0.7), 'inferred', 'secure-inverse', 'fallback');
+      } else if (fb === 'infer_from_head_body_heart') {
+        const m = mean([getObs('enn_head'), getObs('enn_body'), getObs('enn_heart')]);
+        addEv(ev, key, clamp(m * 0.4, 0, 0.7), 'inferred', 'enneagram-centers', 'fallback');
+      }
+    }
+    if (ev.att_secure && ev.att_secure.observed < 0.2) {
+      const secure = 1 - Math.max(getObs('att_anxious'), getObs('att_avoidant'), getObs('att_fearful'));
+      addEv(ev, 'att_secure', clamp(secure * 0.6, 0, 0.7), 'inferred', 'inverse-insecure', 'fallback');
+    }
+    if (ev.enn_integration && ev.enn_integration.observed < 0.2) {
+      const integ = mean([getObs('enn_head'), getObs('enn_body'), getObs('enn_heart')]);
+      addEv(ev, 'enn_integration', clamp(integ * 0.45, 0, 0.75), 'inferred', 'center-balance', 'fallback');
+    }
+  }
+
+  function finalizeEvidence(rawEv){
+    const out = {};
+    DIM_KEYS.forEach(k => {
+      const e = rawEv[k];
+      const observed = clamp(e.observed, 0, 2.4);
+      const inferred = clamp(e.inferred, 0, 1.2);
+      const neg = clamp(e.neg, 0, 1.5);
+      const support = observed + inferred * 0.55;
+      const coverage = clamp((e.signalCount / 4) + e.coverage * 0.12, 0, 1);
+      const sourceFactor = observed > 0 ? 1 : 0.62;
+      const confidencePre = clamp((1 - Math.exp(-(support + neg) / 1.8)) * coverage * sourceFactor, 0, 1);
+      out[k] = {
+        pos: observed + inferred * 0.45,
+        neg,
+        observed,
+        inferred,
+        signalCount: e.signalCount,
+        coverage,
+        confidenceHint: confidencePre,
+        source: observed > inferred ? 'observed' : inferred > 0 ? 'mixed' : 'low-support',
+        words: uniq(e.words).slice(0, 10),
+        notes: uniq(e.notes).slice(0, 8)
+      };
+    });
+    return out;
+  }
+
+  function advancedBayesUpdate(acc, evidence){
+    const prevMass = Math.max(0, (acc.alpha + acc.beta - 2));
+    const obs = clamp(evidence.observed || evidence.pos || 0, 0, 2.5);
+    const inf = clamp(evidence.inferred || 0, 0, 1.2);
+    const neg = clamp(evidence.neg || 0, 0, 1.8);
+    const dAlpha = 0.42 * obs + 0.18 * inf;
+    const dBeta = 0.34 * neg + Math.max(0, 0.08 - (obs * 0.03));
+    const a = acc.alpha + dAlpha;
+    const b = acc.beta + dBeta;
+    const meanVal = a / (a + b);
+    const mass = Math.max(0, a + b - 2);
+    const baseConf = 1 - Math.exp(-mass / 7.5);
+    const evidentiality = clamp((evidence.coverage || 0.2) * (evidence.confidenceHint || 0.3) * (obs > 0 ? 1 : 0.66), 0, 1);
+    const confidence = clamp(baseConf * (0.4 + evidentiality), 0, 0.97);
+    const uncertainty = Math.sqrt((a * b) / (Math.pow(a + b, 2) * (a + b + 1)));
+    return {
+      alpha: a,
+      beta: b,
+      mean: meanVal,
+      confidence,
+      uncertainty,
+      words: uniq([...(acc.words || []), ...((evidence.words)||[])]).slice(-12),
+      source: evidence.source || 'observed',
+      observed: obs,
+      inferred: inf,
+      signalCount: evidence.signalCount || 0,
+      coverage: evidence.coverage || 0,
+      notes: evidence.notes || [],
+      massGain: mass - prevMass
+    };
+  }
+
+  function computeQuestionPriorities(profile){
+    const acc = profile.accumulators;
+    const recencyPenalty = {};
+    (profile.questionHistory || []).slice(-5).forEach((q, idx) => {
+      if (q.dk) recencyPenalty[q.dk] = Math.max(recencyPenalty[q.dk] || 0, 1 - idx * 0.18);
+    });
+    const priorities = {};
+    FRAMEWORKS.forEach(fw => {
+      const dims = fw.dims.map(d => ({ key: d.k, mean: acc[d.k].mean, conf: acc[d.k].confidence }));
+      const sorted = dims.slice().sort((a,b)=>b.mean-a.mean);
+      const margin = sorted.length > 1 ? Math.abs(sorted[0].mean - sorted[1].mean) : 0.2;
+      dims.forEach(d => {
+        const uncertainty = acc[d.key].uncertainty || 0.25;
+        const ambiguity = clamp(0.22 - margin, 0, 0.22) / 0.22;
+        const lowSupport = 1 - (acc[d.key].coverage || 0);
+        const recent = recencyPenalty[d.key] || 0;
+        priorities[d.key] = (uncertainty * 0.58) + (ambiguity * 0.22) + (lowSupport * 0.25) - (recent * 0.18);
+      });
+    });
+    return priorities;
+  }
+
+  function improvedSelectNextQuestion(profile, features){
+    const readiness = profile.readiness || 0.45;
+    const asked = new Set((profile.questionHistory || []).map(q => q.t));
+    const priorities = computeQuestionPriorities(profile);
+    const recentFW = (profile.questionHistory || []).slice(-2).map(q => q.fw).filter(Boolean);
+    const mirror = (features && features.salientPhrase && features.deflectionSignal > 0.36)
+      ? `You used the phrase "${String(features.salientPhrase).replace(/</g,'&lt;').replace(/>/g,'&gt;')}" — what feels most true inside that phrase?`
+      : null;
+    if (mirror && !asked.has(mirror) && readiness >= 0.2) {
+      profile.questionHistory.push({ t: mirror, fw: null, dk: null });
+      return { text: mirror, mode: 'MIRROR' };
+    }
+    const candidates = Q.filter(q => !asked.has(q.t)).map(q => {
+      const target = q.dk ? (priorities[q.dk] || 0.18) : 0.16;
+      const readinessFit = readiness >= (q.r || 0) * 0.22 ? 1 : 0.45;
+      const depthFit = q.depth >= 3 && readiness < 0.58 ? 0.52 : q.depth === 2 && readiness < 0.34 ? 0.72 : 1;
+      const diversity = q.fw && recentFW.includes(q.fw) ? 0.72 : 1;
+      const diagnosticBonus = q.dk && (priorities[q.dk] || 0) > 0.28 ? 0.16 : 0;
+      const textBonus = (features && features.deflectionSignal > 0.45 && q.s === 'reflective') ? 0.08 : 0;
+      return { q, score: target * readinessFit * depthFit * diversity + diagnosticBonus + textBonus };
+    }).sort((a,b)=>b.score-a.score);
+    const pick = (candidates.slice(0, 5)[Math.floor(Math.random() * Math.min(3, candidates.length))] || candidates[0]);
+    if (!pick) return { text: 'What feels most important to name next?', mode: 'FALLBACK' };
+    profile.questionHistory.push({ t: pick.q.t, fw: pick.q.fw, dk: pick.q.dk });
+    return { text: pick.q.t, mode: 'STANDARD' };
+  }
+
+  function improvedNarrative(profile){
+    const acc = profile.accumulators;
+    const ranked = ALL_DIMS.map(d => ({ d, v: acc[d.k].mean, c: acc[d.k].confidence, s: acc[d.k].source || 'observed' }))
+      .sort((a,b)=>(b.v*b.c)-(a.v*a.c));
+    const top = ranked.filter(x => x.c > 0.24).slice(0, 4);
+    if (!top.length) return '<p>Not enough high-quality language signal yet. The profiler is intentionally withholding interpretation until the text sample is richer.</p>';
+    const style = profile.styleCumulative || {};
+    const profileTone = acc.b5_neuro.mean > 0.62 && acc.b5_neuro.confidence > 0.32
+      ? 'The session language shows elevated distress reactivity and self-monitoring.'
+      : acc.b5_agree.mean > 0.58 && acc.b5_agree.confidence > 0.28
+        ? 'The session language leans relational and repair-oriented.'
+        : 'The current language pattern is mixed rather than dominated by a single register.';
+    const bullets = top.map(x => `<li><strong>${x.d.label}</strong> — ${Math.round(x.v*100)}% score, ${Math.round(x.c*100)}% confidence, source: ${x.s}. Evidence: ${(acc[x.d.k].words || []).slice(0,4).join(', ') || 'structural linguistic cues'}.</li>`).join('');
+    const temporal = (style.pastTotal || 0) > (style.futureTotal || 0) * 1.35
+      ? 'Language is more past-anchored than future-anchored, which often means memory is driving the current interpretation frame.'
+      : (style.futureTotal || 0) > (style.pastTotal || 0) * 1.35
+        ? 'Language is more future-oriented, with noticeable forecasting and anticipation.'
+        : 'Past and future references are relatively balanced.';
+    return `<p>${profileTone} ${temporal}</p><ul>${bullets}</ul><p>These are <strong>language-pattern inferences</strong>, not diagnoses or fixed truths. Low-support dimensions are deliberately down-weighted, and fallback-derived dimensions never receive the same confidence as directly observed evidence.</p>`;
+  }
+
+  function improvedReveal(profile){
+    const acc = profile.accumulators;
+    const topDims = ALL_DIMS.map(d => ({
+      d,
+      v: acc[d.k].mean,
+      c: acc[d.k].confidence,
+      source: acc[d.k].source || 'observed',
+      score: acc[d.k].mean * Math.max(0.2, acc[d.k].confidence)
+    })).sort((a,b)=>b.score-a.score).slice(0,6);
+    const insecure = ['att_anxious','att_avoidant','att_fearful'].map(k => ({ k, v: acc[k].mean * acc[k].confidence })).sort((a,b)=>b.v-a.v)[0];
+    const attMap = { att_anxious:'Anxious-leaning', att_avoidant:'Avoidant-leaning', att_fearful:'Fearful-leaning' };
+    const mbti = `${acc.mbti_i.mean >= 0.5 ? 'I' : 'E'}${acc.mbti_n.mean >= 0.5 ? 'N' : 'S'}${acc.mbti_f.mean >= 0.5 ? 'F' : 'T'}${acc.mbti_p.mean >= 0.5 ? 'P' : 'J'}`;
+    const compounds = (profile.sentimentHistory || []).map(x => x.compound || 0);
+    const avgCompound = compounds.length ? mean(compounds) : 0;
+    return {
+      topDims,
+      primaryAtt: insecure ? (attMap[insecure.k] || 'Mixed insecure pattern') : 'Insufficient signal',
+      mbtiStr: mbti,
+      sentimentLabel: avgCompound > 0.18 ? 'Positive-leaning' : avgCompound < -0.18 ? 'Negative-leaning' : 'Mixed / neutral',
+      avgCompound,
+      volatility: profile.sentimentVolatility || 0,
+      deflections: (profile.deflectionTurns || []).length,
+      turns: profile.turn || 0,
+      words: profile.styleCumulative ? profile.styleCumulative.wordTotal : 0,
+      narrative: improvedNarrative(profile)
+    };
+  }
+
+  const originalInitProfile = initProfile;
+  initProfile = function(){
+    const p = originalInitProfile();
+    p.researchMode = 'uncertainty-aware';
+    p.textHistory = [];
+    p.proxyHistory = [];
+    p.dimensionHistory = [];
+    return p;
+  };
+
+  updateProfile = function(profile, text){
+    const p = JSON.parse(JSON.stringify(profile));
+    p.turn++;
+    p.textHistory = p.textHistory || [];
+    p.textHistory.push(text);
+
+    const sentiment = vaderSentiment(text);
+    const legacy = extractFeatures(text, sentiment);
+    const proxy = deriveSignals(text, sentiment, legacy);
+    const features = Object.assign({}, legacy, proxy);
+    const baseEvidence = mapEvidence(legacy, sentiment);
+    const rawEv = initEvidenceFrame();
+
+    DIM_KEYS.forEach(k => {
+      const base = baseEvidence[k] || { pos:0, neg:0, words:[] };
+      rawEv[k].observed += clamp(base.pos || 0, 0, 1.8);
+      rawEv[k].neg += clamp(base.neg || 0, 0, 1.2);
+      rawEv[k].coverage += clamp((base.pos || 0) * 0.3, 0, 1);
+      rawEv[k].signalCount += base.words && base.words.length ? Math.min(base.words.length, 3) : 0;
+      rawEv[k].words = uniq([...(rawEv[k].words || []), ...((base.words)||[])]).slice(0,10);
+      rawEv[k].notes.push('legacy-map');
+    });
+
+    applySchemaEvidence(text, features, rawEv);
+    applyDimensionSpecificEvidence(features, sentiment, rawEv);
+    applyFallbackInference(rawEv);
+
+    const evidence = finalizeEvidence(rawEv);
+    DIM_KEYS.forEach(k => {
+      p.accumulators[k] = advancedBayesUpdate(p.accumulators[k], evidence[k]);
+    });
+
+    p.sentimentHistory.push({ turn: p.turn, ...sentiment });
+    const sc = p.styleCumulative;
+    sc.pastTotal += legacy.pastCount || 0;
+    sc.futureTotal += legacy.futureCount || 0;
+    sc.metaphorTotal += legacy.metaphorCount || 0;
+    sc.ruminationTotal += legacy.ruminationCount || 0;
+    sc.somaticTotal += legacy.somaticCount || 0;
+    sc.negationTotal += legacy.negationCount || 0;
+    sc.valenceCollisionTotal += legacy.valenceCollisions || 0;
+    sc.wordTotal += features.wc || 0;
+    if ((legacy.deflectionSignal || 0) > 0.5) { sc.deflections += 1; p.deflectionTurns.push(p.turn); }
+    if ((legacy.emotionalIntensity || 0) > 0.45) p.intenseTurns.push(p.turn);
+    if (legacy.salientPhrase) p.userPhrases.push(legacy.salientPhrase);
+    p.proxyHistory.push({ turn: p.turn, analytic: features.liwcAnalytic, clout: features.liwcClout, authenticity: features.liwcAuthenticity, tone: features.liwcTone });
+    p.dimensionHistory.push({ turn: p.turn, top: ALL_DIMS.map(d => ({ key:d.k, value:p.accumulators[d.k].mean, conf:p.accumulators[d.k].confidence })).sort((a,b)=>(b.value*b.conf)-(a.value*a.conf)).slice(0,5) });
+
+    const compounds = p.sentimentHistory.map(s => s.compound);
+    const avg = mean(compounds);
+    const variance = compounds.length ? mean(compounds.map(c => Math.pow(c - avg, 2))) : 0;
+    p.sentimentVolatility = Math.sqrt(variance);
+    const recentDeflect = p.deflectionTurns.filter(t => p.turn - t <= 2).length;
+    const recentIntense = p.intenseTurns.filter(t => p.turn - t <= 2).length;
+    p.readiness = clamp(0.5 - recentDeflect*0.20 + recentIntense*0.16 + (legacy.emotionalIntensity||0)*0.18 + (features.liwcAuthenticity/100)*0.12 - p.sentimentVolatility*0.10, 0, 1);
+
+    return { profile: p, features, sentiment, evidence };
+  };
+
+  selectNextQuestion = function(profile, features){
+    return improvedSelectNextQuestion(profile, features || {});
+  };
+
+  generateNarrative = function(profile){
+    return improvedNarrative(profile);
+  };
+
+  generateRevealProfile = function(profile){
+    return improvedReveal(profile);
+  };
+
+  updateNarrative = function(profile){
+    const el = document.getElementById('narrative-body');
+    if (!el) return;
+    document.getElementById('narrative-section').classList.add('visible');
+    el.innerHTML = improvedNarrative(profile);
+  };
+
+  renderScorePanel = function(profile){
+    const panel = document.getElementById('score-panel');
+    if (!panel) return;
+    const groups = FRAMEWORKS.map(fw => {
+      const rows = fw.dims.map(d => {
+        const a = profile.accumulators[d.k];
+        const pct = Math.round(a.mean * 100);
+        const conf = Math.round(a.confidence * 100);
+        const tag = a.source === 'observed' ? 'OBS' : a.source === 'mixed' ? 'MIX' : 'INF';
+        return `<div class="score-row"><div class="score-label">${d.label}</div><div class="score-bar-wrap"><div class="score-bar" style="width:${pct}%"></div></div><div class="score-meta">${pct}% · ${conf}% · ${tag}</div></div>`;
+      }).join('');
+      return `<div class="fw-block"><div class="fw-title">${fw.label}</div>${rows}</div>`;
+    }).join('');
+    panel.innerHTML = groups;
+  };
+})();
+</script>
+
 </body>
 </html>
