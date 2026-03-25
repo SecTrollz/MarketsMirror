@@ -2983,6 +2983,48 @@ const PRETRAINED_MODEL_SUITE = {
     note: 'Prompt-conditioned text-audio fusion head (ONNX Runtime Web).'
   }
 };
+const MODEL_CANDIDATES = [
+  {
+    key: 'mobile_fast',
+    id: 'minuva/MiniLMv2-goemotions-v2-onnx',
+    url: 'https://huggingface.co/minuva/MiniLMv2-goemotions-v2-onnx/resolve/main/model_optimized_quantized.onnx?download=true',
+    sizeMB: 30,
+    quality: 0.78
+  },
+  {
+    key: 'balanced',
+    id: 'SamLowe/roberta-base-go_emotions-onnx',
+    url: 'https://huggingface.co/SamLowe/roberta-base-go_emotions-onnx/resolve/main/onnx/model_quantized.onnx?download=true',
+    sizeMB: 125,
+    quality: 0.88
+  }
+];
+const TMP_MODEL_CACHE_NAME = 'linguainsight-tmp-models-v1';
+
+function selectModelCandidate() {
+  const mem = navigator.deviceMemory || 4;
+  const cores = navigator.hardwareConcurrency || 4;
+  const saveData = !!navigator.connection?.saveData;
+  if (saveData || mem <= 4 || cores <= 4) return MODEL_CANDIDATES[0];
+  return MODEL_CANDIDATES[1];
+}
+
+async function cacheModelInTmp(url) {
+  if (!('caches' in window)) return url;
+  const cache = await caches.open(TMP_MODEL_CACHE_NAME);
+  let res = await cache.match(url);
+  if (!res) {
+    res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Model fetch failed: ${res.status}`);
+    await cache.put(url, res.clone());
+  }
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);
+}
+
+const multimodal = {
+  modelUrl: '', // Set to your ONNX model path when available.
+  modelBlobUrl: '',
 
 const multimodal = {
   modelUrl: '', // Set to your ONNX model path when available.
@@ -2997,6 +3039,9 @@ const multimodal = {
 async function initMultimodalEngine() {
   const statusEl = document.getElementById('mm-status');
   if (!statusEl) return;
+  const configured = new URLSearchParams(window.location.search).get('fusion_onnx');
+  const picked = configured ? { id: 'custom', url: configured, key: 'custom' } : selectModelCandidate();
+  multimodal.modelUrl = picked.url;
   if (!multimodal.modelUrl) {
     const configured = new URLSearchParams(window.location.search).get('fusion_onnx');
     if (configured) multimodal.modelUrl = configured;
@@ -3008,6 +3053,14 @@ async function initMultimodalEngine() {
   }
 
   try {
+    statusEl.innerHTML = `MM emotion: <strong>loading onnx</strong> · model: ${picked.id} · cache: tmp`;
+    const cachedModelUrl = await cacheModelInTmp(multimodal.modelUrl);
+    if (multimodal.modelBlobUrl && multimodal.modelBlobUrl.startsWith('blob:')) URL.revokeObjectURL(multimodal.modelBlobUrl);
+    multimodal.modelBlobUrl = cachedModelUrl;
+    multimodal.session = await ort.InferenceSession.create(multimodal.modelBlobUrl, {
+      executionProviders: ['wasm']
+    });
+    statusEl.innerHTML = `MM emotion: <strong>onnx ready</strong> · mode: text-only · model: ${picked.id}`;
     multimodal.session = await ort.InferenceSession.create(multimodal.modelUrl, {
       executionProviders: ['wasm']
     });
@@ -3357,11 +3410,45 @@ function modeAFromTurns(turns, cognitiveProfile) {
   };
 }
 
+function inferTurnEmotionScores(text, turnSentiment = 0) {
+  const lower = (text || '').toLowerCase();
+  const scores = {
+    calm: clamp(0.45 + Math.max(0, turnSentiment) * 0.35, 0, 1),
+    stressed: clamp(0.4 + Math.max(0, -turnSentiment) * 0.45, 0, 1),
+    guarded: clamp(0.3 + ((lower.match(/\b(should|must|never|always|can't)\b/g) || []).length * 0.12), 0, 1),
+    engaged: clamp(0.35 + ((lower.match(/\b(plan|learn|build|next|create|improve)\b/g) || []).length * 0.12), 0, 1)
+  };
+  return scores;
+}
+
+function dominantEmotionFromScores(scores) {
+  return Object.entries(scores || { calm: 1 }).sort((a, b) => b[1] - a[1])[0][0];
+}
+
 function modeBFromSession(profile, turns, mmScores) {
   const hist = (profile.sentimentHistory || []).map(s => s.compound || 0);
   const volatility = hist.length ? std(hist.slice(-10)) : 0;
   const volatilityIndex = volatility > 0.35 ? 'high' : volatility > 0.18 ? 'medium' : 'low';
   const pivots = [];
+  const emotions = turns.map((t, i) => {
+    const sent = hist[i] || 0;
+    if (i === turns.length - 1 && mmScores) return dominantEmotionFromScores(mmScores);
+    return dominantEmotionFromScores(inferTurnEmotionScores(t.text, sent));
+  });
+  for (let i = 1; i < emotions.length; i++) {
+    const prevScores = inferTurnEmotionScores(turns[i - 1]?.text || '', hist[i - 1] || 0);
+    const currScores = i === turns.length - 1 && mmScores ? mmScores : inferTurnEmotionScores(turns[i]?.text || '', hist[i] || 0);
+    const prevLabel = emotions[i - 1];
+    const currLabel = emotions[i];
+    const shift = Math.abs((currScores[currLabel] || 0) - (prevScores[prevLabel] || 0));
+    if (prevLabel !== currLabel && shift > 0.3) {
+      pivots.push({ response: turns[i].id, from: prevLabel, to: currLabel, shift: +shift.toFixed(3) });
+    }
+  }
+  const smoothTransitions = Math.max(0, (turns.length - 1) - pivots.length);
+  const regulation = turns.length > 1
+    ? Math.round(clamp((smoothTransitions / (turns.length - 1)) * (1 - volatility), 0, 1) * 100)
+    : Math.round(clamp(1 - volatility * 1.7, 0, 1) * 100);
   const emotions = turns.map((_, i) => i === turns.length - 1
     ? (Object.entries(mmScores || { neutral: 1 }).sort((a, b) => b[1] - a[1])[0][0])
     : 'neutral');
@@ -3404,6 +3491,20 @@ function buildTransitionAnalytics(turns, profile) {
     const delta = +(currLoad - prevLoad).toFixed(3);
     const prevSent = profile.sentimentHistory?.[i - 1]?.compound || 0;
     const currSent = profile.sentimentHistory?.[i]?.compound || 0;
+    const triggerQuestionIdx = i;
+    const triggerQuestion = Math.abs(delta) > 0.2 ? `Q${i + 1}` : null;
+    const triggerQuestionText = triggerQuestion
+      ? (profile.questionHistory?.[triggerQuestionIdx]?.t || null)
+      : null;
+    out.push({
+      from: prev.id,
+      to: curr.id,
+      from_response: prev.id,
+      to_response: curr.id,
+      cognitive_load_delta: delta,
+      emotion_change: Math.abs(currSent - prevSent) > 0.2,
+      trigger_question: triggerQuestion,
+      trigger_question_text: triggerQuestionText
     out.push({
       from: prev.id,
       to: curr.id,
@@ -3483,6 +3584,16 @@ async function generateLinguaInsightReport(profile, cognitiveProfile, mmScores, 
   if (!multimodal.session) selfCritiqueLog.push({ stage: 'onnx_reliability', issue: 'ONNX model unavailable.', action: 'JS heuristics + fallback used.' });
   if (cognitiveProfile?.feature_vectors?.status === 'insufficient_data_for_onnx_inference') {
     selfCritiqueLog.push({ stage: 'onnx_reliability', issue: 'Current response under token threshold.', action: 'Applied heuristic-dominant scoring for this turn.' });
+  }
+  const sentimentLatest = profile.sentimentHistory?.[profile.sentimentHistory.length - 1]?.compound || 0;
+  const dominantEmotion = dominantEmotionFromScores(mmScores || {});
+  const emotionPolarity = ['stressed', 'guarded'].includes(dominantEmotion) ? -1 : 1;
+  if (Math.abs(sentimentLatest - emotionPolarity) > 1.1) {
+    selfCritiqueLog.push({
+      stage: 'metric_consistency',
+      issue: 'Emotion and sentiment signals diverged materially on the latest turn.',
+      action: 'Down-weighted emotional certainty in interpretation and retained mixed-signal wording.'
+    });
   }
 
   const metrics = {};
@@ -5645,7 +5756,21 @@ function selectNextQuestionWarm(profile) {
       return { q, score: target * readinessFit * depthFit * diversity + diagnosticBonus + textBonus };
     }).sort((a,b)=>b.score-a.score);
     const pick = (candidates.slice(0, 5)[Math.floor(Math.random() * Math.min(3, candidates.length))] || candidates[0]);
-    if (!pick) return { text: 'What feels most important to name next?', mode: 'FALLBACK' };
+    if (!pick) {
+      const adaptiveFallbacks = [
+        'Given everything we covered, what feels most important to name next?',
+        'If you had to pick one thread to clarify now, which would it be?',
+        'What question do you wish had been asked so far?'
+      ];
+      const recentText = (profile.textHistory || []).slice(-2).join(' ').toLowerCase();
+      const preferred = recentText.includes('confus') || recentText.includes('uncertain')
+        ? adaptiveFallbacks[1]
+        : recentText.includes('question')
+          ? adaptiveFallbacks[2]
+          : adaptiveFallbacks[0];
+      profile.questionHistory.push({ t: preferred, fw: null, dk: null });
+      return { text: preferred, mode: 'FALLBACK' };
+    }
     profile.questionHistory.push({ t: pick.q.t, fw: pick.q.fw, dk: pick.q.dk });
     return { text: pick.q.t, mode: 'STANDARD' };
   }
