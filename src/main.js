@@ -2644,6 +2644,7 @@ function openChatInputPopup() {
   const popupInput = document.getElementById('popup-user-input');
   if (!modal || !baseInput || !popupInput || baseInput.disabled) return;
   popupInput.value = baseInput.value;
+  updatePopupComposerMeta();
   modal.classList.add('visible');
   modal.setAttribute('aria-hidden', 'false');
   setTimeout(() => popupInput.focus(), 10);
@@ -2666,6 +2667,13 @@ function applyPopupDraft(sendImmediately = false) {
   baseInput.style.height = Math.min(baseInput.scrollHeight, 120) + 'px';
   closeChatInputPopup();
   if (sendImmediately) send();
+}
+
+function updatePopupComposerMeta() {
+  const popupInput = document.getElementById('popup-user-input');
+  const charCount = document.getElementById('popup-char-count');
+  if (!popupInput || !charCount) return;
+  charCount.textContent = `${popupInput.value.length} chars`;
 }
 
 function formatProcessingError(stage, err) {
@@ -3103,6 +3111,9 @@ document.getElementById('popup-user-input').addEventListener('keydown', e => {
   scheduleInputAutoSelect();
 });
 
+document.getElementById('popup-user-input').addEventListener('input', () => {
+  updatePopupComposerMeta();
+  scheduleInputAutoSelect();
 document.getElementById('chat-input-popup').addEventListener('click', e => {
   if (e.target?.id === 'chat-input-popup') closeChatInputPopup();
 });
