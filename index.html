@@ -2989,6 +2989,7 @@ const multimodal = {
   session: null,
   textOnly: true,
   emaScores: { calm: 0.25, stressed: 0.25, guarded: 0.25, engaged: 0.25 },
+  fixedAudio: { rms: 0, zcr: 0, flux: 0 }
   latestAudio: { rms: 0, zcr: 0, flux: 0 },
   media: { stream: null, ctx: null, analyser: null, data: null }
 };
@@ -3138,6 +3139,10 @@ function renderMultimodalStatus(rawScores, mode) {
 
 async function updateMultimodalEmotion(text, sentiment) {
   const textFeat = textEmotionFeatures(text, sentiment);
+  const audioFeat = multimodal.fixedAudio;
+  const fused = fuseTextAudio(textFeat, audioFeat);
+  const scores = await onnxEmotionInference(fused);
+  renderMultimodalStatus(scores, 'text-only');
   const audioFeat = multimodal.textOnly ? multimodal.latestAudio : sampleAudioFeatures();
   const fused = fuseTextAudio(textFeat, audioFeat);
   const scores = await onnxEmotionInference(fused);
