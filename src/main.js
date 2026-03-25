@@ -2780,6 +2780,7 @@ function beginSession() {
     addMsg('ai', opener.t);
     document.getElementById('user-input').focus();
   }, 500);
+  document.getElementById('popup-input-btn').disabled = false;
 }
 
 async function send() {
@@ -2839,6 +2840,9 @@ async function send() {
       } catch (err) {
         logPipelineError(stageLabel, err, { fallback_applied: true });
         return fallbackFactory(err, null);
+        const logged = logPipelineError(stageLabel, err, { fallback_applied: true });
+        addMsg('sys', `Notice: ${stageLabel} degraded gracefully (ref: ${logged.id}).`);
+        return fallbackFactory(err, logged);
       }
     };
 
@@ -2936,6 +2940,10 @@ async function send() {
     logPipelineError(activeStage, err, { fatal: true, input_length: text.length });
     console.error('Send pipeline failed:', err);
     removeThinking();
+    const logged = logPipelineError(activeStage, err, { fatal: true, input_length: text.length });
+    console.error('Send pipeline failed:', err);
+    removeThinking();
+    addMsg('sys', `Processing error detected. ${formatProcessingError(activeStage, err)} (ref: ${logged.id})`);
     document.getElementById('send-btn').disabled = false;
     document.getElementById('popup-input-btn').disabled = false;
   }
@@ -3032,6 +3040,7 @@ function restartSession() {
     addMsg('ai', opener.t);
     document.getElementById('user-input').focus();
   }, 200);
+  document.getElementById('popup-input-btn').disabled = false;
 }
 
 function escapeHTML(str) {
