@@ -483,6 +483,7 @@ body {
   #chart-col, #scores-col { width: 100%; }
 }
 </style>
+<link rel="stylesheet" href="styles/app.css">
 </head>
 <body>
 
@@ -523,26 +524,26 @@ body {
     </div>
   </div>
   <div id="right-panel">
-    <div id="api-settings-panel" style="border-bottom: 1px solid var(--border); padding: 12px 20px; background: var(--bg1);">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-        <span class="panel-title" style="margin-bottom: 0;">🤖 External NLP API</span>
-        <span id="api-status-badge" style="font-size: 9px; font-family: var(--mono); padding: 2px 8px; border-radius: 12px; background: var(--bg2); color: var(--text-dim);">⛔ Disabled</span>
+    <div id="api-settings-panel" class="api-settings-panel">
+      <div class="api-settings-head">
+        <span class="panel-title api-settings-title">🤖 External NLP API</span>
+        <span id="api-status-badge" class="api-status-badge">⛔ Disabled</span>
       </div>
-      <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
-        <label style="display: flex; align-items: center; gap: 6px; font-size: 10px;">
+      <div class="api-settings-controls">
+        <label class="api-settings-toggle">
           <input type="checkbox" id="api-enabled"> Enable
         </label>
-        <select id="api-provider" style="background: var(--bg2); color: var(--text); border: 1px solid var(--border-mid); padding: 6px 10px; font-size: 10px; border-radius: 4px;">
+        <select id="api-provider" class="api-settings-field">
           <option value="openai">OpenAI ChatGPT</option>
           <option value="openai_analysis">OpenAI (Deep Analysis)</option>
         </select>
-        <input type="password" id="api-key" placeholder="API Key" style="background: var(--bg2); color: var(--text); border: 1px solid var(--border-mid); padding: 6px 10px; font-size: 10px; flex: 1; min-width: 180px; border-radius: 4px;">
-        <input type="text" id="api-endpoint" placeholder="Endpoint (defaults to OpenAI)" style="background: var(--bg2); color: var(--text); border: 1px solid var(--border-mid); padding: 6px 10px; font-size: 10px; flex: 1; border-radius: 4px;" value="https://api.openai.com/v1/chat/completions">
-        <input type="text" id="api-model" placeholder="Model" style="background: var(--bg2); color: var(--text); border: 1px solid var(--border-mid); padding: 6px 10px; font-size: 10px; width: 100px; border-radius: 4px;" value="gpt-3.5-turbo">
-        <button id="save-api-settings" style="background: var(--amber-dim); border: 1px solid var(--amber-lo); color: var(--amber); padding: 6px 12px; font-size: 10px; cursor: pointer; border-radius: 4px;">Save</button>
-        <button id="test-api-connection" style="background: var(--bg2); border: 1px solid var(--border-mid); color: var(--text-dim); padding: 6px 12px; font-size: 10px; cursor: pointer; border-radius: 4px;">Test</button>
+        <input type="password" id="api-key" placeholder="API Key" class="api-settings-field api-settings-grow">
+        <input type="text" id="api-endpoint" placeholder="Endpoint (defaults to OpenAI)" class="api-settings-field api-settings-grow" value="https://api.openai.com/v1/chat/completions">
+        <input type="text" id="api-model" placeholder="Model" class="api-settings-field api-settings-model" value="gpt-3.5-turbo">
+        <button id="save-api-settings" class="api-settings-btn api-settings-btn-primary">Save</button>
+        <button id="test-api-connection" class="api-settings-btn">Test</button>
       </div>
-      <div id="api-status" style="margin-top: 8px; font-size: 9px; font-family: var(--mono); color: var(--text-dim);"></div>
+      <div id="api-status" class="api-status"></div>
     </div>
     <div class="panel-header">
       <span class="panel-title">Live Diagnostic</span>
@@ -1713,6 +1714,68 @@ if (originalShowThinking) {
 }
 
 console.log('✅ Stability enhancements active');
+</script>
+<script>
+function setupMobileDiagnosticsInteraction() {
+  const scoresCol = document.getElementById('scores-col');
+  if (!scoresCol || scoresCol.dataset.mobileInteractionReady === 'true') return;
+
+  scoresCol.dataset.mobileInteractionReady = 'true';
+
+  const hydrateRows = () => {
+    scoresCol.querySelectorAll('.fw-dim').forEach((row) => {
+      if (row.dataset.hydrated === 'true') return;
+      row.dataset.hydrated = 'true';
+      row.setAttribute('tabindex', '0');
+      row.setAttribute('role', 'button');
+      row.setAttribute('aria-expanded', 'false');
+    });
+  };
+
+  const toggleRow = (row) => {
+    const next = !row.classList.contains('is-expanded');
+    row.classList.toggle('is-expanded', next);
+    row.setAttribute('aria-expanded', String(next));
+  };
+
+  scoresCol.addEventListener('click', (event) => {
+    const row = event.target.closest('.fw-dim');
+    if (!row) return;
+    if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    toggleRow(row);
+  });
+
+  scoresCol.addEventListener('keydown', (event) => {
+    if (!['Enter', ' '].includes(event.key)) return;
+    const row = event.target.closest('.fw-dim');
+    if (!row) return;
+    event.preventDefault();
+    toggleRow(row);
+  });
+
+  const observer = new MutationObserver(hydrateRows);
+  observer.observe(scoresCol, { childList: true, subtree: true });
+  hydrateRows();
+}
+
+function enableMobileViewportOptimizations() {
+  const updateViewport = () => {
+    const vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--app-vh', `${vh}px`);
+  };
+
+  document.documentElement.classList.add('mobile-optimized');
+  document.body.classList.add('mobile-optimized');
+  updateViewport();
+  window.addEventListener('resize', updateViewport, { passive: true });
+  setupMobileDiagnosticsInteraction();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', enableMobileViewportOptimizations);
+} else {
+  enableMobileViewportOptimizations();
+}
 </script>
 </body>
 </html>
