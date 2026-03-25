@@ -399,6 +399,9 @@ body {
   display: flex; flex-direction: column; flex-shrink: 0;
   min-width: 300px;
   gap: 12px;
+  width: min(48%, 540px); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; flex-shrink: 0;
+  min-width: 300px;
 }
 
 .viz-zone {
@@ -3758,95 +3761,6 @@ async function requestHFDeepDive(report, profile, cognitiveProfile, mmScores) {
   }
 }
 
-function parseTurns(inputText = '') {
-  if (inputText && typeof inputText === 'string') {
-    return inputText
-      .split(/\n+/)
-      .map((line, idx) => ({ id: `A${idx + 1}`, text: line.trim() }))
-      .filter(t => t.text.length > 0)
-      .map(t => {
-        const tokens = simpleTokens(t.text);
-        const words = Math.max(tokens.length, 1);
-        const hedging = (t.text.match(/\b(maybe|perhaps|sort of|kind of|i think|i guess|possibly)\b/gi) || []).length;
-        const fillers = (t.text.match(/\b(um+|uh+|erm+|like)\b/gi) || []).length;
-        const thirdPerson = tokens.filter(w => ['they', 'them', 'their', 'he', 'she'].includes(w)).length;
-        return {
-          ...t,
-          tokens: tokens.length,
-          lexical_diversity: +estimateMTLD(tokens).toFixed(3),
-          syntactic_complexity: +syntacticComplexity(t.text).toFixed(3),
-          filler_ratio: +(fillers / words).toFixed(3),
-          hedging_frequency: hedging,
-          pronouns: pronounRatio(tokens),
-          third_person_ratio: +(thirdPerson / words).toFixed(3)
-        };
-      });
-  }
-  return extractSubjectTurns();
-}
-
-function runJSMetrics(turn) {
-  return {
-    lexical_diversity: turn.lexical_diversity,
-    syntactic_complexity: turn.syntactic_complexity,
-    filler_ratio: turn.filler_ratio,
-    hedging_frequency: turn.hedging_frequency,
-    pronouns: turn.pronouns,
-    third_person_ratio: turn.third_person_ratio
-  };
-}
-
-async function runONNX(turnText, profileCtx, sentiment, mmScores) {
-  return runCognitiveLinguistV2(turnText, profileCtx, sentiment, mmScores);
-}
-
-function aggregateModes(turns, selectedModes, profile, cognitiveProfile, mmScores) {
-  const metrics = {};
-  if (selectedModes.includes('A')) metrics.mode_a = modeAFromTurns(turns, cognitiveProfile);
-  if (selectedModes.includes('B')) metrics.mode_b = modeBFromSession(profile, turns, mmScores);
-  if (selectedModes.includes('C')) metrics.mode_c = modeCFromTurns(turns, cognitiveProfile);
-  return metrics;
-}
-
-function computeTransitionAnalytics(turns, profile) {
-  return buildTransitionAnalytics(turns, profile);
-}
-
-function generateSessionArc(metrics, learningMode = true) {
-  const a = metrics.mode_a || { cognitive_load_trend: 'stable' };
-  const b = metrics.mode_b || { volatility_index: 'medium' };
-  const c = metrics.mode_c || { cohesion_score: 50, defensiveness_indicator: 'not elevated' };
-  return learningMode
-    ? `The session shows a ${a.cognitive_load_trend} cognitive-load trajectory with ${b.volatility_index} emotional volatility. *Why this matters:* shifts in load and emotion can reflect recall pressure, uncertainty, or threat sensitivity. Cohesion is ${c.cohesion_score}/100 with defensiveness marked as ${c.defensiveness_indicator}.`
-    : `Session trend: cognitive load ${a.cognitive_load_trend}, emotional volatility ${b.volatility_index}, cohesion ${c.cohesion_score}/100.`;
-}
-
-async function enrichWithHF(report, profile, cognitiveProfile, mmScores) {
-  const hf = await requestHFDeepDive(report, profile, cognitiveProfile, mmScores);
-  return {
-    enabled: !!hf.enabled,
-    model_used: hf.model || null,
-    follow_up_questions: hf.follow_up_questions || [],
-    deeper_explanation: hf.explanation || '',
-    status: hf.status || 'disabled',
-    error: hf.error || null
-  };
-}
-
-function selfCritique(output) {
-  const log = [...(output.self_critique_log || [])];
-  if (!output.transition_analytics?.length) {
-    log.push({ stage: 'data_integrity', issue: 'No transition analytics available.', action: 'Need at least 2 responses for transition analysis.' });
-  }
-  if (!output.metrics || Object.keys(output.metrics).length === 0) {
-    log.push({ stage: 'mode_mapping', issue: 'No active mode metrics produced.', action: 'Enable at least one mode (A/B/C).' });
-  }
-  if (output.deep_nlp?.enabled && output.deep_nlp.status !== 'ok') {
-    log.push({ stage: 'deep_nlp', issue: `Deep NLP status is ${output.deep_nlp.status}.`, action: 'Fallback to local metrics and retry deep NLP if desired.' });
-  }
-  return log;
-}
-
 async function generateLinguaInsightReport(profile, cognitiveProfile, mmScores, modes = LINGUA_MODES) {
   const turns = parseTurns();
   const metrics = aggregateModes(turns, modes, profile, cognitiveProfile, mmScores);
@@ -3877,6 +3791,11 @@ async function generateLinguaInsightReport(profile, cognitiveProfile, mmScores, 
     });
   }
 
+  const metrics = {};
+  if (modes.includes('A')) metrics.mode_a = modeA;
+  if (modes.includes('B')) metrics.mode_b = modeB;
+  if (modes.includes('C')) metrics.mode_c = modeC;
+
   const baseReport = {
     modes_selected: modes,
     session_arc: sessionArc,
@@ -3892,21 +3811,19 @@ async function generateLinguaInsightReport(profile, cognitiveProfile, mmScores, 
     self_critique_log: selfCritiqueLog
   };
 
-  const deepNlp = await enrichWithHF(baseReport, profile, cognitiveProfile, mmScores);
-  if (deepNlp.enabled && deepNlp.status !== 'ok') {
+  const hfDeepDive = await requestHFDeepDive(baseReport, profile, cognitiveProfile, mmScores);
+  if (hfDeepDive.enabled && hfDeepDive.status !== 'ok') {
     selfCritiqueLog.push({
-      stage: 'deep_nlp',
-      issue: `Hugging Face deep NLP unavailable (${deepNlp.status}).`,
+      stage: 'hf_deep_nlp',
+      issue: `Hugging Face deep NLP unavailable (${hfDeepDive.status}).`,
       action: 'Using local psycholinguistic interpretation only.'
     });
   }
 
-  const finalized = {
+  return {
     ...baseReport,
-    deep_nlp: deepNlp
+    hf_deep_dive: hfDeepDive
   };
-  finalized.self_critique_log = selfCritique(finalized);
-  return finalized;
 }
 
 function renderLinguaInsightReport(report) {
@@ -3915,19 +3832,15 @@ function renderLinguaInsightReport(report) {
   const metaEl = document.getElementById('report-meta');
   const critiqueEl = document.getElementById('report-critique');
   if (!arcEl || !metaEl || !critiqueEl || !report) return;
-  const deepNlp = report.deep_nlp || { enabled: false, status: 'disabled' };
-  const hfQuestions = deepNlp.follow_up_questions || [];
+  const hfQuestions = report.hf_deep_dive?.follow_up_questions || [];
   const questionList = hfQuestions.length
     ? `<br><br><strong>Suggested follow-up questions</strong><br>${hfQuestions.map((q, i) => `${i + 1}. ${escapeHTML(q)}`).join('<br>')}`
     : '';
-  const deepExplanation = deepNlp.deeper_explanation
-    ? `<br><br><strong>Deep NLP enrichment</strong><br>${escapeHTML(deepNlp.deeper_explanation)}`
-    : '';
-  arcEl.innerHTML = (report.session_arc || 'No arc generated yet.') + deepExplanation + questionList;
+  arcEl.innerHTML = (report.session_arc || 'No arc generated yet.') + questionList;
   metaEl.textContent = `Modes: ${(report.modes_selected || []).join(', ') || 'none'} · ONNX available: ${report.onnx_status?.available ? 'yes' : 'no'} · Fallback: ${report.onnx_status?.fallback_used ? 'yes' : 'no'}`;
   const critiques = (report.self_critique_log || []).map(c => `• [${c.stage}] ${c.issue} → ${c.action}`).join('\n');
-  const hfLine = deepNlp.enabled
-    ? `\n• [deep_nlp] status=${deepNlp.status}${deepNlp.model_used ? ` model=${deepNlp.model_used}` : ''}${deepNlp.error ? ` error=${deepNlp.error}` : ''}`
+  const hfLine = report.hf_deep_dive?.enabled
+    ? `\n• [hf_deep_nlp] status=${report.hf_deep_dive.status}${report.hf_deep_dive.model ? ` model=${report.hf_deep_dive.model}` : ''}${report.hf_deep_dive.error ? ` error=${report.hf_deep_dive.error}` : ''}`
     : '';
   critiqueEl.textContent = (critiques || 'No major critique flags for this turn.') + hfLine;
 }
