@@ -36,7 +36,7 @@
 }
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { height: 100%; overflow: hidden; }
+html, body { min-height: 100%; overflow-x: hidden; overflow-y: auto; }
 
 body {
   background: var(--bg0);
@@ -44,6 +44,7 @@ body {
   font-family: var(--serif);
   font-size: 15px;
   line-height: 1.6;
+  min-height: 100svh;
 }
 
 /* ── INTRO SCREEN ─────────────────────────────────── */
@@ -51,19 +52,20 @@ body {
 #intro {
   position: fixed; inset: 0; z-index: 100;
   background: var(--bg0);
-  display: flex; align-items: stretch;
+  display: flex; align-items: stretch; flex-wrap: wrap;
   transition: opacity 600ms ease, transform 600ms ease;
+  overflow-y: auto;
 }
 #intro.fading { opacity: 0; transform: translateY(-8px); pointer-events: none; }
 
 .intro-left {
-  width: 50%; padding: 72px 56px;
+  flex: 1 1 420px; padding: clamp(28px, 4vw, 72px) clamp(20px, 4vw, 56px);
   display: flex; flex-direction: column; justify-content: center;
   border-right: 1px solid var(--border);
 }
 
 .intro-right {
-  width: 50%; padding: 72px 56px;
+  flex: 1 1 420px; padding: clamp(28px, 4vw, 72px) clamp(20px, 4vw, 56px);
   display: flex; flex-direction: column; justify-content: center;
   background: var(--bg1);
 }
@@ -129,7 +131,7 @@ body {
 /* ── APP LAYOUT ───────────────────────────────────── */
 
 #app {
-  display: flex; height: 100vh; overflow: hidden;
+  display: flex; min-height: 100svh; height: auto; overflow: hidden;
   opacity: 0; transition: opacity 600ms ease;
 }
 #app.visible { opacity: 1; }
@@ -137,7 +139,7 @@ body {
 /* ── LEFT PANEL: CHAT ─────────────────────────────── */
 
 #left-panel {
-  width: 44%; min-width: 360px; max-width: 520px;
+  width: clamp(320px, 40vw, 560px); min-width: 300px; max-width: 100%;
   display: flex; flex-direction: column;
   border-right: 1px solid var(--border);
   background: var(--bg1);
@@ -320,10 +322,20 @@ body {
   margin-bottom: 8px;
 }
 .insight-cell {
-  padding: 8px;
+  padding: 10px;
   border: 1px solid var(--border);
   background: var(--bg2);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text);
+  display: grid;
+  gap: 6px;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: border-color var(--transition), background var(--transition);
 }
+.insight-cell:hover { border-color: var(--border-hi); background: var(--bg3); }
+.insight-cell input { accent-color: var(--amber); }
 .insight-label {
   display: block;
   font-family: var(--mono);
@@ -345,6 +357,12 @@ body {
   line-height: 1.4;
   color: var(--text-dim);
 }
+.insight-note label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.insight-note input { accent-color: var(--amber); }
 .mm-status {
   margin-top: 7px;
   font-family: var(--mono);
@@ -359,6 +377,7 @@ body {
 
 #diag-content {
   flex: 1; overflow-y: auto; display: flex;
+  min-width: 0;
   scrollbar-width: thin; scrollbar-color: var(--border) transparent;
 }
 #diag-content::-webkit-scrollbar { width: 4px; }
@@ -367,8 +386,9 @@ body {
 /* ── RADAR SECTION ────────────────────────────────── */
 
 #chart-col {
-  width: 48%; border-right: 1px solid var(--border);
+  width: min(48%, 540px); border-right: 1px solid var(--border);
   display: flex; flex-direction: column; flex-shrink: 0;
+  min-width: 300px;
 }
 
 .chart-block {
@@ -646,6 +666,7 @@ body {
 
 .reveal-actions {
   display: flex; gap: 12px; margin-top: 8px;
+  flex-wrap: wrap;
 }
 .reveal-btn {
   font-family: var(--mono); font-size: 10px;
@@ -661,6 +682,22 @@ body {
   background: none; border-color: var(--border); color: var(--text-dim);
 }
 .reveal-btn.secondary:hover { background: var(--bg2); border-color: var(--border-mid); }
+
+@media (min-width: 1101px) {
+  #diag-content {
+    display: grid;
+    grid-template-columns: minmax(300px, 42%) minmax(0, 1fr);
+  }
+
+  #chart-col {
+    width: 100%;
+    min-width: 0;
+  }
+
+  #scores-col {
+    min-width: 0;
+  }
+}
 
 
 /* ===== MOBILE-FIRST PATCH BEGIN ===== */
