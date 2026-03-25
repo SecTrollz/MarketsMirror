@@ -2790,6 +2790,7 @@ function beginSession() {
     document.getElementById('user-input').focus();
     scheduleInputAutoSelect();
   }, 500);
+  document.getElementById('popup-input-btn').disabled = false;
 }
 
 async function send() {
@@ -2849,6 +2850,9 @@ async function send() {
       } catch (err) {
         logPipelineError(stageLabel, err, { fallback_applied: true });
         return fallbackFactory(err, null);
+        const logged = logPipelineError(stageLabel, err, { fallback_applied: true });
+        addMsg('sys', `Notice: ${stageLabel} degraded gracefully (ref: ${logged.id}).`);
+        return fallbackFactory(err, logged);
       }
     };
 
@@ -2950,6 +2954,12 @@ async function send() {
     document.getElementById('send-btn').disabled = false;
     document.getElementById('popup-input-btn').disabled = false;
     scheduleInputAutoSelect();
+    const logged = logPipelineError(activeStage, err, { fatal: true, input_length: text.length });
+    console.error('Send pipeline failed:', err);
+    removeThinking();
+    addMsg('sys', `Processing error detected. ${formatProcessingError(activeStage, err)} (ref: ${logged.id})`);
+    document.getElementById('send-btn').disabled = false;
+    document.getElementById('popup-input-btn').disabled = false;
   }
 }
 
@@ -3045,6 +3055,7 @@ function restartSession() {
     document.getElementById('user-input').focus();
     scheduleInputAutoSelect();
   }, 200);
+  document.getElementById('popup-input-btn').disabled = false;
 }
 
 function escapeHTML(str) {
@@ -3103,6 +3114,13 @@ document.getElementById('popup-user-input').addEventListener('keydown', e => {
 document.getElementById('popup-user-input').addEventListener('input', () => {
   updatePopupComposerMeta();
   scheduleInputAutoSelect();
+document.getElementById('chat-input-popup').addEventListener('click', e => {
+  if (e.target?.id === 'chat-input-popup') closeChatInputPopup();
+});
+
+document.getElementById('popup-user-input').addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeChatInputPopup();
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') applyPopupDraft(true);
 });
 
 document.getElementById('chat-input-popup').addEventListener('click', e => {

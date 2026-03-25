@@ -261,25 +261,21 @@ body {
 
 .chat-popup {
   position: fixed; inset: 0; z-index: 90;
-  background: linear-gradient(180deg, rgba(5, 5, 5, 0.92), rgba(12, 12, 12, 0.88));
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.68);
   display: none; align-items: center; justify-content: center;
-  padding: clamp(14px, 3vw, 30px);
+  padding: 24px;
 }
 .chat-popup.visible { display: flex; }
 .chat-popup-card {
-  width: min(980px, 100%);
-  min-height: min(72svh, 760px);
-  background: linear-gradient(180deg, #121212, #0d0d0d);
+  width: min(780px, 100%);
+  background: var(--bg1);
   border: 1px solid var(--border-hi);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.58);
-  padding: clamp(14px, 2vw, 24px);
-  display: flex;
-  flex-direction: column;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  padding: 18px;
 }
 .chat-popup-head {
   display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 .chat-popup-title {
   font-family: var(--mono);
@@ -327,12 +323,15 @@ body {
   width: 100%;
   min-height: 280px;
   flex: 1;
+  min-height: 220px;
   background: var(--bg2);
   border: 1px solid var(--border-mid);
   color: var(--text);
   font-family: var(--serif);
   font-size: 17px;
   line-height: 1.7;
+  font-size: 16px;
+  line-height: 1.6;
   padding: 14px;
   resize: vertical;
   outline: none;
