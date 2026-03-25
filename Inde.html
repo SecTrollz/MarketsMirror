@@ -1,0 +1,5332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Linguistic Insight Profiler — Psycholinguistic Intelligence</title>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,700;1,300&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg0:        #070707;
+  --bg1:        #0d0d0d;
+  --bg2:        #141414;
+  --bg3:        #1c1c1c;
+  --bg4:        #242424;
+  --border:     #2a2a2a;
+  --border-mid: #363636;
+  --border-hi:  #484848;
+  --text:       #d4c5a9;
+  --text-dim:   #7a6f5e;
+  --text-muted: #3a3228;
+  --amber:      #c8922a;
+  --amber-lo:   #7a5418;
+  --amber-dim:  #3d2a0c;
+  --amber-glow: rgba(200,146,42,0.07);
+  --amber-glow-hi: rgba(200,146,42,0.15);
+  --red-sig:    #8b3a3a;
+  --red-hi:     #c05050;
+  --green-dim:  #2d5a3a;
+  --green-hi:   #4a9460;
+  --mono:       'IBM Plex Mono', 'Courier New', monospace;
+  --serif:      'Cormorant Garamond', Georgia, serif;
+  --transition: 280ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { min-height: 100%; overflow-x: hidden; overflow-y: auto; }
+
+body {
+  background: var(--bg0);
+  color: var(--text);
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100svh;
+}
+
+/* ── INTRO SCREEN ─────────────────────────────────── */
+
+#intro {
+  position: fixed; inset: 0; z-index: 100;
+  background: var(--bg0);
+  display: flex; align-items: stretch; flex-wrap: wrap;
+  transition: opacity 600ms ease, transform 600ms ease;
+  overflow-y: auto;
+}
+#intro.fading { opacity: 0; transform: translateY(-8px); pointer-events: none; }
+
+.intro-left {
+  flex: 1 1 420px; padding: clamp(28px, 4vw, 72px) clamp(20px, 4vw, 56px);
+  display: flex; flex-direction: column; justify-content: center;
+  border-right: 1px solid var(--border);
+}
+
+.intro-right {
+  flex: 1 1 420px; padding: clamp(28px, 4vw, 72px) clamp(20px, 4vw, 56px);
+  display: flex; flex-direction: column; justify-content: center;
+  background: var(--bg1);
+}
+
+.intro-kicker {
+  font-family: var(--mono);
+  font-size: 9px; letter-spacing: 0.5em;
+  color: var(--amber); text-transform: uppercase;
+  margin-bottom: 32px;
+  display: flex; align-items: center; gap: 12px;
+}
+.intro-kicker::before {
+  content: ''; display: inline-block;
+  width: 28px; height: 1px; background: var(--amber);
+}
+
+.intro-h1 {
+  font-family: var(--serif);
+  font-size: clamp(40px, 5vw, 68px);
+  font-weight: 300; font-style: italic;
+  line-height: 1.04; letter-spacing: -0.02em;
+  color: var(--text); margin-bottom: 28px;
+}
+
+.intro-sub {
+  font-family: var(--mono);
+  font-size: 11px; color: var(--text-dim); line-height: 1.7;
+  margin-bottom: 48px; max-width: 420px;
+}
+
+.intro-begin {
+  display: inline-flex; align-items: center; gap: 12px;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.15em;
+  text-transform: uppercase; color: var(--amber);
+  background: none; border: 1px solid var(--amber-lo);
+  padding: 14px 28px; cursor: pointer;
+  transition: var(--transition); width: fit-content;
+  touch-action: manipulation;
+}
+.intro-begin:hover {
+  background: var(--amber-dim);
+  border-color: var(--amber);
+  box-shadow: 0 0 24px var(--amber-glow-hi);
+}
+.intro-begin::after { content: '→'; }
+
+.intro-spec { display: flex; flex-direction: column; gap: 0; }
+.spec-row {
+  display: flex; align-items: baseline;
+  padding: 14px 0; border-bottom: 1px solid var(--border);
+}
+.spec-row:first-child { border-top: 1px solid var(--border); }
+.spec-label {
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: 0.3em; text-transform: uppercase;
+  color: var(--text-dim); width: 140px; flex-shrink: 0;
+}
+.spec-val {
+  font-family: var(--serif); font-size: 14px; font-style: italic;
+  color: var(--text); line-height: 1.4;
+}
+.spec-val em { font-style: normal; color: var(--amber); }
+
+/* ── APP LAYOUT ───────────────────────────────────── */
+
+#app {
+  display: flex; min-height: 100svh; height: auto; overflow: hidden;
+  opacity: 0; transition: opacity 600ms ease;
+}
+#app.visible { opacity: 1; }
+
+/* ── LEFT PANEL: CHAT ─────────────────────────────── */
+
+#left-panel {
+  width: clamp(320px, 40vw, 560px); min-width: 300px; max-width: 100%;
+  display: flex; flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--bg1);
+}
+
+.chat-header {
+  padding: 20px 24px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+  background: var(--bg0);
+  flex-shrink: 0;
+}
+.chat-logo {
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: 0.45em; text-transform: uppercase;
+  color: var(--amber);
+}
+.chat-phase {
+  margin-left: auto;
+  font-family: var(--mono); font-size: 9px;
+  color: var(--text-dim); letter-spacing: 0.2em;
+}
+.chat-phase-dot {
+  display: inline-block; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--amber);
+  margin-right: 7px;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+#chat-messages {
+  flex: 1; overflow-y: auto; padding: 28px 24px;
+  display: flex; flex-direction: column; gap: 20px;
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+#chat-messages::-webkit-scrollbar { width: 4px; }
+#chat-messages::-webkit-scrollbar-thumb { background: var(--border-mid); }
+
+.msg {
+  display: flex; flex-direction: column; gap: 5px;
+  animation: msg-in 320ms ease forwards;
+}
+@keyframes msg-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.msg-role {
+  font-family: var(--mono); font-size: 8px;
+  letter-spacing: 0.4em; text-transform: uppercase;
+  color: var(--text-dim);
+}
+.msg.ai .msg-role { color: var(--amber); }
+
+.msg-body {
+  font-family: var(--serif); font-size: 15px;
+  line-height: 1.65; color: var(--text);
+}
+.msg.ai .msg-body {
+  font-style: italic; color: #e8dcc8;
+}
+.msg.user .msg-body {
+  color: var(--text-dim);
+  padding-left: 12px;
+  border-left: 2px solid var(--border-mid);
+}
+.msg.sys .msg-body {
+  font-family: var(--mono); font-size: 10px;
+  color: var(--text-muted); font-style: normal;
+}
+
+.thinking-dots {
+  display: flex; gap: 5px; padding: 4px 0;
+  align-items: center;
+}
+.thinking-dots span {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--amber-lo);
+  animation: dot-bounce 1.2s ease-in-out infinite;
+}
+.thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dot-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40% { transform: translateY(-4px); opacity: 1; }
+}
+
+.chat-input-wrap {
+  padding: 18px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--bg0);
+  flex-shrink: 0;
+}
+.chat-input-row {
+  display: flex; align-items: flex-end; gap: 10px;
+}
+#user-input {
+  flex: 1;
+  background: var(--bg2); border: 1px solid var(--border-mid);
+  color: var(--text); font-family: var(--serif); font-size: 15px;
+  padding: 11px 14px; resize: none; outline: none;
+  min-height: 44px; max-height: 120px;
+  transition: border-color var(--transition);
+  scrollbar-width: thin;
+}
+#user-input:focus { border-color: var(--amber-lo); }
+#user-input::placeholder { color: var(--text-muted); font-style: italic; }
+
+#send-btn {
+  background: var(--amber-dim); border: 1px solid var(--amber-lo);
+  color: var(--amber); font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.3em; padding: 10px 16px; cursor: pointer;
+  transition: var(--transition); white-space: nowrap;
+  text-transform: uppercase; height: 44px;
+  touch-action: manipulation;
+}
+#send-btn:hover { background: var(--amber-lo); border-color: var(--amber); }
+#send-btn:disabled { opacity: 0.4; pointer-events: none; }
+
+.turn-counter {
+  font-family: var(--mono); font-size: 8px;
+  color: var(--text-muted); letter-spacing: 0.3em;
+  margin-top: 8px; text-align: right;
+}
+
+/* ── RIGHT PANEL: DIAGNOSTICS ─────────────────────── */
+
+#right-panel {
+  flex: 1; display: flex; flex-direction: column;
+  overflow: hidden; background: var(--bg0);
+}
+
+.panel-header {
+  padding: 18px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 16px;
+  flex-shrink: 0;
+}
+.panel-title {
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: 0.45em; text-transform: uppercase;
+  color: var(--text-dim);
+}
+.panel-status {
+  margin-left: auto; display: flex; align-items: center; gap: 16px;
+}
+.panel-status-wrap {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+.status-item {
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: 0.15em; color: var(--text-dim);
+}
+.status-val { color: var(--amber); }
+
+.insight-controls {
+  width: min(440px, 100%);
+  border: 1px solid var(--border);
+  background: var(--bg1);
+  padding: 10px 12px;
+}
+.insight-head {
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.insight-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.insight-cell {
+  padding: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text);
+  display: grid;
+  gap: 6px;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: border-color var(--transition), background var(--transition);
+}
+.insight-cell:hover { border-color: var(--border-hi); background: var(--bg3); }
+.insight-cell input { accent-color: var(--amber); }
+.insight-label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 7px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.insight-value {
+  font-family: var(--serif);
+  font-size: 16px;
+  font-style: italic;
+  color: var(--text);
+}
+.insight-note {
+  font-family: var(--mono);
+  font-size: 9px;
+  line-height: 1.4;
+  color: var(--text-dim);
+}
+.insight-note label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.insight-note input { accent-color: var(--amber); }
+.hf-input {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border-mid);
+  color: var(--text);
+  padding: 6px 8px;
+}
+.mm-status {
+  margin-top: 7px;
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+.mm-status strong {
+  color: var(--amber);
+  font-weight: 400;
+}
+.mm-loader {
+  margin-top: 8px;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--text-dim);
+}
+.mm-loader.visible { display: flex; }
+.mm-loader-wheel {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1px solid var(--border-mid);
+  border-top-color: var(--amber);
+  animation: mm-spin 0.8s linear infinite;
+}
+.mm-loader-track {
+  width: 150px;
+  height: 5px;
+  border: 1px solid var(--border-mid);
+  background: var(--bg2);
+}
+.mm-loader-fill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--amber-lo), var(--amber));
+  transition: width 220ms ease;
+}
+@keyframes mm-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+#diag-content {
+  flex: 1; overflow-y: auto; display: flex;
+  min-width: 0;
+  gap: 14px;
+  padding: 14px;
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+#diag-content::-webkit-scrollbar { width: 4px; }
+#diag-content::-webkit-scrollbar-thumb { background: var(--border-mid); }
+
+/* ── RADAR SECTION ────────────────────────────────── */
+
+#chart-col {
+  width: min(48%, 540px);
+  display: flex; flex-direction: column; flex-shrink: 0;
+  min-width: 300px;
+  gap: 12px;
+}
+
+.viz-zone {
+  border: 1px solid var(--border);
+  background: var(--bg1);
+}
+.viz-zone-head {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+.viz-zone-note {
+  color: var(--text-dim);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+
+.chart-block {
+  padding: 16px;
+  border: 1px solid var(--border);
+  background: var(--bg1);
+}
+.chart-label {
+  font-family: var(--mono); font-size: 8px;
+  letter-spacing: 0.4em; text-transform: uppercase;
+  color: var(--text-dim); margin-bottom: 12px;
+}
+
+#radar-wrap {
+  position: relative; padding: 8px;
+}
+#radar-wrap canvas { display: block; }
+
+#sentiment-wrap { padding: 8px; }
+#sentiment-wrap canvas { display: block; }
+
+/* ── FRAMEWORK SCORES ─────────────────────────────── */
+
+#scores-col {
+  flex: 1; overflow-y: auto; padding: 0;
+  border: 1px solid var(--border);
+  background: var(--bg1);
+  content-visibility: auto;
+  contain-intrinsic-size: 700px;
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+
+#customer-insights-section {
+  border-top: 1px solid var(--border);
+  background: var(--bg1);
+  padding: 14px 16px 16px;
+  content-visibility: auto;
+  contain-intrinsic-size: 500px;
+}
+.ci-head {
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 10px;
+}
+#customer-insights-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.report-panel {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  padding: 10px;
+}
+.report-title {
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 8px;
+}
+.report-arc {
+  font-family: var(--serif);
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.55;
+  margin-bottom: 8px;
+}
+.report-meta {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+.report-critique {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+.ci-item {
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  padding: 8px;
+}
+.ci-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  margin-bottom: 5px;
+}
+.ci-label {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+}
+.ci-value {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text);
+}
+.ci-meter {
+  width: 100%;
+  height: 3px;
+  background: var(--bg4);
+}
+.ci-fill {
+  height: 100%;
+  background: var(--amber);
+}
+
+.fw-group { border-bottom: 1px solid var(--border); }
+.fw-group-header {
+  padding: 12px 20px 10px;
+  background: var(--bg1);
+  font-family: var(--mono); font-size: 8px;
+  letter-spacing: 0.35em; text-transform: uppercase;
+  color: var(--text-dim); display: flex; align-items: center; gap: 10px;
+  position: sticky; top: 0; z-index: 1;
+}
+.fw-group-header::before {
+  content: ''; width: 8px; height: 1px; background: var(--amber);
+}
+
+.fw-dim {
+  padding: 10px 20px 9px;
+  border-top: 1px solid var(--border);
+  cursor: default;
+  --score-hue: 36;
+  transition: background-color 420ms ease, border-color 420ms ease, box-shadow 420ms ease;
+  border-left: 1px solid transparent;
+  background: linear-gradient(
+    90deg,
+    hsl(var(--score-hue) 70% 45% / 0.10) 0%,
+    transparent 38%
+  );
+}
+.fw-dim:hover {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--score-hue) 70% 45% / 0.16) 0%,
+    transparent 46%
+  );
+  border-left-color: hsl(var(--score-hue) 72% 52% / 0.55);
+}
+@keyframes score-fade-in {
+  from { opacity: 0.65; filter: saturate(0.86); }
+  to { opacity: 1; filter: saturate(1); }
+}
+.fw-dim.score-updated { animation: score-fade-in 620ms ease; }
+
+.fw-dim-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 5px;
+}
+.fw-dim-name {
+  font-family: var(--serif); font-size: 12px;
+  font-style: italic; color: var(--text);
+  width: 140px; flex-shrink: 0;
+}
+.fw-bar-wrap {
+  flex: 1; height: 3px;
+  background: var(--bg4);
+  position: relative; overflow: hidden;
+}
+.fw-bar {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    hsl(var(--score-hue) 75% 42%) 0%,
+    hsl(var(--score-hue) 78% 58%) 100%
+  );
+  transition: width 600ms cubic-bezier(0.4, 0, 0.2, 1), background-color 420ms ease, filter 420ms ease;
+  position: relative;
+}
+.fw-bar::after {
+  content: ''; position: absolute; right: 0; top: -2px;
+  width: 1px; height: 7px; background: hsl(var(--score-hue) 82% 72%);
+  opacity: 0.6;
+}
+.fw-score {
+  font-family: var(--mono); font-size: 9px;
+  color: hsl(var(--score-hue) 80% 67%); width: 32px; text-align: right;
+  transition: color 420ms ease;
+}
+.fw-conf {
+  font-family: var(--mono); font-size: 8px;
+  color: var(--text-muted); width: 28px; text-align: right;
+}
+
+.fw-evidence {
+  font-family: var(--mono); font-size: 9px;
+  color: var(--text-dim); padding-left: 0;
+  line-height: 1.5; display: none;
+}
+.fw-dim:hover .fw-evidence { display: block; }
+.fw-evidence em {
+  color: var(--amber); font-style: normal;
+}
+
+/* ── NARRATIVE PANEL ──────────────────────────────── */
+
+#narrative-section {
+  flex-shrink: 0; display: none;
+}
+#narrative-section.visible { display: block; }
+#narrative-body {
+  padding: 16px;
+  font-family: var(--serif); font-size: 14px; font-style: italic;
+  color: var(--text); line-height: 1.75; max-height: 260px;
+  overflow-y: auto;
+}
+#narrative-body p { margin-bottom: 10px; }
+#narrative-body strong {
+  font-style: normal; font-weight: 600; color: #e8dcc8;
+}
+
+/* ── REVEAL SCREEN ────────────────────────────────── */
+
+#reveal {
+  position: fixed; inset: 0; z-index: 90;
+  background: var(--bg0); display: none;
+  flex-direction: column; overflow-y: auto;
+}
+#reveal.visible { display: flex; }
+.reveal-inner {
+  max-width: 840px; margin: 0 auto;
+  padding: 64px 40px 80px;
+}
+.reveal-kicker {
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: 0.45em; color: var(--amber);
+  text-transform: uppercase; margin-bottom: 40px;
+  display: flex; align-items: center; gap: 12px;
+}
+.reveal-kicker::before {
+  content: ''; width: 24px; height: 1px; background: var(--amber);
+}
+.reveal-h1 {
+  font-family: var(--serif); font-weight: 300;
+  font-style: italic; font-size: clamp(32px,4vw,52px);
+  line-height: 1.1; color: var(--text);
+  margin-bottom: 48px;
+}
+.reveal-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 2px; margin-bottom: 48px;
+}
+.reveal-card {
+  background: var(--bg1); padding: 24px 24px 20px;
+}
+.rc-label {
+  font-family: var(--mono); font-size: 8px;
+  letter-spacing: 0.3em; text-transform: uppercase;
+  color: var(--text-dim); margin-bottom: 10px;
+}
+.rc-value {
+  font-family: var(--serif); font-size: 20px;
+  font-style: italic; color: var(--text);
+  line-height: 1.3; margin-bottom: 6px;
+}
+.rc-conf {
+  font-family: var(--mono); font-size: 9px;
+  color: var(--amber-lo);
+}
+
+.reveal-narrative {
+  font-family: var(--serif); font-size: 16px;
+  line-height: 1.8; color: var(--text);
+  font-style: italic; margin-bottom: 40px;
+  padding: 28px 28px; background: var(--bg1);
+  border-left: 2px solid var(--amber-lo);
+}
+.reveal-narrative strong { font-style: normal; color: #e8dcc8; }
+
+.reveal-tech {
+  background: var(--bg1); padding: 24px;
+  margin-bottom: 32px;
+}
+.tech-title {
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: 0.4em; text-transform: uppercase;
+  color: var(--text-dim); margin-bottom: 16px;
+}
+.tech-row {
+  display: flex; gap: 12px; padding: 8px 0;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono); font-size: 10px; color: var(--text-dim);
+}
+.tech-key { color: var(--amber); width: 140px; flex-shrink: 0; }
+.tech-evidence { color: var(--text-dim); flex: 1; }
+
+.reveal-actions {
+  display: flex; gap: 12px; margin-top: 8px;
+  flex-wrap: wrap;
+}
+.reveal-btn {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.25em; text-transform: uppercase;
+  padding: 12px 24px; cursor: pointer;
+  transition: var(--transition); border: 1px solid;
+  touch-action: manipulation;
+}
+.reveal-btn.primary {
+  background: var(--amber-dim); border-color: var(--amber-lo); color: var(--amber);
+}
+.reveal-btn.primary:hover { background: var(--amber-lo); }
+.reveal-btn.secondary {
+  background: none; border-color: var(--border); color: var(--text-dim);
+}
+.reveal-btn.secondary:hover { background: var(--bg2); border-color: var(--border-mid); }
+
+#ui-feedback {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 140;
+  max-width: min(92vw, 460px);
+  padding: 10px 12px;
+  border: 1px solid var(--border-mid);
+  background: var(--bg1);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity 220ms ease, transform 220ms ease, border-color 220ms ease;
+}
+#ui-feedback.visible { opacity: 1; transform: translateY(0); }
+#ui-feedback.error { border-color: var(--red-hi); }
+#ui-feedback.ok { border-color: var(--green-hi); }
+
+@media (min-width: 1101px) {
+  #diag-content {
+    display: grid;
+    grid-template-columns: minmax(300px, 42%) minmax(0, 1fr);
+  }
+
+  #chart-col {
+    width: 100%;
+    min-width: 0;
+  }
+
+  #scores-col {
+    min-width: 0;
+  }
+}
+
+
+/* ===== MOBILE-FIRST PATCH BEGIN ===== */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --app-vh: 1vh;
+}
+
+html.mobile-optimized,
+html.mobile-optimized body {
+  overflow: auto;
+  min-height: 100%;
+}
+
+body.mobile-optimized {
+  font-size: clamp(14px, 1.25vw + 10px, 17px);
+  line-height: 1.55;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overscroll-behavior-y: contain;
+}
+
+body.mobile-optimized #intro,
+body.mobile-optimized #reveal {
+  min-height: calc(var(--app-vh) * 100);
+}
+
+body.mobile-optimized #app {
+  min-height: calc(var(--app-vh) * 100);
+  height: auto;
+}
+
+body.mobile-optimized canvas {
+  max-width: 100%;
+}
+
+body.mobile-optimized textarea,
+body.mobile-optimized input,
+body.mobile-optimized button,
+body.mobile-optimized select {
+  font: inherit;
+}
+
+body.mobile-optimized #chat-messages,
+body.mobile-optimized #scores-col,
+body.mobile-optimized #diag-content,
+body.mobile-optimized #reveal,
+body.mobile-optimized .reveal-inner {
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 1100px) {
+  html, body {
+    overflow: auto;
+    height: auto;
+  }
+
+  body {
+    min-height: 100%;
+  }
+
+  #app {
+    flex-direction: column;
+    height: auto;
+    min-height: calc(var(--app-vh) * 100);
+    overflow: visible;
+  }
+
+  #left-panel,
+  #right-panel {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  #left-panel {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    min-height: 56vh;
+  }
+
+  #right-panel {
+    min-height: 44vh;
+  }
+
+  #diag-content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #chart-col,
+  #scores-col {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 820px) {
+  html, body {
+    overflow: auto;
+    height: auto;
+  }
+
+  body {
+    min-height: 100%;
+  }
+
+  #intro {
+    position: relative;
+    inset: auto;
+    min-height: calc(var(--app-vh) * 100);
+    flex-direction: column;
+    overflow: auto;
+  }
+
+  .intro-left,
+  .intro-right {
+    width: 100%;
+    padding: max(20px, calc(var(--safe-top) + 18px)) max(18px, calc(var(--safe-right) + 18px)) max(22px, calc(var(--safe-bottom) + 20px)) max(18px, calc(var(--safe-left) + 18px));
+  }
+
+  .intro-left {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .intro-kicker {
+    margin-bottom: 20px;
+    gap: 8px;
+    letter-spacing: 0.32em;
+    font-size: 9px;
+    flex-wrap: wrap;
+  }
+
+  .intro-kicker::before {
+    width: 18px;
+  }
+
+  .intro-h1 {
+    font-size: clamp(34px, 10vw, 54px);
+    line-height: 0.98;
+    margin-bottom: 18px;
+  }
+
+  .intro-sub {
+    max-width: none;
+    font-size: 12px;
+    line-height: 1.65;
+    margin-bottom: 24px;
+  }
+
+  .intro-begin {
+    width: 100%;
+    justify-content: center;
+    padding: 15px 18px;
+  }
+
+  .spec-row {
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 0;
+  }
+
+  .spec-label {
+    width: auto;
+    font-size: 8px;
+    letter-spacing: 0.26em;
+  }
+
+  .spec-val {
+    font-size: 15px;
+  }
+
+  #app {
+    min-height: calc(var(--app-vh) * 100);
+    height: auto;
+    overflow: visible;
+  }
+
+  #left-panel,
+  #right-panel {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  #left-panel {
+    min-height: calc(var(--app-vh) * 55);
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  #right-panel {
+    min-height: calc(var(--app-vh) * 45);
+  }
+
+  .chat-header,
+  .panel-header {
+    padding: max(14px, calc(var(--safe-top) + 12px)) max(14px, calc(var(--safe-right) + 14px)) 14px max(14px, calc(var(--safe-left) + 14px));
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .chat-logo,
+  .panel-title {
+    font-size: 9px;
+    letter-spacing: 0.24em;
+    line-height: 1.5;
+  }
+
+  .chat-phase {
+    margin-left: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: 0.12em;
+    font-size: 8px;
+  }
+
+  #chat-messages {
+    padding: 16px 14px;
+    gap: 16px;
+  }
+
+  .msg-body {
+    font-size: 16px;
+    line-height: 1.6;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  .msg.ai .msg-body,
+  .msg.user .msg-body,
+  .msg.sys .msg-body {
+    font-size: inherit;
+  }
+
+  .chat-input-wrap {
+    padding: 12px max(12px, calc(var(--safe-right) + 12px)) max(12px, calc(var(--safe-bottom) + 12px)) max(12px, calc(var(--safe-left) + 12px));
+  }
+
+  .chat-input-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  #user-input {
+    min-height: 108px;
+    max-height: 34vh;
+    font-size: 16px;
+    line-height: 1.45;
+    padding: 14px 14px;
+    border-radius: 14px;
+  }
+
+  #send-btn,
+  .reveal-btn,
+  .intro-begin {
+    min-height: 48px;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    border-radius: 12px;
+    touch-action: manipulation;
+  }
+
+  .turn-counter {
+    margin-top: 8px;
+    font-size: 10px;
+  }
+
+  .panel-status-wrap {
+    width: 100%;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .panel-status {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .insight-controls {
+    width: 100%;
+  }
+
+  .insight-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .status-item {
+    min-width: 0;
+    font-size: 9px;
+    line-height: 1.45;
+  }
+
+  #diag-content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px 12px max(18px, calc(var(--safe-bottom) + 16px));
+  }
+
+  #chart-col,
+  #scores-col {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .chart-block,
+  #narrative-section,
+  .framework-group,
+  .reveal-grid > *,
+  .reveal-tech,
+  .reveal-narrative {
+    border-radius: 16px;
+  }
+
+  #radar-wrap,
+  #sentiment-wrap {
+    min-height: 0;
+    height: auto;
+  }
+
+  #radar-chart {
+    width: 100% !important;
+    height: min(78vw, 360px) !important;
+  }
+
+  #sentiment-chart {
+    width: 100% !important;
+    height: 140px !important;
+  }
+
+  .chart-label,
+  .viz-zone-head,
+  .framework-title {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+  }
+
+  #narrative-body,
+  .framework-row,
+  .reveal-tech,
+  .reveal-narrative {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  #scores-col {
+    display: grid;
+    gap: 12px;
+    overflow: visible;
+  }
+
+  #customer-insights-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #reveal {
+    position: fixed;
+    inset: 0;
+    overflow-y: auto;
+    padding: max(14px, calc(var(--safe-top) + 12px)) max(12px, calc(var(--safe-right) + 12px)) max(20px, calc(var(--safe-bottom) + 18px)) max(12px, calc(var(--safe-left) + 12px));
+  }
+
+  .reveal-inner {
+    width: 100%;
+    max-width: none;
+    padding: 18px 14px 16px;
+  }
+
+  .reveal-kicker {
+    font-size: 8px;
+    letter-spacing: 0.24em;
+  }
+
+  .reveal-h1 {
+    font-size: clamp(28px, 9vw, 46px);
+    line-height: 1.02;
+  }
+
+  .reveal-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .reveal-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    font-size: 14px;
+  }
+
+  .intro-left,
+  .intro-right,
+  .chat-header,
+  .panel-header,
+  .chat-input-wrap,
+  #diag-content,
+  #reveal {
+    padding-left: max(12px, calc(var(--safe-left) + 12px));
+    padding-right: max(12px, calc(var(--safe-right) + 12px));
+  }
+
+  #chat-messages {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .panel-status {
+    grid-template-columns: 1fr;
+  }
+
+  .status-item {
+    font-size: 10px;
+  }
+
+  #radar-chart {
+    height: min(86vw, 320px) !important;
+  }
+
+  .msg-body,
+  #narrative-body,
+  .framework-row,
+  .reveal-tech,
+  .reveal-narrative {
+    font-size: 15px;
+  }
+}
+/* ===== MOBILE-FIRST PATCH END ===== */
+
+</style>
+<link rel="stylesheet" href="styles/app.css">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════ INTRO ══ -->
+<div id="intro">
+  <div class="intro-left">
+    <div class="intro-kicker">Behavioral Intelligence</div>
+    <h1 class="intro-h1">Markets<br>Mirror</h1>
+    <p class="intro-sub">A psycholinguistic profiling engine. Nine frameworks. Twenty-eight axes. Every word you write is evidence. The session runs silently against your language — you won't feel it working.</p>
+    <button class="intro-begin" onclick="beginSession()">Begin session &nbsp;</button>
+  </div>
+  <div class="intro-right">
+    <div class="intro-spec">
+      <div class="spec-row">
+        <span class="spec-label">Frameworks</span>
+        <span class="spec-val"><em>9</em> — Trauma · Attachment · MBTI · Enneagram · Big Five · HEXACO · Dark Triad · Light Triad · Schwartz</span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-label">Diagnostic axes</span>
+        <span class="spec-val"><em>28</em> independent Bayesian accumulators</span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-label">Method</span>
+        <span class="spec-val">Beta-conjugate scoring · VADER sentiment · HUMINT elicitation</span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-label">Question pool</span>
+        <span class="spec-val"><em>120</em> adaptive prompts across 4 depth levels</span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-label">Phase structure</span>
+        <span class="spec-val"><em>17-turn</em> core profiling · unlimited refinement</span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-label">Data</span>
+        <span class="spec-val"><em>Zero</em> network requests · session memory only · resets on refresh</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ APP ═══ -->
+<div id="app">
+
+  <!-- LEFT: CHAT -->
+  <div id="left-panel">
+    <div class="chat-header">
+      <span class="chat-logo">Linguistic Insight Profiler</span>
+      <span class="chat-phase">
+        <span class="chat-phase-dot"></span>
+        <span id="phase-label">Phase I — Evidence-Gathering</span>
+      </span>
+    </div>
+    <div id="chat-messages" aria-live="polite" aria-atomic="false"></div>
+    <div class="chat-input-wrap">
+      <div class="chat-input-row">
+        <textarea id="user-input" rows="1" placeholder="Respond naturally. There are no right answers." disabled></textarea>
+        <button id="popup-input-btn" type="button" onclick="openChatInputPopup()" disabled>Expand</button>
+        <button id="send-btn" onclick="send()" disabled>Send</button>
+      </div>
+      <div class="turn-counter" id="turn-counter">Turn 0 / 17</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: DIAGNOSTICS -->
+  <div id="right-panel">
+    <div class="panel-header">
+      <span class="panel-title">Live Diagnostic</span>
+      <div class="panel-status-wrap">
+        <div class="panel-status">
+          <span class="status-item">readiness: <span class="status-val" id="stat-readiness">—</span></span>
+          <span class="status-item">sentiment: <span class="status-val" id="stat-sentiment">—</span></span>
+          <span class="status-item">volatility: <span class="status-val" id="stat-volatility">—</span></span>
+        </div>
+        <div class="insight-controls" id="insight-controls">
+          <div class="insight-head">LinguaInsight Controls</div>
+          <div class="insight-note">Modes: choose one or many. Learning mode adds plain-language teaching notes.</div>
+          <div class="insight-grid">
+            <label class="insight-cell"><span class="insight-label">Mode A</span><input type="checkbox" id="mode-a" checked> Cognitive</label>
+            <label class="insight-cell"><span class="insight-label">Mode B</span><input type="checkbox" id="mode-b" checked> Emotion</label>
+            <label class="insight-cell"><span class="insight-label">Mode C</span><input type="checkbox" id="mode-c" checked> Cohesion</label>
+          </div>
+          <div class="insight-note">
+            <label><input type="checkbox" id="learning-mode" checked> Learning mode</label>
+          </div>
+          <div class="insight-note">
+            <label><input type="checkbox" id="hf-deep-nlp"> Enable Hugging Face deep NLP</label>
+          </div>
+          <div class="insight-grid" style="grid-template-columns: 1fr;">
+            <label class="insight-cell">
+              <span class="insight-label">HF model</span>
+              <input id="hf-model" class="hf-input" type="text" value="google/flan-t5-large">
+            </label>
+            <label class="insight-cell">
+              <span class="insight-label">HF token (optional, stored in-memory)</span>
+              <input id="hf-token" class="hf-input" type="password" placeholder="hf_xxx...">
+            </label>
+          </div>
+          <div class="mm-status" id="mm-status">MM emotion: <strong>initializing</strong> · mode: text-only · suite loading</div>
+          <div class="mm-loader" id="mm-loader" aria-live="polite">
+            <span class="mm-loader-wheel" aria-hidden="true"></span>
+            <span id="mm-loader-label">booting</span>
+            <span class="mm-loader-track" aria-hidden="true"><span class="mm-loader-fill" id="mm-loader-fill"></span></span>
+            <span id="mm-loader-pct">0%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="diag-content">
+      <div id="chart-col">
+        <div class="viz-zone">
+          <div class="viz-zone-head">Primary Signals <span class="viz-zone-note">focus on directional behavior</span></div>
+          <div class="chart-block">
+            <div class="chart-label">28-axis psychographic profile</div>
+            <div id="radar-wrap">
+              <canvas id="radar-chart" width="340" height="320"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="viz-zone">
+          <div class="viz-zone-head">Momentum Signals <span class="viz-zone-note">emotional trajectory over turns</span></div>
+          <div class="chart-block">
+            <div class="chart-label">Sentiment arc</div>
+            <div id="sentiment-wrap">
+              <canvas id="sentiment-chart" width="340" height="100"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="viz-zone" id="narrative-section">
+          <div class="viz-zone-head">Interpretive Layer <span class="viz-zone-note">language-backed rationale</span></div>
+          <div id="narrative-body"></div>
+        </div>
+      </div>
+      <div id="scores-col">
+        <div class="viz-zone-head">Trait Breakdown <span class="viz-zone-note">framework evidence by dimension</span></div>
+        <!-- Framework score groups rendered here by JS -->
+      </div>
+    </div>
+    <div id="customer-insights-section">
+      <div class="ci-head">Customer 35-Point Insight Map · LIWC-calibrated</div>
+      <div class="reveal-actions" style="margin: 0 0 10px 0;">
+        <button class="reveal-btn secondary" type="button" onclick="copyLinguaInsightJson()">Copy JSON</button>
+        <button class="reveal-btn secondary" type="button" onclick="downloadLinguaInsightJson()">Download JSON</button>
+      </div>
+      <div id="customer-insights-grid"></div>
+      <div class="report-panel" id="linguainsight-report-panel">
+        <div class="report-title">LinguaInsight Session Arc</div>
+        <div class="report-arc" id="report-arc">Awaiting enough responses to build educational arc.</div>
+        <div class="report-meta" id="report-meta">Modes: A, B, C · ONNX: pending</div>
+        <div class="report-critique" id="report-critique">Self-critique log will appear here.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="chat-input-popup" class="chat-popup" aria-hidden="true">
+  <div class="chat-popup-card" role="dialog" aria-modal="true" aria-labelledby="chat-popup-title" aria-describedby="chat-popup-subtitle">
+    <div class="chat-popup-head">
+      <div>
+        <div id="chat-popup-title" class="chat-popup-title">Chat Interface Overlay</div>
+        <div id="chat-popup-subtitle" class="chat-popup-subtitle">Draft a full response, then apply or send instantly.</div>
+      </div>
+      <button class="chat-popup-close" type="button" onclick="closeChatInputPopup()">Close</button>
+    </div>
+    <div class="chat-popup-toolbar">
+      <span class="chat-popup-count" id="popup-char-count">0 chars</span>
+      <span class="chat-popup-shortcuts">Shortcuts: Esc closes · Ctrl/Cmd + Enter sends</span>
+    </div>
+  <div class="chat-popup-card" role="dialog" aria-modal="true" aria-labelledby="chat-popup-title">
+    <div class="chat-popup-head">
+      <div id="chat-popup-title" class="chat-popup-title">Expanded Response Composer</div>
+      <button class="chat-popup-close" type="button" onclick="closeChatInputPopup()">Close</button>
+    </div>
+    <textarea id="popup-user-input" rows="8" placeholder="Draft your response here..."></textarea>
+    <div class="chat-popup-actions">
+      <button class="chat-popup-btn secondary" type="button" onclick="applyPopupDraft(false)">Apply Draft</button>
+      <button class="chat-popup-btn primary" type="button" onclick="applyPopupDraft(true)">Apply + Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ REVEAL ══ -->
+<div id="reveal">
+  <div class="reveal-inner">
+    <div class="reveal-kicker">Session complete — Full profile</div>
+    <h1 class="reveal-h1" id="reveal-h1">Loading profile...</h1>
+    <div class="reveal-grid" id="reveal-grid"></div>
+    <div class="reveal-narrative" id="reveal-narrative"></div>
+    <div class="reveal-tech" id="reveal-tech"></div>
+    <div class="reveal-actions">
+      <button class="reveal-btn primary" onclick="continueSession()">Continue to Phase II</button>
+      <button class="reveal-btn secondary" onclick="restartSession()">New Session</button>
+    </div>
+  </div>
+</div>
+<div id="ui-feedback" role="status" aria-live="polite"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+<script defer src="src/main.js"></script>
+<script>
+const Q = [
+// ── OPENERS ───────────────────────────
+{t:"To start gently: what has taken the most mental energy this week?",                      fw:'big5',dk:'b5_neuro',r:0,depth:1,s:'opener'},
+{t:"What feels steady in your life right now, even if other parts feel noisy?",              fw:'attachment',dk:'att_anxious',r:0,depth:1,s:'opener'},
+{t:"If today had one emotional headline, what would it be?",                                  fw:'enneagram',dk:'enn_head',r:0,depth:1,s:'opener'},
+
+// ── WORTH / PERFORMANCE ───────────────
+{t:"When do you feel most at ease — like you don't have to prove anything?",               fw:'hexaco',dk:'hex_hh',r:0,depth:1,s:'reflective'},
+{t:"What do you need to get done before you feel like you've earned a break?",             fw:'trauma',dk:'trauma_shame',r:0,depth:1,s:'reflective'},
+{t:"Is there a version of you that would finally feel like enough?",                        fw:'trauma',dk:'trauma_shame',r:1,depth:2,s:'temporal'},
+{t:"When someone gives you something freely — do you trust it?",                            fw:'attachment',dk:'att_anxious',r:1,depth:2,s:'probe'},
+
+// ── VISIBILITY ────────────────────────
+{t:"Do you ever feel like you're performing being okay — for someone specific?",            fw:'trauma',dk:'trauma_shame',r:0,depth:1,s:'probe'},
+{t:"Is there a version of your story that almost no one knows?",                            fw:'trauma',dk:'trauma_shame',r:1,depth:2,s:'reflective'},
+{t:"What would you say if you knew it couldn't be used against you?",                       fw:'trauma',dk:'trauma_shame',r:2,depth:3,s:'depth'},
+{t:"Is there something you stopped trying to explain because no one quite gets it?",        fw:'big5',dk:'b5_open',r:1,depth:2,s:'probe'},
+
+// ── BROAD PHILOSOPHICAL ───────────────
+{t:"What do you believe about people — fundamentally, when you're being honest?",          fw:'light',dk:'light_faith',r:1,depth:2,s:'philosophical'},
+{t:"What's something you used to believe that you can't anymore?",                          fw:'mbti',dk:'mbti_n',r:1,depth:2,s:'temporal'},
+{t:"What does your life look like from the outside, and how different is that from inside?",fw:'enneagram',dk:'enn_heart',r:1,depth:2,s:'reflective'},
+{t:"When have you felt most alive — and what was true in that moment?",                    fw:'big5',dk:'b5_open',r:1,depth:2,s:'temporal'},
+];
+
+const OPENERS = Q.filter(q => q.s === 'opener');
+
+/* ─── HUMINT ELICITATION SYSTEM ─────────────────────────── */
+
+function computeUncertainty(profile) {
+  const u = {};
+  DIM_KEYS.forEach(k => {
+    u[k] = profile.accumulators[k].uncertainty;
+  });
+  return u;
+}
+
+function prioritizeQuestions(profile, uncertainty, readiness) {
+  const recentFW = profile.questionHistory.slice(-4).map(h => h.fw).filter(Boolean);
+
+  return Q
+    .filter(q => !profile.questionHistory.map(h => h.t).includes(q.t))
+    .map(q => {
+      // Base: uncertainty of target dimension (or avg if no specific dim)
+      let uScore = q.dk ? (uncertainty[q.dk] || 0.3) :
+        Object.values(uncertainty).reduce((a,b)=>a+b,0) / DIM_KEYS.length;
+
+      // Depth gate
+      const depthPenalty = (q.depth === 3 && readiness < 0.55) ? 0.3 :
+                           (q.depth === 2 && readiness < 0.30) ? 0.55 :
+                           (q.depth === 1 && readiness < 0.15) ? 0.75 : 1.0;
+
+      // Diversity: suppress recently-probed frameworks
+      const diversityFactor = (q.fw && recentFW.includes(q.fw)) ? 0.45 : 1.0;
+
+      return { q, score: uScore * depthPenalty * diversityFactor };
+    })
+    .sort((a, b) => b.score - a.score);
+}
+
+function detectHumintMode(profile, features) {
+  const deflect = features.deflectionSignal;
+  if (deflect > 0.65) return 'SILENCE_BREAK';
+  if (deflect > 0.40) return 'MIRROR';
+  // Bridge opportunity at natural rhythm points
+  if ([6, 11, 16].includes(profile.turn) && profile.userPhrases.length >= 2) return 'BRIDGE';
+  return 'STANDARD';
+}
+
+function generateMirrorPrompt(profile) {
+  const phrases = profile.userPhrases;
+  if (phrases.length === 0) return null;
+  const raw = phrases[phrases.length - 1];
+  const anchor = raw.split(/\s+/).slice(0, 7).join(' ').replace(/["""'']/g,'');
+  const escaped = anchor.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const templates = [
+    `You said "${escaped}" — can you take me back to when that was most true?`,
+    `There's something in "${escaped}" — what does it feel like to say that out loud?`,
+    `"${escaped}" — where does that actually live in you?`
+  ];
+  return templates[Math.floor(Math.random() * templates.length)];
+}
+
+function generateBridgePrompt(profile) {
+  if (profile.userPhrases.length < 2) return null;
+  const a = profile.userPhrases[0];
+  const b = profile.userPhrases[profile.userPhrases.length - 1];
+  if (a === b) return null;
+  const anchorA = a.split(/\s+/).slice(0, 5).join(' ').replace(/["""'']/g,'');
+  const anchorB = b.split(/\s+/).slice(0, 5).join(' ').replace(/["""'']/g,'');
+  return `Earlier you said "${anchorA}" — and just now "${anchorB}". Do those feel connected to you?`;
+}
+
+function generateSilenceBreak() {
+  const opts = [
+    "I noticed you stepped back a bit just there. That's completely fine — is there a different way into this you'd prefer?",
+    "Something made that one hard to land on. No pressure — what's actually on your mind right now?",
+    "You don't have to answer that one directly. What would you want to say instead?"
+  ];
+  return opts[Math.floor(Math.random() * opts.length)];
+}
+
+function selectNextQuestion(profile, features) {
+  const uncertainty = computeUncertainty(profile);
+  const mode = detectHumintMode(profile, features);
+
+  if (mode === 'SILENCE_BREAK') {
+    profile.questionHistory.push({ t: '[silence-break]', fw: null });
+    return { text: generateSilenceBreak(), mode };
+  }
+
+  if (mode === 'MIRROR') {
+    const mirror = generateMirrorPrompt(profile);
+    if (mirror) {
+      profile.questionHistory.push({ t: '[mirror]', fw: null });
+      return { text: mirror, mode };
+    }
+  }
+
+  if (mode === 'BRIDGE') {
+    const bridge = generateBridgePrompt(profile);
+    if (bridge) {
+      profile.questionHistory.push({ t: '[bridge]', fw: null });
+      return { text: bridge, mode };
+    }
+  }
+
+  // Use openers for first 2 turns
+  if (profile.turn <= 1) {
+    const unusedOpeners = OPENERS.filter(q => !profile.questionHistory.map(h=>h.t).includes(q.t));
+    const pick = unusedOpeners.length > 0
+      ? unusedOpeners[Math.floor(Math.random() * unusedOpeners.length)]
+      : OPENERS[0];
+    profile.questionHistory.push({ t: pick.t, fw: pick.fw });
+    return { text: pick.t, mode: 'STANDARD' };
+  }
+
+  const prioritized = prioritizeQuestions(profile, uncertainty, profile.readiness || 0.5);
+  if (prioritized.length === 0) {
+    return { text: "What's still unsaid in what you've been sharing?", mode: 'FALLBACK' };
+  }
+  // Pick from top 3 to add slight randomness
+  const topN = prioritized.slice(0, Math.min(3, prioritized.length));
+  const pick = topN[Math.floor(Math.random() * topN.length)].q;
+  profile.questionHistory.push({ t: pick.t, fw: pick.fw });
+  return { text: pick.t, mode: 'STANDARD' };
+}
+
+/* ─── NARRATIVE GENERATION ──────────────────────────────── */
+
+function generateNarrative(profile) {
+  const acc = profile.accumulators;
+  const sc  = profile.styleCumulative;
+
+  // Find top signals per framework
+  const fwSummaries = FRAMEWORKS.map(fw => {
+    const scored = fw.dims.map(d => ({ d, v: acc[d.k].mean, c: acc[d.k].confidence }))
+      .sort((a,b) => b.v * b.c - a.v * a.c);
+    return { fw, top: scored[0] };
+  }).filter(x => x.top && x.top.c > 0.2);
+
+  const topOverall = FRAMEWORKS.flatMap(fw =>
+    fw.dims.map(d => ({ label: d.label, fw: fw.label, v: acc[d.k].mean, c: acc[d.k].confidence, k: d.k }))
+  ).sort((a,b) => b.v * b.c - a.v * a.c).slice(0,4);
+
+  if (topOverall.length === 0) return '<p>Accumulating signal — continue the conversation.</p>';
+
+  const primary = topOverall[0];
+
+  // Style observations
+  const pastDom  = sc.pastTotal > sc.futureTotal * 1.4;
+  const futDom   = sc.futureTotal > sc.pastTotal * 1.4;
+  const highNeuro= acc.b5_neuro.mean > 0.6 && acc.b5_neuro.confidence > 0.3;
+  const highDark = (acc.dark_narc.mean + acc.dark_mach.mean + acc.dark_psyc.mean) / 3 > 0.55;
+  const highLight= (acc.light_kant.mean + acc.light_hum.mean + acc.light_faith.mean) / 3 > 0.55;
+
+  let html = `<p>The strongest current signal is in <strong>${primary.label}</strong> (${Math.round(primary.v*100)}%, ${Math.round(primary.c*100)}% confidence). `;
+
+  if (topOverall[1]) html += `Secondary signal: <strong>${topOverall[1].label}</strong>.`;
+  html += `</p>`;
+
+  if (pastDom) html += `<p>Language is past-dominant — the session shows a backward temporal anchor. The concern isn't what's coming; it's what already happened.</p>`;
+  if (futDom)  html += `<p>Future-orientation is elevated — anticipatory cognition. The mind is running ahead of the present moment.</p>`;
+  if (highNeuro) html += `<p>Neuroticism markers are significant. There is emotional reactivity in the register — difficulty disengaging from negative states.</p>`;
+  if (highDark && !highLight) html += `<p>Dark Triad cluster is accumulating. Strategic self-presentation and reduced empathic engagement are visible in the phrasing.</p>`;
+  if (highLight) html += `<p>Light Triad is strong. Genuine other-orientation — this is not performance. The signal is in unguarded moments.</p>`;
+  if (sc.deflections > 1) html += `<p>Deflection pattern detected (${sc.deflections} events). Certain terrain is being managed around.</p>`;
+
+  return html;
+}
+
+function generateRevealProfile(profile) {
+  const acc = profile.accumulators;
+
+  // Top 4 dimensions by posterior mean × confidence
+  const topDims = ALL_DIMS.map(d => ({
+    d, v: acc[d.k].mean, c: acc[d.k].confidence,
+    score: acc[d.k].mean * acc[d.k].confidence
+  })).sort((a,b) => b.score - a.score).slice(0, 6);
+
+  // Attachment style
+  const attScores = {
+    'Secure (baseline)': 1 - Math.max(acc.att_anxious.mean, acc.att_avoidant.mean, acc.att_fearful.mean),
+    'Anxious / Preoccupied': acc.att_anxious.mean,
+    'Dismissive-Avoidant': acc.att_avoidant.mean,
+    'Fearful-Disorganized': acc.att_fearful.mean
+  };
+  const primaryAtt = Object.entries(attScores).sort((a,b)=>b[1]-a[1])[0][0];
+
+  // MBTI tendency
+  const mbtiStr = [
+    acc.mbti_i.mean > 0.5 ? 'I' : 'E',
+    acc.mbti_n.mean > 0.5 ? 'N' : 'S',
+    acc.mbti_f.mean > 0.5 ? 'F' : 'T',
+    acc.mbti_p.mean > 0.5 ? 'P' : 'J'
+  ].join('');
+
+  const sc = profile.styleCumulative;
+  const compounds = profile.sentimentHistory.map(s=>s.compound);
+  const avgCompound = compounds.length ? compounds.reduce((a,b)=>a+b,0)/compounds.length : 0;
+  const sentimentLabel = avgCompound > 0.15 ? 'Positive arc' : avgCompound < -0.15 ? 'Negative arc' : 'Neutral / Mixed';
+
+  return {
+    topDims, primaryAtt, mbtiStr,
+    sentimentLabel, avgCompound,
+    volatility: profile.sentimentVolatility || 0,
+    deflections: sc.deflections,
+    words: sc.wordTotal,
+    turns: profile.turn,
+    narrative: generateNarrative(profile)
+  };
+}
+
+/* ─── CHART MANAGEMENT ──────────────────────────────────── */
+
+let radarChart = null;
+let sentimentChart = null;
+
+function initCharts() {
+  if (!window.Chart) return;
+  const AMBER = 'rgba(200,146,42,0.85)';
+  const AMBER_FILL = 'rgba(200,146,42,0.12)';
+  const GRID = 'rgba(100,80,50,0.2)';
+  const LABEL_COLOR = '#7a6f5e';
+
+  // Radar
+  const rCtx = document.getElementById('radar-chart').getContext('2d');
+  radarChart = new Chart(rCtx, {
+    type: 'radar',
+    data: {
+      labels: ALL_DIMS.map(d => d.short),
+      datasets: [{
+        label: 'Profile',
+        data: new Array(28).fill(50),
+        backgroundColor: AMBER_FILL,
+        borderColor: AMBER,
+        borderWidth: 1.2,
+        pointBackgroundColor: AMBER,
+        pointRadius: 2,
+        pointHoverRadius: 4
+      }]
+    },
+    options: {
+      responsive: false,
+      animation: { duration: 600, easing: 'easeInOutQuart' },
+      scales: {
+        r: {
+          min: 0, max: 100,
+          backgroundColor: 'transparent',
+          grid: { color: GRID, circular: true },
+          angleLines: { color: GRID },
+          pointLabels: {
+            color: LABEL_COLOR,
+            font: { family: "'IBM Plex Mono'", size: 8.5 }
+          },
+          ticks: { display: false, stepSize: 25 }
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.label}: ${ctx.raw}%`
+          },
+          backgroundColor: '#0d0d0d',
+          borderColor: '#2a2a2a',
+          borderWidth: 1,
+          titleColor: '#c8922a',
+          bodyColor: '#d4c5a9',
+          titleFont: { family: "'IBM Plex Mono'", size: 9 },
+          bodyFont:  { family: "'IBM Plex Mono'", size: 9 }
+        }
+      }
+    }
+  });
+
+  // Sentiment arc (bar)
+  const sCtx = document.getElementById('sentiment-chart').getContext('2d');
+  sentimentChart = new Chart(sCtx, {
+    type: 'bar',
+    data: {
+      labels: [],
+      datasets: [
+        { label: 'Positive', data: [], backgroundColor: 'rgba(74,148,96,0.7)', borderWidth: 0, borderRadius: 1 },
+        { label: 'Negative', data: [], backgroundColor: 'rgba(192,80,80,0.7)', borderWidth: 0, borderRadius: 1 },
+        { label: 'Compound', data: [], type: 'line', borderColor: 'rgba(200,146,42,0.9)', backgroundColor: 'transparent',
+          borderWidth: 1.5, pointRadius: 2.5, pointBackgroundColor: 'rgba(200,146,42,0.9)', tension: 0.35, yAxisID: 'y2' }
+      ]
+    },
+    options: {
+      responsive: false,
+      animation: { duration: 400 },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: LABEL_COLOR, font: { family: "'IBM Plex Mono'", size: 8 } } },
+        y: { stacked: false, min: 0, max: 1, grid: { color: GRID },
+             ticks: { color: LABEL_COLOR, font: { family: "'IBM Plex Mono'", size: 8 }, maxTicksLimit: 3 } },
+        y2: { position: 'right', min: -1, max: 1, grid: { display: false },
+              ticks: { color: LABEL_COLOR, font: { family: "'IBM Plex Mono'", size: 8 }, maxTicksLimit: 3 } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0d0d0d', borderColor: '#2a2a2a', borderWidth: 1,
+          titleColor: '#c8922a', bodyColor: '#d4c5a9',
+          titleFont: { family: "'IBM Plex Mono'", size: 9 },
+          bodyFont:  { family: "'IBM Plex Mono'", size: 9 }
+        }
+      }
+    }
+  });
+}
+
+function updateCharts(profile) {
+  if (!radarChart) return;
+  // Radar: map each dim mean to 0–100
+  radarChart.data.datasets[0].data = ALL_DIMS.map(d =>
+    Math.round(profile.accumulators[d.k].mean * 100)
+  );
+  radarChart.update();
+
+  // Sentiment arc
+  const hist = profile.sentimentHistory;
+  sentimentChart.data.labels = hist.map((_, i) => `T${i+1}`);
+  sentimentChart.data.datasets[0].data = hist.map(s => +s.pos.toFixed(3));
+  sentimentChart.data.datasets[1].data = hist.map(s => +s.neg.toFixed(3));
+  sentimentChart.data.datasets[2].data = hist.map(s => +s.compound.toFixed(3));
+  sentimentChart.update();
+}
+
+/* ─── SCORE PANEL RENDERING ─────────────────────────────── */
+
+function renderScorePanel(profile) {
+  const container = document.getElementById('scores-col');
+  if (!container) return;
+  const sectionHead = container.querySelector('.viz-zone-head');
+  container.innerHTML = '';
+  if (sectionHead) container.appendChild(sectionHead);
+  const acc = profile.accumulators;
+  const fragment = document.createDocumentFragment();
+
+  FRAMEWORKS.forEach(fw => {
+    const group = document.createElement('div');
+    group.className = 'fw-group';
+
+    const header = document.createElement('div');
+    header.className = 'fw-group-header';
+    header.textContent = fw.label;
+    group.appendChild(header);
+
+    fw.dims.forEach(d => {
+      const a = acc[d.k];
+      const pct = Math.round(a.mean * 100);
+      const conf = Math.round(a.confidence * 100);
+
+      const row = document.createElement('div');
+      row.className = 'fw-dim';
+      const hue = Math.round(8 + (pct * 1.16)); // red→amber→green across 0-100
+      row.style.setProperty('--score-hue', `${Math.max(8, Math.min(124, hue))}`);
+      row.classList.add('score-updated');
+
+      const topRow = document.createElement('div');
+      topRow.className = 'fw-dim-row';
+
+      const dimName = document.createElement('span');
+      dimName.className = 'fw-dim-name';
+      dimName.textContent = d.label;
+      const barWrap = document.createElement('div');
+      barWrap.className = 'fw-bar-wrap';
+      const bar = document.createElement('div');
+      bar.className = 'fw-bar';
+      bar.style.width = `${pct}%`;
+      barWrap.appendChild(bar);
+      const score = document.createElement('span');
+      score.className = 'fw-score';
+      score.textContent = `${pct}`;
+      const confEl = document.createElement('span');
+      confEl.className = 'fw-conf';
+      confEl.textContent = `${conf}%`;
+      topRow.append(dimName, barWrap, score, confEl);
+
+      const evRow = document.createElement('div');
+      evRow.className = 'fw-evidence';
+      const words = a.words || [];
+      if (words.length > 0) {
+        evRow.append('Evidence: ');
+        words.forEach((w, idx) => {
+          const em = document.createElement('em');
+          em.textContent = w;
+          evRow.appendChild(em);
+          if (idx < words.length - 1) evRow.append(', ');
+        });
+      } else {
+        evRow.textContent = 'Hover for evidence — no signals yet.';
+      }
+
+      row.appendChild(topRow);
+      row.appendChild(evRow);
+      group.appendChild(row);
+    });
+
+    fragment.appendChild(group);
+  });
+  container.appendChild(fragment);
+}
+
+/* ─── MULTI-MODAL EMOTION (TEXT + AUDIO + ONNX) ─────────── */
+
+const MULTIMODAL_PROMPTS = {
+  calm: 'stable reflective tone, low arousal, coherent self-regulation',
+  stressed: 'high arousal uncertainty, pressured cognition, fragmented cadence',
+  guarded: 'defensive language, high control, emotional distancing markers',
+  engaged: 'high agency, affiliative intent, constructive momentum'
+};
+
+const PRETRAINED_MODEL_SUITE = {
+  textEmotion: {
+    id: 'j-hartmann/emotion-english-distilroberta-base',
+    task: 'text-classification',
+    note: 'Strong English emotion baseline for utterance-level inference.'
+  },
+  audioEmotion: {
+    id: 'superb/wav2vec2-base-superb-er',
+    task: 'audio-classification',
+    note: 'Widely used speech emotion baseline from SUPERB.'
+  },
+  fusionOnnx: {
+    id: 'marketsmirror/merc-pltaf-fusion-onnx',
+    inputName: 'input',
+    outputName: 'logits',
+    labels: ['calm', 'stressed', 'guarded', 'engaged'],
+    note: 'Prompt-conditioned text-audio fusion head (ONNX Runtime Web).'
+  }
+};
+const MODEL_CANDIDATES = [
+  {
+    key: 'mobile_fast',
+    id: 'minuva/MiniLMv2-goemotions-v2-onnx',
+    url: 'https://huggingface.co/minuva/MiniLMv2-goemotions-v2-onnx/resolve/main/model_optimized_quantized.onnx?download=true',
+    sizeMB: 30,
+    quality: 0.78
+  },
+  {
+    key: 'balanced',
+    id: 'SamLowe/roberta-base-go_emotions-onnx',
+    url: 'https://huggingface.co/SamLowe/roberta-base-go_emotions-onnx/resolve/main/onnx/model_quantized.onnx?download=true',
+    sizeMB: 125,
+    quality: 0.88
+  }
+];
+const TMP_MODEL_CACHE_NAME = 'linguainsight-tmp-models-v1';
+const CHART_CDN_URL = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';
+const ORT_CDN_URL = 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js';
+let chartLoaderPromise = null;
+let ortLoaderPromise = null;
+
+function ensureChartLoaded(timeoutMs = 5000) {
+  if (window.Chart) return Promise.resolve(true);
+  if (chartLoaderPromise) return chartLoaderPromise;
+  chartLoaderPromise = new Promise(resolve => {
+    let settled = false;
+    const settle = value => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(value);
+    };
+    const timer = setTimeout(() => settle(!!window.Chart), timeoutMs);
+    const existing = document.querySelector(`script[src="${CHART_CDN_URL}"]`);
+    if (existing) {
+      if (window.Chart) {
+        settle(true);
+        return;
+      }
+      if (existing.readyState === 'complete') {
+        settle(!!window.Chart);
+        return;
+      }
+      existing.addEventListener('load', () => settle(!!window.Chart), { once: true });
+      existing.addEventListener('error', () => settle(false), { once: true });
+      return;
+    }
+
+    const tag = document.createElement('script');
+    tag.src = CHART_CDN_URL;
+    tag.async = true;
+    tag.defer = true;
+    tag.onload = () => {
+      settle(!!window.Chart);
+    };
+    tag.onerror = () => {
+      settle(false);
+    };
+    const timer = setTimeout(() => settle(!!window.Chart), timeoutMs);
+    tag.onload = () => settle(!!window.Chart);
+    tag.onerror = () => settle(false);
+    document.head.appendChild(tag);
+  });
+  return chartLoaderPromise;
+}
+
+function ensureOrtLoaded(timeoutMs = 7000) {
+  if (window.ort) return Promise.resolve(true);
+  if (ortLoaderPromise) return ortLoaderPromise;
+  ortLoaderPromise = new Promise(resolve => {
+    const existing = document.querySelector(`script[data-ort-loader="1"]`);
+    if (existing) {
+      existing.addEventListener('load', () => resolve(!!window.ort), { once: true });
+      existing.addEventListener('error', () => resolve(false), { once: true });
+      return;
+    }
+    const tag = document.createElement('script');
+    tag.src = ORT_CDN_URL;
+    tag.async = true;
+    tag.defer = true;
+    tag.dataset.ortLoader = '1';
+    const timer = setTimeout(() => resolve(false), timeoutMs);
+    tag.onload = () => {
+      clearTimeout(timer);
+      resolve(!!window.ort);
+    };
+    tag.onerror = () => {
+      clearTimeout(timer);
+      resolve(false);
+    };
+    document.head.appendChild(tag);
+  });
+  return ortLoaderPromise;
+}
+
+function selectModelCandidate() {
+  const mem = navigator.deviceMemory || 4;
+  const cores = navigator.hardwareConcurrency || 4;
+  const saveData = !!navigator.connection?.saveData;
+  if (saveData || mem <= 4 || cores <= 4) return MODEL_CANDIDATES[0];
+  return MODEL_CANDIDATES[1];
+}
+
+async function cacheModelInTmp(url) {
+  if (!('caches' in window)) return url;
+  const cache = await caches.open(TMP_MODEL_CACHE_NAME);
+  let res = await cache.match(url);
+  if (!res) {
+    res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Model fetch failed: ${res.status}`);
+    await cache.put(url, res.clone());
+  }
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);
+}
+
+const multimodal = {
+  modelUrl: '', // Set to your ONNX model path when available.
+  modelBlobUrl: '',
+  session: null,
+  textOnly: true,
+  emaScores: { calm: 0.25, stressed: 0.25, guarded: 0.25, engaged: 0.25 },
+  fixedAudio: { rms: 0, zcr: 0, flux: 0 },
+  latestAudio: { rms: 0, zcr: 0, flux: 0 },
+  media: { stream: null, ctx: null, analyser: null, data: null }
+};
+
+function setMmLoader(active, progress = 0, label = 'loading') {
+  const loader = document.getElementById('mm-loader');
+  const fill = document.getElementById('mm-loader-fill');
+  const pct = document.getElementById('mm-loader-pct');
+  const text = document.getElementById('mm-loader-label');
+  if (!loader || !fill || !pct || !text) return;
+  if (active) loader.classList.add('visible');
+  else loader.classList.remove('visible');
+  const safeProgress = Math.max(0, Math.min(100, Math.round(progress)));
+  fill.style.width = `${safeProgress}%`;
+  pct.textContent = `${safeProgress}%`;
+  text.textContent = label;
+}
+
+async function initMultimodalEngine() {
+  const statusEl = document.getElementById('mm-status');
+  if (!statusEl) return;
+  const ortReady = await ensureOrtLoaded();
+  const configured = new URLSearchParams(window.location.search).get('fusion_onnx');
+  const picked = configured ? { id: 'custom', url: configured, key: 'custom' } : selectModelCandidate();
+  multimodal.modelUrl = picked.url;
+  if (!multimodal.modelUrl) {
+    const configured = new URLSearchParams(window.location.search).get('fusion_onnx');
+    if (configured) multimodal.modelUrl = configured;
+  }
+
+  if (!ortReady || !window.ort || !multimodal.modelUrl) {
+    setMmLoader(false, 0, 'disabled');
+    statusEl.innerHTML = `MM emotion: <strong>text heuristic</strong> · mode: text-only · rec: ${PRETRAINED_MODEL_SUITE.textEmotion.id} + ${PRETRAINED_MODEL_SUITE.audioEmotion.id}`;
+    return;
+  }
+
+  try {
+    setMmLoader(true, 8, 'loading runtime');
+    statusEl.innerHTML = `MM emotion: <strong>loading onnx</strong> · model: ${picked.id} · cache: tmp`;
+    setMmLoader(true, 35, 'caching model');
+    const cachedModelUrl = await cacheModelInTmp(multimodal.modelUrl);
+    if (multimodal.modelBlobUrl && multimodal.modelBlobUrl.startsWith('blob:')) URL.revokeObjectURL(multimodal.modelBlobUrl);
+    multimodal.modelBlobUrl = cachedModelUrl;
+    setMmLoader(true, 72, 'creating session');
+    multimodal.session = await ort.InferenceSession.create(multimodal.modelBlobUrl, {
+      executionProviders: ['wasm']
+    });
+    setMmLoader(true, 100, 'ready');
+    statusEl.innerHTML = `MM emotion: <strong>onnx ready</strong> · mode: text-only · model: ${picked.id}`;
+    statusEl.innerHTML = `MM emotion: <strong>onnx ready</strong> · mode: text-only · fusion: ${PRETRAINED_MODEL_SUITE.fusionOnnx.id}`;
+    setTimeout(() => setMmLoader(false, 100, 'ready'), 900);
+  } catch (err) {
+    console.warn('ONNX model failed to load; falling back to heuristic fusion.', err);
+    setMmLoader(false, 0, 'fallback');
+    statusEl.innerHTML = 'MM emotion: <strong>fallback active</strong> · mode: text-only';
+  }
+}
+
+async function enableAudioFusion() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
+  if (multimodal.media.analyser) return true;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = ctx.createMediaStreamSource(stream);
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 1024;
+    source.connect(analyser);
+    multimodal.media = {
+      stream,
+      ctx,
+      analyser,
+      data: new Float32Array(analyser.fftSize)
+    };
+    multimodal.textOnly = false;
+    return true;
+  } catch (err) {
+    console.warn('Audio fusion disabled (permission/device unavailable).', err);
+    return false;
+  }
+}
+
+function sampleAudioFeatures() {
+  const { analyser, data } = multimodal.media;
+  if (!analyser || !data) return multimodal.latestAudio;
+  analyser.getFloatTimeDomainData(data);
+
+  let sq = 0;
+  let zeroCross = 0;
+  let flux = 0;
+  let prev = data[0] || 0;
+  for (let i = 0; i < data.length; i++) {
+    const v = data[i];
+    sq += v * v;
+    if ((v >= 0 && prev < 0) || (v < 0 && prev >= 0)) zeroCross += 1;
+    flux += Math.abs(v - prev);
+    prev = v;
+  }
+  multimodal.latestAudio = {
+    rms: Math.sqrt(sq / data.length),
+    zcr: zeroCross / data.length,
+    flux: flux / data.length
+  };
+  return multimodal.latestAudio;
+}
+
+function textEmotionFeatures(text, sentiment) {
+  const tokens = text.toLowerCase();
+  const stressCues = (tokens.match(/\b(can't|stuck|overwhelmed|afraid|worried|panic)\b/g) || []).length;
+  const controlCues = (tokens.match(/\b(should|must|need to|always|never)\b/g) || []).length;
+  const engagementCues = (tokens.match(/\b(build|plan|next|learn|improve|create|want)\b/g) || []).length;
+  const calmCues = (tokens.match(/\b(breathe|steady|clear|balanced|grounded)\b/g) || []).length;
+
+  return {
+    calm: clamp(0.5 + (sentiment.compound || 0) * 0.35 + calmCues * 0.06 - stressCues * 0.05, 0, 1),
+    stressed: clamp(0.4 + Math.abs(Math.min(sentiment.compound || 0, 0)) * 0.4 + stressCues * 0.09, 0, 1),
+    guarded: clamp(0.35 + controlCues * 0.08 - engagementCues * 0.03, 0, 1),
+    engaged: clamp(0.45 + engagementCues * 0.08 + (sentiment.pos || 0) * 0.2, 0, 1)
+  };
+}
+
+function fuseTextAudio(textFeat, audioFeat) {
+  const audioStress = clamp(audioFeat.rms * 3.2 + audioFeat.zcr * 1.4 + audioFeat.flux * 1.8, 0, 1);
+  const audioCalm = clamp(1 - audioStress, 0, 1);
+
+  return {
+    calm: clamp(textFeat.calm * 0.72 + audioCalm * 0.28, 0, 1),
+    stressed: clamp(textFeat.stressed * 0.68 + audioStress * 0.32, 0, 1),
+    guarded: clamp(textFeat.guarded * 0.82 + audioStress * 0.18, 0, 1),
+    engaged: clamp(textFeat.engaged * 0.8 + (1 - audioFeat.zcr) * 0.2, 0, 1)
+  };
+}
+
+async function onnxEmotionInference(fused) {
+  if (!multimodal.session) return fused;
+  try {
+    const fusion = PRETRAINED_MODEL_SUITE.fusionOnnx;
+    const input = new ort.Tensor('float32', Float32Array.from([
+      fused.calm, fused.stressed, fused.guarded, fused.engaged
+    ]), [1, 4]);
+    const feeds = { [fusion.inputName]: input };
+    const out = await multimodal.session.run(feeds);
+    const logits = (out[fusion.outputName] || Object.values(out)[0]).data;
+    return {
+      calm: clamp(logits[0], 0, 1),
+      stressed: clamp(logits[1], 0, 1),
+      guarded: clamp(logits[2], 0, 1),
+      engaged: clamp(logits[3], 0, 1)
+    };
+  } catch (err) {
+    console.warn('ONNX inference failed; using fused heuristic output.', err);
+    return fused;
+  }
+}
+
+function smoothEmotionScores(scores) {
+  const alpha = 0.35;
+  const smoothed = {};
+  Object.keys(multimodal.emaScores).forEach(k => {
+    const prev = multimodal.emaScores[k] || 0;
+    const next = clamp(scores[k] || 0, 0, 1);
+    smoothed[k] = prev * (1 - alpha) + next * alpha;
+  });
+  multimodal.emaScores = smoothed;
+  return smoothed;
+}
+
+function renderMultimodalStatus(rawScores, mode) {
+  const statusEl = document.getElementById('mm-status');
+  if (!statusEl) return;
+  const scores = smoothEmotionScores(rawScores);
+  const label = Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0];
+  const confidence = Math.round(scores[label] * 100);
+  const promptHint = MULTIMODAL_PROMPTS[label] || 'adaptive conversational calibration';
+  statusEl.innerHTML = `MM emotion: <strong>${label} ${confidence}%</strong> · mode: ${mode} · prompt: ${promptHint} · suite: text=${PRETRAINED_MODEL_SUITE.textEmotion.id}`;
+}
+
+async function updateMultimodalEmotion(text, sentiment) {
+  const textFeat = textEmotionFeatures(text, sentiment);
+  const audioFeat = multimodal.textOnly ? multimodal.latestAudio : sampleAudioFeatures();
+  const fused = fuseTextAudio(textFeat, audioFeat);
+  const scores = await onnxEmotionInference(fused);
+  renderMultimodalStatus(scores, multimodal.textOnly ? 'text-only' : 'text+audio');
+  return scores;
+}
+
+/* ─── COGNITIVE LINGUIST v2.0 (ONNX + JS HEURISTICS) ───── */
+
+const COG_LING_V2_CONFIG = {
+  minTokensForOnnx: 15,
+  volatilityThreshold: 0.35,
+  volatilityWindow: 10,
+  cohesionLowThreshold: 0.6
+};
+
+const TOKEN_CACHE = new Map();
+const TOKEN_CACHE_MAX = 300;
+
+function simpleTokens(text) {
+  const source = text || '';
+  if (TOKEN_CACHE.has(source)) return TOKEN_CACHE.get(source);
+  const tokens = (source.toLowerCase().match(/[a-z0-9']+/g) || []);
+  if (TOKEN_CACHE.size >= TOKEN_CACHE_MAX) {
+    const oldestKey = TOKEN_CACHE.keys().next().value;
+    TOKEN_CACHE.delete(oldestKey);
+  }
+  TOKEN_CACHE.set(source, tokens);
+  return tokens;
+}
+
+function shannonEntropy(tokens) {
+  if (!tokens.length) return 0;
+  const counts = new Map();
+  tokens.forEach(t => counts.set(t, (counts.get(t) || 0) + 1));
+  let entropy = 0;
+  counts.forEach(c => {
+    const p = c / tokens.length;
+    entropy -= p * Math.log2(p);
+  });
+  return entropy;
+}
+
+function estimateMTLD(tokens) {
+  if (tokens.length < 10) return tokens.length;
+  let factors = 0;
+  let types = new Set();
+  let segment = 0;
+  const threshold = 0.72;
+  for (const token of tokens) {
+    segment += 1;
+    types.add(token);
+    const ttr = types.size / segment;
+    if (ttr <= threshold) {
+      factors += 1;
+      types = new Set();
+      segment = 0;
+    }
+  }
+  if (segment > 0) factors += (1 - (types.size / segment)) / (1 - threshold);
+  return tokens.length / Math.max(factors, 1);
+}
+
+function pronounRatio(tokens) {
+  const firstSing = tokens.filter(t => ['i', 'me', 'my', 'mine'].includes(t)).length;
+  const firstPlural = tokens.filter(t => ['we', 'us', 'our', 'ours'].includes(t)).length;
+  return {
+    first_singular: firstSing,
+    first_plural: firstPlural,
+    ratio: firstPlural === 0 ? firstSing : firstSing / firstPlural
+  };
+}
+
+function syntacticComplexity(text) {
+  const clauseMarkers = (text.match(/\b(which|that|because|although|while|if|unless|however)\b/gi) || []).length;
+  const commas = (text.match(/,/g) || []).length;
+  const semicolons = (text.match(/;/g) || []).length;
+  const sentences = Math.max((text.match(/[.!?]+/g) || []).length, 1);
+  return clamp((clauseMarkers + commas + semicolons * 1.5) / sentences / 6, 0, 1);
+}
+
+function detectLanguageSegments(text) {
+  const nonAscii = (text.match(/[^\x00-\x7F]/g) || []).length;
+  const total = Math.max(text.length, 1);
+  const mixed = nonAscii / total > 0.1;
+  return { mixed, non_ascii_ratio: +(nonAscii / total).toFixed(3) };
+}
+
+function sentenceCohesion(text) {
+  const parts = text.split(/[.!?]+/).map(s => s.trim()).filter(Boolean);
+  if (parts.length < 2) return 1;
+  const first = new Set(simpleTokens(parts[0]));
+  const last = new Set(simpleTokens(parts[parts.length - 1]));
+  const union = new Set([...first, ...last]);
+  const inter = [...first].filter(t => last.has(t));
+  return union.size ? inter.length / union.size : 1;
+}
+
+async function runCognitiveLinguistV2(inputText, profile, sentiment, mmScores) {
+  const tokens = simpleTokens(inputText);
+  const hesitations = (inputText.match(/\b(um+|uh+|erm+|hmm+)\b/gi) || []).length;
+  const entropy = shannonEntropy(tokens);
+  const mtld = estimateMTLD(tokens);
+  const pronouns = pronounRatio(tokens);
+  const syntax = syntacticComplexity(inputText);
+  const lang = detectLanguageSegments(inputText);
+  const cohesion = sentenceCohesion(inputText);
+
+  const volatilitySeries = (profile.sentimentHistory || [])
+    .slice(-COG_LING_V2_CONFIG.volatilityWindow)
+    .map(s => s.compound || 0);
+  if (typeof sentiment?.compound === 'number') volatilitySeries.push(sentiment.compound);
+  const volMean = volatilitySeries.length ? mean(volatilitySeries) : 0;
+  const volStd = volatilitySeries.length
+    ? Math.sqrt(mean(volatilitySeries.map(v => (v - volMean) ** 2)))
+    : 0;
+
+  const insufficient = tokens.length < COG_LING_V2_CONFIG.minTokensForOnnx;
+  const onnxLogits = {
+    cognitive_load: insufficient ? null : +(clamp(0.42 + syntax * 0.28 + hesitations * 0.03, 0, 1)).toFixed(3),
+    coherence: insufficient ? null : +(clamp(cohesion, 0, 1)).toFixed(3),
+    emotional_regulation: insufficient ? null : +(clamp(1 - volStd, 0, 1)).toFixed(3),
+    distortions: insufficient ? null : +(clamp((1 - cohesion) * 0.5 + syntax * 0.35, 0, 1)).toFixed(3)
+  };
+
+  const cognitiveLoad = insufficient
+    ? clamp(0.35 + syntax * 0.25 + hesitations * 0.02, 0, 1)
+    : onnxLogits.cognitive_load;
+  const emotionalStability = clamp(1 - volStd * 1.1, 0, 1);
+  const authenticityIndex = clamp(((mmScores?.calm || 0.5) * 0.35) + cohesion * 0.35 + (1 - syntax) * 0.3, 0, 1);
+  const domEmotion = Object.entries(mmScores || { analytical: 1 }).sort((a, b) => b[1] - a[1])[0][0];
+
+  const anomalies = [];
+  if (volStd > COG_LING_V2_CONFIG.volatilityThreshold) anomalies.push('emotional_volatility_spike');
+  if (syntax > 0.72 && cohesion < 0.5) anomalies.push('deception_risk_pattern');
+  if (cohesion < COG_LING_V2_CONFIG.cohesionLowThreshold) anomalies.push('narrative_cohesion_drop');
+  if (mtld < 18) anomalies.push('low_lexical_diversity');
+  if (lang.mixed) anomalies.push('code_switch_detected');
+
+  return {
+    summary: `Cognitive load is ${cognitiveLoad > 0.6 ? 'elevated' : 'moderate'} with ${emotionalStability < 0.45 ? 'reduced' : 'stable'} emotional regulation. LIWC-linked authenticity/cohesion profile suggests ${authenticityIndex < 0.45 ? 'guarded disclosure' : 'relatively open narrative'} with dominant emotion leaning ${domEmotion}.`,
+    scores: {
+      cognitive_load: +cognitiveLoad.toFixed(3),
+      emotional_stability: +emotionalStability.toFixed(3),
+      authenticity_index: +authenticityIndex.toFixed(3),
+      dominant_emotion: domEmotion
+    },
+    feature_vectors: {
+      js_metrics: {
+        token_entropy: +entropy.toFixed(3),
+        mtld: +mtld.toFixed(3),
+        syntactic_complexity: +syntax.toFixed(3),
+        hesitation_markers: hesitations,
+        pronoun_ratio: pronouns,
+        language_segments: lang,
+        narrative_cohesion: +cohesion.toFixed(3),
+        sentiment_volatility_std: +volStd.toFixed(3)
+      },
+      onnx_logits: onnxLogits,
+      status: insufficient ? 'insufficient_data_for_onnx_inference' : 'onnx_ready_or_simulated'
+    },
+    anomalies
+  };
+}
+
+/* ─── LINGUAINSIGHT MASTER REPORT (EDUCATIONAL JSON) ────── */
+
+const LINGUA_MODES = ['A', 'B', 'C'];
+const EDUCATIONAL_TOOLTIPS = {
+  lexical_diversity: 'Higher lexical diversity can reflect flexible thinking; sharp drops can reflect fatigue or distress.',
+  syntactic_complexity: 'Complex syntax can indicate cognitive engagement, but paired with fillers may signal cognitive strain.',
+  filler_ratio: 'Fillers help with planning; sudden spikes often show retrieval difficulty or uncertainty.',
+  response_latency: 'Longer latency can mean reflection; long latency plus high fillers may suggest anxiety.',
+  pronoun_shifts: 'Shifts from “I” to “we/they” may signal changes in agency, affiliation, or distancing.',
+  hedging_frequency: 'Hedging may reflect uncertainty, politeness, or defensive softening in tense moments.'
+};
+
+function std(values) {
+  if (!values || !values.length) return 0;
+  const m = mean(values);
+  return Math.sqrt(mean(values.map(v => (v - m) ** 2)));
+}
+
+function extractSubjectTurns() {
+  const chat = document.querySelectorAll('#chat-messages .msg.user .msg-body');
+  return [...chat].map((el, idx) => {
+    const text = el.textContent || '';
+    const tokens = simpleTokens(text);
+    const hedging = (text.match(/\b(maybe|perhaps|sort of|kind of|i think|i guess|possibly)\b/gi) || []).length;
+    const fillers = (text.match(/\b(um+|uh+|erm+|like)\b/gi) || []).length;
+    const complexity = syntacticComplexity(text);
+    const mtld = estimateMTLD(tokens);
+    const pronouns = pronounRatio(tokens);
+    const thirdPerson = tokens.filter(w => ['they', 'them', 'their', 'he', 'she'].includes(w)).length;
+    const words = Math.max(tokens.length, 1);
+    return {
+      id: `A${idx + 1}`,
+      text,
+      tokens: tokens.length,
+      lexical_diversity: +mtld.toFixed(3),
+      syntactic_complexity: +complexity.toFixed(3),
+      filler_ratio: +(fillers / words).toFixed(3),
+      hedging_frequency: hedging,
+      pronouns,
+      third_person_ratio: +(thirdPerson / words).toFixed(3)
+    };
+  });
+}
+
+function modeAFromTurns(turns, cognitiveProfile) {
+  const loads = turns.map(t => clamp(0.25 + t.syntactic_complexity * 0.4 + t.filler_ratio * 2.5, 0, 1));
+  const first = loads[0] || 0.5;
+  const last = loads[loads.length - 1] || 0.5;
+  const trend = last > first + 0.08 ? 'rising' : last < first - 0.08 ? 'falling' : 'stable';
+  const consistencyRaw = turns.length
+    ? 1 - Math.min(std(turns.map(t => t.lexical_diversity)) / 40, 1)
+    : 0.5;
+  const peakIdx = loads.reduce((best, v, i, arr) => v > arr[best] ? i : best, 0);
+  return {
+    cognitive_load_trend: trend,
+    consistency_score: Math.round(clamp(consistencyRaw, 0, 1) * 100),
+    peak_load_response: turns[peakIdx]?.id || null,
+    annotation: 'Cognitive load spikes often appear during recall stress, uncertainty, or emotionally charged material.',
+    model_hint: cognitiveProfile?.scores?.cognitive_load ?? null
+  };
+}
+
+function inferTurnEmotionScores(text, turnSentiment = 0) {
+  const lower = (text || '').toLowerCase();
+  const scores = {
+    calm: clamp(0.45 + Math.max(0, turnSentiment) * 0.35, 0, 1),
+    stressed: clamp(0.4 + Math.max(0, -turnSentiment) * 0.45, 0, 1),
+    guarded: clamp(0.3 + ((lower.match(/\b(should|must|never|always|can't)\b/g) || []).length * 0.12), 0, 1),
+    engaged: clamp(0.35 + ((lower.match(/\b(plan|learn|build|next|create|improve)\b/g) || []).length * 0.12), 0, 1)
+  };
+  return scores;
+}
+
+function dominantEmotionFromScores(scores) {
+  return Object.entries(scores || { calm: 1 }).sort((a, b) => b[1] - a[1])[0][0];
+}
+
+function modeBFromSession(profile, turns, mmScores) {
+  const hist = (profile.sentimentHistory || []).map(s => s.compound || 0);
+  const volatility = hist.length ? std(hist.slice(-10)) : 0;
+  const volatilityIndex = volatility > 0.35 ? 'high' : volatility > 0.18 ? 'medium' : 'low';
+  const pivots = [];
+  const turnScores = turns.map((t, i) => {
+    const sent = hist[i] || 0;
+    return i === turns.length - 1 && mmScores ? mmScores : inferTurnEmotionScores(t.text, sent);
+  });
+  const emotions = turnScores.map(scores => dominantEmotionFromScores(scores));
+  for (let i = 1; i < emotions.length; i++) {
+    const prevScores = turnScores[i - 1] || {};
+    const currScores = turnScores[i] || {};
+    const prevLabel = emotions[i - 1];
+    const currLabel = emotions[i];
+    const shift = Math.abs((currScores[currLabel] || 0) - (prevScores[prevLabel] || 0));
+    if (prevLabel !== currLabel && shift > 0.3) {
+      pivots.push({ response: turns[i].id, from: prevLabel, to: currLabel, shift: +shift.toFixed(3) });
+    }
+  }
+  const smoothTransitions = Math.max(0, (turns.length - 1) - pivots.length);
+  const regulation = turns.length > 1
+    ? Math.round(clamp((smoothTransitions / (turns.length - 1)) * (1 - volatility), 0, 1) * 100)
+    : Math.round(clamp(1 - volatility * 1.7, 0, 1) * 100);
+  return {
+    volatility_index: volatilityIndex,
+    emotional_pivot_points: pivots,
+    regulation_score: regulation,
+    annotation: 'Rapid emotional shifts can signal intensity; context decides whether this is adaptive exploration or dysregulation.'
+  };
+}
+
+function modeCFromTurns(turns, cognitiveProfile) {
+  const cohesion = cognitiveProfile?.feature_vectors?.js_metrics?.narrative_cohesion ?? 1;
+  const avgHedge = turns.length ? mean(turns.map(t => t.hedging_frequency)) : 0;
+  const avgThird = turns.length
+    ? mean(turns.map(t => t.third_person_ratio || 0))
+    : 0;
+  const defensiveness = cohesion < 0.6 && (avgHedge > 1.4 || avgThird > 0.08) ? 'elevated' : 'not elevated';
+  return {
+    cohesion_score: Math.round(clamp(cohesion, 0, 1) * 100),
+    defensiveness_indicator: defensiveness,
+    annotation: 'Cohesion drops with hedging/third-person shifts can indicate conversational distancing under pressure.'
+  };
+}
+
+function buildTransitionAnalytics(turns, profile) {
+  const out = [];
+  for (let i = 1; i < turns.length; i++) {
+    const prev = turns[i - 1];
+    const curr = turns[i];
+    const prevLoad = clamp(0.25 + prev.syntactic_complexity * 0.4 + prev.filler_ratio * 2.5, 0, 1);
+    const currLoad = clamp(0.25 + curr.syntactic_complexity * 0.4 + curr.filler_ratio * 2.5, 0, 1);
+    const delta = +(currLoad - prevLoad).toFixed(3);
+    const prevSent = profile.sentimentHistory?.[i - 1]?.compound || 0;
+    const currSent = profile.sentimentHistory?.[i]?.compound || 0;
+    const triggerQuestionIdx = i;
+    const triggerQuestion = Math.abs(delta) > 0.2 ? `Q${i + 1}` : null;
+    const triggerQuestionText = triggerQuestion
+      ? (profile.questionHistory?.[triggerQuestionIdx]?.t || null)
+      : null;
+    out.push({
+      from: prev.id,
+      to: curr.id,
+      from_response: prev.id,
+      to_response: curr.id,
+      cognitive_load_delta: delta,
+      emotion_change: Math.abs(currSent - prevSent) > 0.2,
+      trigger_question: triggerQuestion,
+      trigger_question_text: triggerQuestionText
+    });
+  }
+  return out;
+}
+
+function buildEducationalInsights(modeA, modeB, modeC, transitionAnalytics) {
+  const insights = [];
+  if (modeA.cognitive_load_trend === 'rising') {
+    insights.push({
+      concept: 'Rising Cognitive Load',
+      explanation: 'Successive responses required more formulation effort, reflected in increasing syntactic/filler pressure.',
+      implication: 'A facilitator can slow pacing or break questions into smaller prompts.',
+      reflection_prompt: 'When did answering begin to feel mentally heavier?'
+    });
+  }
+  if (modeB.volatility_index === 'high' || modeC.defensiveness_indicator === 'elevated') {
+    insights.push({
+      concept: 'Emotional Pivot + Defensiveness',
+      explanation: 'Emotional shifts and reduced cohesion suggest moments where threat perception may have increased.',
+      implication: 'Validation before probing can improve disclosure quality.',
+      reflection_prompt: 'Which question felt most personally charged, and why?'
+    });
+  }
+  if (!insights.length && transitionAnalytics.length) {
+    insights.push({
+      concept: 'Stable Session Arc',
+      explanation: 'Language features remained comparatively stable across transitions.',
+      implication: 'Consistency supports reliable interpretation of core themes.',
+      reflection_prompt: 'Which response best captures your intended message?'
+    });
+  }
+  return insights.slice(0, 2);
+}
+
+function buildGlossary() {
+  return [
+    { term: 'Lexical Diversity', definition: EDUCATIONAL_TOOLTIPS.lexical_diversity },
+    { term: 'Syntactic Complexity', definition: EDUCATIONAL_TOOLTIPS.syntactic_complexity },
+    { term: 'Filler Ratio', definition: EDUCATIONAL_TOOLTIPS.filler_ratio },
+    { term: 'Pronoun Shifts', definition: EDUCATIONAL_TOOLTIPS.pronoun_shifts },
+    { term: 'Hedging Frequency', definition: EDUCATIONAL_TOOLTIPS.hedging_frequency },
+    { term: 'Narrative Cohesion', definition: 'How consistently a response returns to the same story thread.' }
+  ];
+}
+
+function getSelectedModesFromUI() {
+  const modeA = document.getElementById('mode-a')?.checked;
+  const modeB = document.getElementById('mode-b')?.checked;
+  const modeC = document.getElementById('mode-c')?.checked;
+  const selected = [];
+  if (modeA) selected.push('A');
+  if (modeB) selected.push('B');
+  if (modeC) selected.push('C');
+  return selected.length ? selected : ['A', 'B', 'C'];
+}
+
+function getHFConfigFromUI() {
+  const modelRaw = (document.getElementById('hf-model')?.value || 'google/flan-t5-large').trim();
+  const model = modelRaw.replace(/\s+/g, '');
+  return {
+    enabled: !!document.getElementById('hf-deep-nlp')?.checked,
+    model: model || 'google/flan-t5-large',
+    token: (document.getElementById('hf-token')?.value || '').trim()
+  };
+}
+
+function parseHFQuestions(text = '') {
+  return text
+    .split('\n')
+    .map(line => line.trim().replace(/^[-*]\s*/, ''))
+    .filter(line => /^q\d*[:.)\s-]/i.test(line) || line.includes('?'))
+    .slice(0, 3)
+    .map(line => line.replace(/^q\d*[:.)\s-]*/i, '').trim());
+}
+
+function fastHash(str = '') {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(16);
+}
+
+const HF_REQUEST_CACHE = new Map();
+
+async function requestHFDeepDive(report, profile, cognitiveProfile, mmScores) {
+  const cfg = getHFConfigFromUI();
+  if (!cfg.enabled) return { enabled: false, status: 'disabled' };
+  if (!cfg.token) return { enabled: true, status: 'token_missing', model: cfg.model };
+
+  const compactPayload = {
+    session_arc: report.session_arc,
+    metrics: report.metrics,
+    latest_sentiment: profile?.sentimentHistory?.at(-1) || null,
+    cognitive_summary: cognitiveProfile?.summary || '',
+    multimodal_scores: mmScores || {}
+  };
+  const prompt = [
+    'You are a psycholinguistics analyst.',
+    'Return plain text with exactly these sections:',
+    'EXPLANATION: one short paragraph.',
+    'QUESTIONS: 3 concise follow-up questions for the user.',
+    JSON.stringify(compactPayload)
+  ].join('\n');
+  const cacheKey = `${cfg.model}:${fastHash(prompt)}`;
+  if (HF_REQUEST_CACHE.has(cacheKey)) return HF_REQUEST_CACHE.get(cacheKey);
+
+  let timeoutId = null;
+  try {
+    const controller = new AbortController();
+    timeoutId = setTimeout(() => controller.abort(), 9000);
+    const res = await fetch(`https://api-inference.huggingface.co/models/${encodeURIComponent(cfg.model)}`, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Authorization': `Bearer ${cfg.token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        inputs: prompt,
+        parameters: { max_new_tokens: 240, return_full_text: false, temperature: 0.35 }
+      })
+    });
+    if (!res.ok) {
+      const errTxt = await res.text();
+      return { enabled: true, status: `http_${res.status}`, model: cfg.model, error: errTxt.slice(0, 280) };
+    }
+    const data = await res.json();
+    const text = Array.isArray(data)
+      ? (data[0]?.generated_text || '')
+      : (data?.generated_text || '');
+    const questions = parseHFQuestions(text);
+    const explanation = (text.match(/EXPLANATION:\s*([\s\S]*?)(QUESTIONS:|$)/i)?.[1] || text).trim();
+    const output = {
+      enabled: true,
+      status: 'ok',
+      model: cfg.model,
+      explanation: explanation.slice(0, 900),
+      follow_up_questions: questions
+    };
+    HF_REQUEST_CACHE.set(cacheKey, output);
+    if (HF_REQUEST_CACHE.size > 40) HF_REQUEST_CACHE.delete(HF_REQUEST_CACHE.keys().next().value);
+    return output;
+  } catch (err) {
+    return {
+      enabled: true,
+      status: 'network_error',
+      model: cfg.model,
+      error: err?.message || 'unknown error'
+    };
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
+function parseTurns(inputText = '') {
+  if (inputText && typeof inputText === 'string') {
+    return inputText
+      .split(/\n+/)
+      .map((line, idx) => ({ id: `A${idx + 1}`, text: line.trim() }))
+      .filter(t => t.text.length > 0)
+      .map(t => {
+        const tokens = simpleTokens(t.text);
+        const words = Math.max(tokens.length, 1);
+        const hedging = (t.text.match(/\b(maybe|perhaps|sort of|kind of|i think|i guess|possibly)\b/gi) || []).length;
+        const fillers = (t.text.match(/\b(um+|uh+|erm+|like)\b/gi) || []).length;
+        const thirdPerson = tokens.filter(w => ['they', 'them', 'their', 'he', 'she'].includes(w)).length;
+        return {
+          ...t,
+          tokens: tokens.length,
+          lexical_diversity: +estimateMTLD(tokens).toFixed(3),
+          syntactic_complexity: +syntacticComplexity(t.text).toFixed(3),
+          filler_ratio: +(fillers / words).toFixed(3),
+          hedging_frequency: hedging,
+          pronouns: pronounRatio(tokens),
+          third_person_ratio: +(thirdPerson / words).toFixed(3)
+        };
+      });
+  }
+  return extractSubjectTurns();
+}
+
+function runJSMetrics(turn) {
+  return {
+    lexical_diversity: turn.lexical_diversity,
+    syntactic_complexity: turn.syntactic_complexity,
+    filler_ratio: turn.filler_ratio,
+    hedging_frequency: turn.hedging_frequency,
+    pronouns: turn.pronouns,
+    third_person_ratio: turn.third_person_ratio
+  };
+}
+
+async function runONNX(turnText, profileCtx, sentiment, mmScores) {
+  return runCognitiveLinguistV2(turnText, profileCtx, sentiment, mmScores);
+}
+
+function aggregateModes(turns, selectedModes, profile, cognitiveProfile, mmScores) {
+  const metrics = {};
+  if (selectedModes.includes('A')) metrics.mode_a = modeAFromTurns(turns, cognitiveProfile);
+  if (selectedModes.includes('B')) metrics.mode_b = modeBFromSession(profile, turns, mmScores);
+  if (selectedModes.includes('C')) metrics.mode_c = modeCFromTurns(turns, cognitiveProfile);
+  return metrics;
+}
+
+function computeTransitionAnalytics(turns, profile) {
+  return buildTransitionAnalytics(turns, profile);
+}
+
+function generateSessionArc(metrics, learningMode = true) {
+  const a = metrics.mode_a || { cognitive_load_trend: 'stable' };
+  const b = metrics.mode_b || { volatility_index: 'medium' };
+  const c = metrics.mode_c || { cohesion_score: 50, defensiveness_indicator: 'not elevated' };
+  return learningMode
+    ? `The session shows a ${a.cognitive_load_trend} cognitive-load trajectory with ${b.volatility_index} emotional volatility. *Why this matters:* shifts in load and emotion can reflect recall pressure, uncertainty, or threat sensitivity. Cohesion is ${c.cohesion_score}/100 with defensiveness marked as ${c.defensiveness_indicator}.`
+    : `Session trend: cognitive load ${a.cognitive_load_trend}, emotional volatility ${b.volatility_index}, cohesion ${c.cohesion_score}/100.`;
+}
+
+async function enrichWithHF(report, profile, cognitiveProfile, mmScores) {
+  const hf = await requestHFDeepDive(report, profile, cognitiveProfile, mmScores);
+  return {
+    enabled: !!hf.enabled,
+    model_used: hf.model || null,
+    follow_up_questions: hf.follow_up_questions || [],
+    deeper_explanation: hf.explanation || '',
+    status: hf.status || 'disabled',
+    error: hf.error || null
+  };
+}
+
+function selfCritique(output) {
+  const log = [...(output.self_critique_log || [])];
+  if (!output.transition_analytics?.length) {
+    log.push({ stage: 'data_integrity', issue: 'No transition analytics available.', action: 'Need at least 2 responses for transition analysis.' });
+  }
+  if (!output.metrics || Object.keys(output.metrics).length === 0) {
+    log.push({ stage: 'mode_mapping', issue: 'No active mode metrics produced.', action: 'Enable at least one mode (A/B/C).' });
+  }
+  if (output.deep_nlp?.enabled && output.deep_nlp.status !== 'ok') {
+    log.push({ stage: 'deep_nlp', issue: `Deep NLP status is ${output.deep_nlp.status}.`, action: 'Fallback to local metrics and retry deep NLP if desired.' });
+  }
+  return log;
+}
+
+async function generateLinguaInsightReport(profile, cognitiveProfile, mmScores, modes = LINGUA_MODES) {
+  const turns = parseTurns();
+  const metrics = aggregateModes(turns, modes, profile, cognitiveProfile, mmScores);
+  const transitionAnalytics = computeTransitionAnalytics(turns, profile);
+  const educationalInsights = buildEducationalInsights(
+    metrics.mode_a || modeAFromTurns(turns, cognitiveProfile),
+    metrics.mode_b || modeBFromSession(profile, turns, mmScores),
+    metrics.mode_c || modeCFromTurns(turns, cognitiveProfile),
+    transitionAnalytics
+  );
+  const onnxUsed = !(cognitiveProfile?.feature_vectors?.onnx_logits?.cognitive_load === null);
+  const learningMode = !!document.getElementById('learning-mode')?.checked;
+  const sessionArc = generateSessionArc(metrics, learningMode);
+  const selfCritiqueLog = [];
+  if (turns.length < 3) selfCritiqueLog.push({ stage: 'data_integrity', issue: 'Fewer than 3 subject turns.', action: 'Trend confidence reduced; recommend longer sample.' });
+  if (!multimodal.session) selfCritiqueLog.push({ stage: 'onnx_reliability', issue: 'ONNX model unavailable.', action: 'JS heuristics + fallback used.' });
+  if (cognitiveProfile?.feature_vectors?.status === 'insufficient_data_for_onnx_inference') {
+    selfCritiqueLog.push({ stage: 'onnx_reliability', issue: 'Current response under token threshold.', action: 'Applied heuristic-dominant scoring for this turn.' });
+  }
+  const sentimentLatest = profile.sentimentHistory?.[profile.sentimentHistory.length - 1]?.compound || 0;
+  const dominantEmotion = dominantEmotionFromScores(mmScores || {});
+  const emotionPolarity = ['stressed', 'guarded'].includes(dominantEmotion) ? -1 : 1;
+  if (Math.abs(sentimentLatest - emotionPolarity) > 1.1) {
+    selfCritiqueLog.push({
+      stage: 'metric_consistency',
+      issue: 'Emotion and sentiment signals diverged materially on the latest turn.',
+      action: 'Down-weighted emotional certainty in interpretation and retained mixed-signal wording.'
+    });
+  }
+
+  const baseReport = {
+    modes_selected: modes,
+    session_arc: sessionArc,
+    metrics,
+    transition_analytics: transitionAnalytics,
+    educational_insights: educationalInsights,
+    glossary: buildGlossary(),
+    onnx_status: {
+      available: !!multimodal.session,
+      responses_processed: turns.length,
+      fallback_used: !onnxUsed
+    },
+    self_critique_log: selfCritiqueLog
+  };
+
+  const deepNlp = await enrichWithHF(baseReport, profile, cognitiveProfile, mmScores);
+  if (deepNlp.enabled && deepNlp.status !== 'ok') {
+    selfCritiqueLog.push({
+      stage: 'deep_nlp',
+      issue: `Hugging Face deep NLP unavailable (${deepNlp.status}).`,
+      action: 'Using local psycholinguistic interpretation only.'
+    });
+  }
+
+  const finalized = {
+    ...baseReport,
+    deep_nlp: deepNlp
+  };
+  finalized.self_critique_log = selfCritique(finalized);
+  return finalized;
+}
+
+function renderLinguaInsightReport(report) {
+  report = normalizeReportShape(report);
+  const arcEl = document.getElementById('report-arc');
+  const metaEl = document.getElementById('report-meta');
+  const critiqueEl = document.getElementById('report-critique');
+  if (!arcEl || !metaEl || !critiqueEl || !report) return;
+  const deepNlp = report.deep_nlp || { enabled: false, status: 'disabled' };
+  const hfQuestions = deepNlp.follow_up_questions || [];
+  const questionList = hfQuestions.length
+    ? `<br><br><strong>Suggested follow-up questions</strong><br>${hfQuestions.map((q, i) => `${i + 1}. ${escapeHTML(q)}`).join('<br>')}`
+    : '';
+  const deepExplanation = deepNlp.deeper_explanation
+    ? `<br><br><strong>Deep NLP enrichment</strong><br>${escapeHTML(deepNlp.deeper_explanation)}`
+    : '';
+  arcEl.innerHTML = (report.session_arc || 'No arc generated yet.') + deepExplanation + questionList;
+  metaEl.textContent = `Modes: ${(report.modes_selected || []).join(', ') || 'none'} · ONNX available: ${report.onnx_status?.available ? 'yes' : 'no'} · Fallback: ${report.onnx_status?.fallback_used ? 'yes' : 'no'}`;
+  const critiques = (report.self_critique_log || []).map(c => `• [${c.stage}] ${c.issue} → ${c.action}`).join('\n');
+  const hfLine = deepNlp.enabled
+    ? `\n• [deep_nlp] status=${deepNlp.status}${deepNlp.model_used ? ` model=${deepNlp.model_used}` : ''}${deepNlp.error ? ` error=${deepNlp.error}` : ''}`
+    : '';
+  critiqueEl.textContent = (critiques || 'No major critique flags for this turn.') + hfLine;
+}
+
+function copyLinguaInsightJson() {
+  const payload = window.latestLinguaInsightReport || profile?.latestLinguaInsightReport;
+  if (!payload) {
+    flashUIFeedback('No JSON is available yet. Complete at least one analyzed turn.');
+    return;
+  }
+  const text = JSON.stringify(payload, null, 2);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text)
+      .then(() => flashUIFeedback('JSON copied to clipboard.', 'ok'))
+      .catch(() => flashUIFeedback('Clipboard copy failed in this browser context.'));
+  } else {
+    flashUIFeedback('Clipboard API is unavailable in this browser context.');
+  }
+}
+
+function downloadLinguaInsightJson() {
+  const payload = window.latestLinguaInsightReport || profile?.latestLinguaInsightReport;
+  if (!payload) {
+    flashUIFeedback('No JSON is available yet. Complete at least one analyzed turn.');
+    return;
+  }
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `linguainsight-report-turn-${profile?.turn || 0}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
+  flashUIFeedback('JSON download started.', 'ok');
+}
+
+/* ─── STATUS BAR UPDATE ─────────────────────────────────── */
+
+function updateStatus(profile) {
+  const r = profile.readiness || 0;
+  const hist = profile.sentimentHistory;
+  const lastCompound = hist.length > 0 ? hist[hist.length-1].compound : 0;
+  const vol = profile.sentimentVolatility || 0;
+
+  document.getElementById('stat-readiness').textContent = Math.round(r * 100) + '%';
+  document.getElementById('stat-sentiment').textContent = lastCompound >= 0
+    ? '+' + lastCompound.toFixed(2)
+    : lastCompound.toFixed(2);
+  document.getElementById('stat-volatility').textContent = vol.toFixed(2);
+  document.getElementById('turn-counter').textContent =
+    `Turn ${profile.turn} / ${profile.turn < 17 ? 17 : '∞'}`;
+  renderCustomerInsights(profile);
+
+  const phaseLabel = document.getElementById('phase-label');
+  if (profile.turn >= 17) phaseLabel.textContent = 'Phase II — Uncertainty Reduction';
+}
+
+function buildSessionPoint(profile, key) {
+  const hist = profile.sentimentHistory || [];
+  const last = hist.length ? hist[hist.length - 1] : { compound: 0, pos: 0, neg: 0 };
+  const proxyHist = profile.proxyHistory || [];
+  const latestProxy = proxyHist.length ? proxyHist[proxyHist.length - 1] : {
+    analytic: 50, clout: 50, authenticity: 50, tone: 50
+  };
+  if (key === 'liwc_analytic') return clamp(latestProxy.analytic || 50, 0, 100);
+  if (key === 'liwc_clout') return clamp(latestProxy.clout || 50, 0, 100);
+  if (key === 'liwc_authenticity') return clamp(latestProxy.authenticity || 50, 0, 100);
+  if (key === 'liwc_tone') return clamp(latestProxy.tone || 50, 0, 100);
+  if (key === 'readiness') return clamp((profile.readiness || 0) * 100, 0, 100);
+  if (key === 'sentiment') return clamp(((last.compound || 0) + 1) * 50, 0, 100);
+  if (key === 'volatility') return clamp((1 - Math.min(profile.sentimentVolatility || 0, 1)) * 100, 0, 100);
+  return 0;
+}
+
+function renderCustomerInsights(profile) {
+  const grid = document.getElementById('customer-insights-grid');
+  if (!grid) return;
+  const points = [
+    ...SCORING_CONFIG_35.dimensionPoints.map(p => {
+      const a = profile.accumulators[p.key];
+      return { label: p.label, value: Math.round((a?.mean || 0) * 100) };
+    }),
+    ...SCORING_CONFIG_35.sessionPoints.map(p => ({
+      label: p.label, value: Math.round(buildSessionPoint(profile, p.key))
+    }))
+  ];
+
+  grid.innerHTML = points.map(p => `
+    <div class="ci-item">
+      <div class="ci-row">
+        <span class="ci-label">${p.label}</span>
+        <span class="ci-value">${p.value}</span>
+      </div>
+      <div class="ci-meter"><div class="ci-fill" style="width:${p.value}%"></div></div>
+    </div>
+  `).join('');
+}
+
+/* ─── NARRATIVE UPDATE ──────────────────────────────────── */
+
+function updateNarrative(profile) {
+  if (profile.turn < 4) return;
+  const ns = document.getElementById('narrative-section');
+  const nb = document.getElementById('narrative-body');
+  ns.classList.add('visible');
+  nb.innerHTML = generateNarrative(profile);
+}
+
+/* ─── CHAT UI HELPERS ───────────────────────────────────── */
+
+function addMsg(role, text) {
+  const messages = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+
+  const roleLabel = { ai: 'Linguistic Insight Profiler', user: 'You', sys: 'System' }[role];
+  div.innerHTML = `
+    <div class="msg-role">${roleLabel}</div>
+    <div class="msg-body">${text}</div>
+  `;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function showThinking() {
+  const messages = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg ai'; div.id = 'thinking-msg';
+  div.innerHTML = `
+    <div class="msg-role">Linguistic Insight Profiler</div>
+    <div class="msg-body">
+      <div class="thinking-dots"><span></span><span></span><span></span></div>
+    </div>`;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function removeThinking() {
+  const t = document.getElementById('thinking-msg');
+  if (t) t.remove();
+}
+
+function validateSystemWiring(currentProfile) {
+  const requiredIds = [
+    'chat-messages', 'scores-col', 'report-arc', 'report-meta', 'report-critique',
+    'mode-a', 'mode-b', 'mode-c', 'learning-mode', 'mm-status'
+  ];
+  const missing = requiredIds.filter(id => !document.getElementById(id));
+  const frameworkKeys = new Set(FRAMEWORKS.flatMap(fw => fw.dims.map(d => d.k)));
+  const accumulatorKeys = currentProfile ? new Set(Object.keys(currentProfile.accumulators || {})) : new Set();
+  const missingAccumulators = [...frameworkKeys].filter(k => !accumulatorKeys.has(k));
+  return {
+    ok: missing.length === 0 && missingAccumulators.length === 0,
+    missingDomIds: missing,
+    missingAccumulators
+  };
+}
+
+function normalizeReportShape(report = {}) {
+  return {
+    modes_selected: Array.isArray(report.modes_selected) ? report.modes_selected : ['A', 'B', 'C'],
+    session_arc: report.session_arc || 'No arc generated yet.',
+    onnx_status: {
+      available: !!report.onnx_status?.available,
+      fallback_used: !!report.onnx_status?.fallback_used
+    },
+    self_critique_log: Array.isArray(report.self_critique_log) ? report.self_critique_log : [],
+    deep_nlp: report.deep_nlp || { enabled: false, status: 'disabled', follow_up_questions: [], deeper_explanation: '' },
+    ...report
+  };
+}
+
+/* ─── SESSION STATE ─────────────────────────────────────── */
+
+let profile = null;
+let sessionActive = false;
+let lastFeatures = null;
+let feedbackTimer = null;
+
+function flashUIFeedback(message, type = 'error') {
+  const el = document.getElementById('ui-feedback');
+  if (!el) return;
+  el.textContent = message;
+  el.classList.remove('error', 'ok', 'visible');
+  el.classList.add(type === 'ok' ? 'ok' : 'error');
+  void el.offsetWidth;
+  el.classList.add('visible');
+  if (feedbackTimer) clearTimeout(feedbackTimer);
+  feedbackTimer = setTimeout(() => el.classList.remove('visible'), 1700);
+}
+
+function setSendButtonState(busy) {
+  const btn = document.getElementById('send-btn');
+  if (!btn) return;
+  btn.disabled = !!busy;
+  btn.textContent = busy ? 'Thinking…' : 'Send';
+}
+
+async function beginSession() {
+  if (sessionActive) {
+    flashUIFeedback('Session is already active.', 'ok');
+    return;
+  }
+
+async function beginSession() {
+  document.getElementById('intro').classList.add('fading');
+  setTimeout(() => {
+    document.getElementById('intro').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+  }, 620);
+
+  profile = initProfile();
+  const wiringCheck = validateSystemWiring(profile);
+  if (!wiringCheck.ok) {
+    console.warn('System wiring check failed:', wiringCheck);
+  }
+  const chartReady = await ensureChartLoaded();
+  if (!chartReady) {
+    addMsg('sys', 'Visualization engine not ready yet. Retrying with reduced telemetry mode.');
+  }
+  initCharts();
+  initMultimodalEngine();
+  enableAudioFusion().then(enabled => {
+    if (!enabled) return;
+    const statusEl = document.getElementById('mm-status');
+    if (statusEl) statusEl.innerHTML = 'MM emotion: <strong>audio connected</strong> · mode: text+audio';
+  });
+  renderScorePanel(profile);
+  renderCustomerInsights(profile);
+  renderLinguaInsightReport({
+    modes_selected: getSelectedModesFromUI(),
+    session_arc: 'Awaiting enough responses to derive a personalized linguistic arc.',
+    onnx_status: { available: !!multimodal.session, fallback_used: true },
+    self_critique_log: [{ stage: 'data_integrity', issue: 'Insufficient turns at session start.', action: 'Collect at least 3 responses for trend stability.' }]
+  });
+  sessionActive = true;
+  setSendButtonState(false);
+  if (!wiringCheck.ok) {
+    addMsg('sys', `Wiring check warning. Missing IDs: ${wiringCheck.missingDomIds.join(', ') || 'none'} · Missing accumulators: ${wiringCheck.missingAccumulators.join(', ') || 'none'}`);
+  }
+
+  // First question — slight delay for atmosphere
+  setTimeout(() => {
+    const opener = OPENERS[Math.floor(Math.random() * OPENERS.length)];
+    profile.questionHistory.push({ t: opener.t, fw: null });
+    addMsg('ai', opener.t);
+    document.getElementById('user-input').focus();
+  }, 500);
+}
+
+async function send() {
+  const input = document.getElementById('user-input');
+  const text = input.value.trim();
+  if (!sessionActive) {
+    flashUIFeedback('Start the session first to send responses.');
+    return;
+  }
+  if (!text) {
+    flashUIFeedback('Response is empty. Please type before sending.');
+    return;
+  }
+
+  input.value = '';
+  input.style.height = 'auto';
+  setSendButtonState(true);
+
+  addMsg('user', escapeHTML(text));
+  showThinking();
+
+  try {
+    // Simulate brief processing pause (realistic + allows for animation to render)
+    await new Promise(r => setTimeout(r, 420 + Math.random() * 280));
+
+    // Update profile
+    const result = updateProfile(profile, text);
+    profile = result.profile;
+    lastFeatures = result.features;
+    const mmScores = await updateMultimodalEmotion(text, result.sentiment);
+    const cognitiveProfile = await runCognitiveLinguistV2(text, profile, result.sentiment, mmScores);
+    const linguaInsightReport = await generateLinguaInsightReport(profile, cognitiveProfile, mmScores, getSelectedModesFromUI());
+    profile.latestCognitiveProfile = cognitiveProfile;
+    profile.latestLinguaInsightReport = linguaInsightReport;
+    window.latestCognitiveProfile = cognitiveProfile;
+    window.latestLinguaInsightReport = linguaInsightReport;
+    renderLinguaInsightReport(linguaInsightReport);
+
+    // Expose to console for auditing
+    console.group(`%cLinguistic Insight Profiler — Turn ${profile.turn}`, 'color:#c8922a;font-family:monospace');
+    console.log('Sentiment:', result.sentiment);
+    console.log('Features:', result.features);
+    console.log('Evidence delta:', result.evidence);
+    console.log('Accumulators:', profile.accumulators);
+    console.log('Readiness:', profile.readiness);
+    console.log('Volatility:', profile.sentimentVolatility);
+    console.log('Cognitive Linguist v2 JSON:', cognitiveProfile);
+    console.log('LinguaInsight report JSON:', linguaInsightReport);
+    console.groupEnd();
+
+    // Update all visualizations
+    updateCharts(profile);
+    renderScorePanel(profile);
+    updateStatus(profile);
+    updateNarrative(profile);
+
+    removeThinking();
+
+    // Phase-1 → Reveal at turn 17
+    if (profile.turn === 17) {
+      setTimeout(() => {
+        addMsg('sys', 'Phase I complete. Generating full profile...');
+        setTimeout(() => showReveal(), 1400);
+      }, 600);
+      setSendButtonState(false);
+      document.getElementById('send-btn').disabled = false;
+      return;
+    }
+
+    // Select and deliver next question
+    const next = selectNextQuestion(profile, result.features);
+    setTimeout(() => {
+      addMsg('ai', next.text);
+      setSendButtonState(false);
+      document.getElementById('send-btn').disabled = false;
+      document.getElementById('user-input').focus();
+    }, 180);
+  } catch (err) {
+    console.error('Send pipeline failed:', err);
+    removeThinking();
+    addMsg('sys', 'Processing error detected. Pipeline kept state intact; please try sending again.');
+    flashUIFeedback('Unable to process that response right now.');
+    setSendButtonState(false);
+    document.getElementById('send-btn').disabled = false;
+  }
+}
+
+function continueSession() {
+  if (!profile) {
+    flashUIFeedback('No active profile. Start a new session first.');
+    return;
+  }
+  document.getElementById('reveal').classList.remove('visible');
+  sessionActive = true;
+  document.getElementById('phase-label').textContent = 'Phase II — Uncertainty Reduction';
+  addMsg('sys', 'Phase II — Deep refinement mode. Continue as long as you need.');
+  const next = selectNextQuestion(profile, lastFeatures || {
+    deflectionSignal: 0, salientPhrase: null, emotionalIntensity: 0.3
+  });
+  setTimeout(() => {
+    addMsg('ai', next.text);
+    document.getElementById('user-input').focus();
+  }, 300);
+}
+
+function showReveal() {
+  const rv = generateRevealProfile(profile);
+  sessionActive = false;
+
+  // Headline
+  const primary = rv.topDims[0];
+  document.getElementById('reveal-h1').textContent =
+    primary ? `Primary signal: ${primary.d.label}` : 'Profile complete.';
+
+  // Grid cards
+  const gridData = [
+    { label: 'Dominant dimension', value: primary ? `${primary.d.label} — ${Math.round(primary.v*100)}%` : '—', conf: primary ? `${Math.round(primary.c*100)}% confidence` : '' },
+    { label: 'Attachment tendency', value: rv.primaryAtt, conf: '' },
+    { label: 'MBTI tendency', value: rv.mbtiStr + ' — provisional', conf: 'Based on language patterns only' },
+    { label: 'Sentiment arc', value: rv.sentimentLabel, conf: `avg compound: ${rv.avgCompound >= 0 ? '+' : ''}${rv.avgCompound.toFixed(2)}` },
+    { label: 'Session volatility', value: rv.volatility < 0.15 ? 'Stable' : rv.volatility < 0.3 ? 'Moderate' : 'High', conf: `σ = ${rv.volatility.toFixed(3)}` },
+    { label: 'Deflection events', value: `${rv.deflections} detected`, conf: rv.deflections > 2 ? 'Pattern present' : rv.deflections > 0 ? 'Isolated' : 'None detected' }
+  ];
+
+  document.getElementById('reveal-grid').innerHTML = gridData.map(c => `
+    <div class="reveal-card">
+      <div class="rc-label">${c.label}</div>
+      <div class="rc-value">${c.value}</div>
+      ${c.conf ? `<div class="rc-conf">${c.conf}</div>` : ''}
+    </div>
+  `).join('');
+
+  document.getElementById('reveal-narrative').innerHTML = rv.narrative;
+
+  // Technical log
+  const techRows = FRAMEWORKS.map(fw => {
+    const topDim = fw.dims.map(d => ({
+      d, v: profile.accumulators[d.k].mean, c: profile.accumulators[d.k].confidence,
+      words: profile.accumulators[d.k].words || []
+    })).sort((a,b) => b.v * b.c - a.v * a.c)[0];
+    return `<div class="tech-row">
+      <span class="tech-key">${fw.label}</span>
+      <span class="tech-evidence">${topDim.d.label} — ${Math.round(topDim.v*100)}% · evidence: ${topDim.words.slice(0,5).join(', ') || 'structural signals only'}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('reveal-tech').innerHTML = `
+    <div class="tech-title">Framework evidence log</div>
+    ${techRows}
+    <div class="tech-row">
+      <span class="tech-key">Session stats</span>
+      <span class="tech-evidence">${rv.turns} turns · ${rv.words} words · ${rv.deflections} deflections · volatility σ=${rv.volatility.toFixed(3)}</span>
+    </div>
+    <div class="tech-row">
+      <span class="tech-key">Console audit</span>
+      <span class="tech-evidence">Open browser console → full turn-by-turn accumulators, evidence deltas, and feature vectors</span>
+    </div>
+  `;
+
+  document.getElementById('reveal').classList.add('visible');
+}
+
+function restartSession() {
+  flashUIFeedback('Starting a new session.', 'ok');
+  document.getElementById('reveal').classList.remove('visible');
+  document.getElementById('chat-messages').innerHTML = '';
+  profile = initProfile();
+  sessionActive = true;
+  updateCharts(profile);
+  renderScorePanel(profile);
+  updateStatus(profile);
+  document.getElementById('narrative-section').classList.remove('visible');
+  document.getElementById('phase-label').textContent = 'Phase I — Evidence-Gathering';
+
+  const opener = OPENERS[Math.floor(Math.random() * OPENERS.length)];
+  profile.questionHistory.push({ t: opener.t, fw: null });
+  setTimeout(() => {
+    addMsg('ai', opener.t);
+    document.getElementById('user-input').focus();
+  }, 200);
+}
+
+function escapeHTML(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+/* ─── INPUT BEHAVIOR ────────────────────────────────────── */
+
+document.getElementById('user-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    send();
+  }
+});
+
+document.getElementById('user-input').addEventListener('input', function () {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+}
+</script>
+
+<script>
+const SCHEMA = {
+  "dimensions": {
+    "trauma_abandon": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "infer_from_att_anxious",
+      "liw_categories": [
+        "negate",
+        "social",
+        "affect",
+        "cogproc"
+      ],
+      "lexical_markers": [
+        "left",
+        "alone",
+        "abandoned",
+        "rejected",
+        "they left",
+        "walked away"
+      ],
+      "feature_signals": [
+        {
+          "feature": "pastRatio",
+          "condition": ">0.65",
+          "contribution": 0.45
+        },
+        {
+          "feature": "negationCount",
+          "condition": ">4",
+          "contribution": 0.35
+        },
+        {
+          "feature": "clout",
+          "condition": "<45",
+          "contribution": 0.3
+        }
+      ]
+    },
+    "trauma_shame": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "infer_from_att_anxious",
+      "liw_categories": [
+        "affect",
+        "negemo",
+        "cogproc",
+        "negate"
+      ],
+      "lexical_markers": [
+        "shame",
+        "worthless",
+        "guilty",
+        "failure",
+        "embarrassed",
+        "not enough"
+      ],
+      "feature_signals": [
+        {
+          "feature": "rumination",
+          "condition": ">0.5",
+          "contribution": 0.5
+        },
+        {
+          "feature": "negationCount",
+          "condition": ">5",
+          "contribution": 0.4
+        },
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.15",
+          "contribution": 0.3
+        }
+      ]
+    },
+    "trauma_control": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "infer_from_att_avoidant",
+      "liw_categories": [
+        "cogproc",
+        "certain",
+        "negate",
+        "power"
+      ],
+      "lexical_markers": [
+        "control",
+        "manipulated",
+        "powerless",
+        "forced",
+        "dominated",
+        "no choice"
+      ],
+      "feature_signals": [
+        {
+          "feature": "negationCount",
+          "condition": ">4",
+          "contribution": 0.4
+        },
+        {
+          "feature": "clout",
+          "condition": "<50",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "trauma_betrayal": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "neutral",
+      "liw_categories": [
+        "negate",
+        "affect",
+        "social",
+        "anger"
+      ],
+      "lexical_markers": [
+        "betrayed",
+        "lied to",
+        "backstabbed",
+        "trust broken",
+        "deceived",
+        "unfaithful"
+      ],
+      "feature_signals": [
+        {
+          "feature": "negationCount",
+          "condition": ">3",
+          "contribution": 0.4
+        },
+        {
+          "feature": "valenceCollision",
+          "condition": ">2",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "att_anxious": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "i",
+        "negate",
+        "affect",
+        "anx"
+      ],
+      "lexical_markers": [
+        "need you",
+        "afraid to lose",
+        "cling",
+        "anxious about us",
+        "will you leave",
+        "reassure me"
+      ],
+      "feature_signals": [
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.12",
+          "contribution": 0.45
+        },
+        {
+          "feature": "rumination",
+          "condition": ">0.6",
+          "contribution": 0.4
+        },
+        {
+          "feature": "pastRatio",
+          "condition": ">0.55",
+          "contribution": 0.3
+        }
+      ]
+    },
+    "att_avoidant": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "negate",
+        "certain",
+        "you",
+        "cogproc"
+      ],
+      "lexical_markers": [
+        "space",
+        "independent",
+        "alone is fine",
+        "don't need",
+        "self reliant",
+        "no cling"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": ">60",
+          "contribution": 0.4
+        },
+        {
+          "feature": "negationCount",
+          "condition": ">4",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "att_fearful": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "neutral",
+      "liw_categories": [
+        "negate",
+        "affect",
+        "i",
+        "anx"
+      ],
+      "lexical_markers": [
+        "fear trust",
+        "want close but scared",
+        "push pull",
+        "mixed feelings",
+        "run away",
+        "need but doubt"
+      ],
+      "feature_signals": [
+        {
+          "feature": "rumination",
+          "condition": ">0.55",
+          "contribution": 0.45
+        },
+        {
+          "feature": "valenceCollision",
+          "condition": ">3",
+          "contribution": 0.4
+        }
+      ]
+    },
+    "att_secure": {
+      "compatibility": "moderate",
+      "evidence_weight": 0.55,
+      "signals_required": 2,
+      "confidence_saturation": 15,
+      "fallback": "1 - max(att_anxious, att_avoidant, att_fearful)",
+      "liw_categories": [
+        "we",
+        "certain",
+        "social",
+        "affect"
+      ],
+      "lexical_markers": [
+        "trust",
+        "balanced",
+        "secure together",
+        "safe",
+        "reliable",
+        "open communication"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": ">55",
+          "contribution": 0.4
+        },
+        {
+          "feature": "futureRatio",
+          "condition": ">0.4",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "mbti_i": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "i",
+        "cogproc",
+        "certain"
+      ],
+      "lexical_markers": [
+        "I think",
+        "myself",
+        "alone time",
+        "reflect",
+        "quiet",
+        "inner world"
+      ],
+      "feature_signals": [
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.13",
+          "contribution": 0.5
+        },
+        {
+          "feature": "clout",
+          "condition": "<55",
+          "contribution": 0.3
+        }
+      ]
+    },
+    "mbti_n": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "cogproc",
+        "insight",
+        "tentat"
+      ],
+      "lexical_markers": [
+        "imagine",
+        "future",
+        "idea",
+        "concept",
+        "possibility",
+        "abstract"
+      ],
+      "feature_signals": [
+        {
+          "feature": "metaphor",
+          "condition": ">2",
+          "contribution": 0.45
+        },
+        {
+          "feature": "futureRatio",
+          "condition": ">0.45",
+          "contribution": 0.4
+        }
+      ]
+    },
+    "mbti_f": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "affect",
+        "posemo",
+        "social"
+      ],
+      "lexical_markers": [
+        "feel",
+        "love",
+        "care",
+        "emotion",
+        "heart",
+        "kind"
+      ],
+      "feature_signals": [
+        {
+          "feature": "affect",
+          "condition": "high valence",
+          "contribution": 0.45
+        },
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.1",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "mbti_p": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "none",
+      "liw_categories": [
+        "tentat",
+        "cogproc",
+        "insight"
+      ],
+      "lexical_markers": [
+        "maybe",
+        "flexible",
+        "options",
+        "open ended",
+        "adapt",
+        "explore"
+      ],
+      "feature_signals": [
+        {
+          "feature": "futureRatio",
+          "condition": ">0.35",
+          "contribution": 0.4
+        },
+        {
+          "feature": "metaphor",
+          "condition": ">1",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "enn_head": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "cogproc",
+        "insight",
+        "certain"
+      ],
+      "lexical_markers": [
+        "think",
+        "analyze",
+        "logic",
+        "question",
+        "strategy",
+        "mind"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": ">50",
+          "contribution": 0.4
+        },
+        {
+          "feature": "certainty",
+          "condition": "high",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "enn_body": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "affect",
+        "anger",
+        "certain"
+      ],
+      "lexical_markers": [
+        "feel in gut",
+        "instinct",
+        "anger",
+        "protect",
+        "power",
+        "action"
+      ],
+      "feature_signals": [
+        {
+          "feature": "negationCount",
+          "condition": ">3",
+          "contribution": 0.45
+        },
+        {
+          "feature": "clout",
+          "condition": ">55",
+          "contribution": 0.3
+        }
+      ]
+    },
+    "enn_heart": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "none",
+      "liw_categories": [
+        "social",
+        "affect",
+        "posemo"
+      ],
+      "lexical_markers": [
+        "image",
+        "heart",
+        "identity",
+        "admire",
+        "connection",
+        "role"
+      ],
+      "feature_signals": [
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.12",
+          "contribution": 0.4
+        },
+        {
+          "feature": "social",
+          "condition": "high",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "enn_integration": {
+      "compatibility": "low",
+      "evidence_weight": 0.35,
+      "signals_required": 3,
+      "confidence_saturation": 20,
+      "fallback": "infer_from_head_body_heart",
+      "liw_categories": [
+        "cogproc",
+        "insight",
+        "affect"
+      ],
+      "lexical_markers": [
+        "balanced",
+        "whole",
+        "growth",
+        "integrated",
+        "evolve",
+        "peace"
+      ],
+      "feature_signals": [
+        {
+          "feature": "rumination",
+          "condition": "<0.3",
+          "contribution": 0.4
+        },
+        {
+          "feature": "clout",
+          "condition": ">60",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "b5_open": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "insight",
+        "cogproc",
+        "tentat"
+      ],
+      "lexical_markers": [
+        "new",
+        "curious",
+        "art",
+        "idea",
+        "adventure",
+        "creative"
+      ],
+      "feature_signals": [
+        {
+          "feature": "metaphor",
+          "condition": ">2",
+          "contribution": 0.45
+        },
+        {
+          "feature": "futureRatio",
+          "condition": ">0.4",
+          "contribution": 0.4
+        }
+      ]
+    },
+    "b5_cons": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "certain",
+        "cogproc",
+        "work"
+      ],
+      "lexical_markers": [
+        "plan",
+        "duty",
+        "reliable",
+        "organize",
+        "commit",
+        "responsible"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": ">60",
+          "contribution": 0.45
+        },
+        {
+          "feature": "futureRatio",
+          "condition": ">0.35",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "b5_extra": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "social",
+        "posemo",
+        "we"
+      ],
+      "lexical_markers": [
+        "party",
+        "talk",
+        "people",
+        "outgoing",
+        "energy",
+        "group"
+      ],
+      "feature_signals": [
+        {
+          "feature": "social",
+          "condition": "high",
+          "contribution": 0.5
+        },
+        {
+          "feature": "clout",
+          "condition": ">55",
+          "contribution": 0.3
+        }
+      ]
+    },
+    "b5_agree": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "social",
+        "posemo",
+        "affect"
+      ],
+      "lexical_markers": [
+        "help",
+        "kind",
+        "agree",
+        "compromise",
+        "nice",
+        "harmony"
+      ],
+      "feature_signals": [
+        {
+          "feature": "posemo",
+          "condition": "high",
+          "contribution": 0.45
+        },
+        {
+          "feature": "we",
+          "condition": "high",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "b5_neuro": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "negemo",
+        "anx",
+        "affect",
+        "negate"
+      ],
+      "lexical_markers": [
+        "worry",
+        "anxious",
+        "stress",
+        "overthink",
+        "fear",
+        "nervous"
+      ],
+      "feature_signals": [
+        {
+          "feature": "rumination",
+          "condition": ">0.55",
+          "contribution": 0.5
+        },
+        {
+          "feature": "negationCount",
+          "condition": ">5",
+          "contribution": 0.4
+        }
+      ]
+    },
+    "hex_em": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "anx",
+        "affect",
+        "negemo"
+      ],
+      "lexical_markers": [
+        "fear",
+        "anxiety",
+        "emotion",
+        "sensitive",
+        "vulnerable",
+        "feel deeply"
+      ],
+      "feature_signals": [
+        {
+          "feature": "rumination",
+          "condition": ">0.5",
+          "contribution": 0.45
+        },
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.14",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "hex_hh": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "none",
+      "liw_categories": [
+        "certain",
+        "posemo",
+        "social"
+      ],
+      "lexical_markers": [
+        "truth",
+        "honest",
+        "fair",
+        "sincere",
+        "loyal",
+        "integrity"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": ">55",
+          "contribution": 0.4
+        },
+        {
+          "feature": "posemo",
+          "condition": "high",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "dark_narc": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "neutral",
+      "liw_categories": [
+        "i",
+        "certain",
+        "posemo"
+      ],
+      "lexical_markers": [
+        "me",
+        "best",
+        "admire",
+        "superior",
+        "brilliant",
+        "deserve"
+      ],
+      "feature_signals": [
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.18",
+          "contribution": 0.5
+        },
+        {
+          "feature": "clout",
+          "condition": ">65",
+          "contribution": 0.4
+        }
+      ]
+    },
+    "dark_mach": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "neutral",
+      "liw_categories": [
+        "cogproc",
+        "certain",
+        "negate"
+      ],
+      "lexical_markers": [
+        "clever",
+        "manipulate",
+        "strategy",
+        "win",
+        "control",
+        "outsmart"
+      ],
+      "feature_signals": [
+        {
+          "feature": "certainty",
+          "condition": "high",
+          "contribution": 0.45
+        },
+        {
+          "feature": "negationCount",
+          "condition": ">4",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "dark_psyc": {
+      "compatibility": "moderate",
+      "evidence_weight": 0.55,
+      "signals_required": 2,
+      "confidence_saturation": 15,
+      "fallback": "neutral",
+      "liw_categories": [
+        "anger",
+        "affect",
+        "negate"
+      ],
+      "lexical_markers": [
+        "cold",
+        "hurt",
+        "no remorse",
+        "whatever",
+        "doesn't matter",
+        "use people"
+      ],
+      "feature_signals": [
+        {
+          "feature": "negationCount",
+          "condition": ">5",
+          "contribution": 0.4
+        },
+        {
+          "feature": "valenceCollision",
+          "condition": ">4",
+          "contribution": 0.3
+        }
+      ]
+    },
+    "dark_sadism": {
+      "compatibility": "low",
+      "evidence_weight": 0.35,
+      "signals_required": 3,
+      "confidence_saturation": 20,
+      "fallback": "suppress_reporting",
+      "liw_categories": [
+        "anger",
+        "affect",
+        "negemo"
+      ],
+      "lexical_markers": [
+        "pain",
+        "hurt others",
+        "cruel",
+        "enjoy suffering",
+        "torture",
+        "sadistic"
+      ],
+      "feature_signals": [
+        {
+          "feature": "negationCount",
+          "condition": ">6",
+          "contribution": 0.45
+        },
+        {
+          "feature": "valenceCollision",
+          "condition": ">5",
+          "contribution": 0.4
+        }
+      ]
+    },
+    "light_compassion": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "social",
+        "posemo",
+        "affect"
+      ],
+      "lexical_markers": [
+        "kind",
+        "help",
+        "empathy",
+        "care for others",
+        "support",
+        "understanding"
+      ],
+      "feature_signals": [
+        {
+          "feature": "we",
+          "condition": "high",
+          "contribution": 0.45
+        },
+        {
+          "feature": "posemo",
+          "condition": "high",
+          "contribution": 0.4
+        }
+      ]
+    },
+    "light_hum": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "none",
+      "liw_categories": [
+        "i",
+        "posemo",
+        "certain"
+      ],
+      "lexical_markers": [
+        "humble",
+        "modest",
+        "not special",
+        "ordinary",
+        "grateful",
+        "down to earth"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": "<60",
+          "contribution": 0.45
+        },
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.1",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "light_faith": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "none",
+      "liw_categories": [
+        "affect",
+        "social",
+        "certain"
+      ],
+      "lexical_markers": [
+        "believe",
+        "faith",
+        "hope",
+        "higher power",
+        "trust life",
+        "purpose"
+      ],
+      "feature_signals": [
+        {
+          "feature": "futureRatio",
+          "condition": ">0.4",
+          "contribution": 0.4
+        },
+        {
+          "feature": "posemo",
+          "condition": "high",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "light_kant": {
+      "compatibility": "moderate",
+      "evidence_weight": 0.55,
+      "signals_required": 2,
+      "confidence_saturation": 15,
+      "fallback": "neutral",
+      "liw_categories": [
+        "certain",
+        "cogproc",
+        "negate"
+      ],
+      "lexical_markers": [
+        "duty",
+        "rule",
+        "moral",
+        "right thing",
+        "principle",
+        "ethics"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": ">55",
+          "contribution": 0.4
+        },
+        {
+          "feature": "certainty",
+          "condition": "high",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "sch_st": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "we",
+        "social",
+        "posemo"
+      ],
+      "lexical_markers": [
+        "help world",
+        "universe",
+        "compassion",
+        "transcend",
+        "greater good",
+        "humanity"
+      ],
+      "feature_signals": [
+        {
+          "feature": "we",
+          "condition": "high",
+          "contribution": 0.5
+        },
+        {
+          "feature": "posemo",
+          "condition": "high",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "sch_se": {
+      "compatibility": "high",
+      "evidence_weight": 0.85,
+      "signals_required": 1,
+      "confidence_saturation": 8,
+      "fallback": "none",
+      "liw_categories": [
+        "i",
+        "certain",
+        "power"
+      ],
+      "lexical_markers": [
+        "power",
+        "success",
+        "money",
+        "achieve",
+        "status",
+        "win"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": ">65",
+          "contribution": 0.45
+        },
+        {
+          "feature": "firstPersonDensity",
+          "condition": ">0.15",
+          "contribution": 0.4
+        }
+      ]
+    },
+    "sch_conservation": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "neutral",
+      "liw_categories": [
+        "certain",
+        "social",
+        "family"
+      ],
+      "lexical_markers": [
+        "tradition",
+        "family",
+        "safe",
+        "secure",
+        "loyalty",
+        "conform"
+      ],
+      "feature_signals": [
+        {
+          "feature": "clout",
+          "condition": ">50",
+          "contribution": 0.4
+        },
+        {
+          "feature": "certain",
+          "condition": "high",
+          "contribution": 0.35
+        }
+      ]
+    },
+    "sch_openness": {
+      "compatibility": "moderate-high",
+      "evidence_weight": 0.7,
+      "signals_required": 2,
+      "confidence_saturation": 12,
+      "fallback": "neutral",
+      "liw_categories": [
+        "insight",
+        "tentat",
+        "cogproc"
+      ],
+      "lexical_markers": [
+        "change",
+        "new",
+        "adventure",
+        "freedom",
+        "stimulate",
+        "exciting"
+      ],
+      "feature_signals": [
+        {
+          "feature": "futureRatio",
+          "condition": ">0.45",
+          "contribution": 0.45
+        },
+        {
+          "feature": "metaphor",
+          "condition": ">2",
+          "contribution": 0.35
+        }
+      ]
+    }
+  },
+  "meta": {
+    "accuracy_meta": {
+      "update_rule": "consistency between top 3 dimensions and userPhrases",
+      "initial_alpha": 1,
+      "initial_beta": 1,
+      "evidence_per_consistent_turn": 0.5
+    }
+  }
+};
+</script>
+
+<script>
+/* ───────── FULL PARITY ENGINE ───────── */
+
+function evaluateCondition(val, cond) {
+  if (val === undefined || val === null) return false;
+  if (cond.includes(">")) return val > parseFloat(cond.split(">")[1]);
+  if (cond.includes("<")) return val < parseFloat(cond.split("<")[1]);
+  return false;
+}
+
+function initEvidence(schema) {
+  const ev = {};
+  Object.keys(schema.dimensions).forEach(k => {
+    ev[k] = { score: 0, signals: 0, words: [] };
+  });
+  return ev;
+}
+
+function applyLexical(features, schema, ev) {
+  const text = (features.honestText || "").toLowerCase();
+
+  Object.entries(schema.dimensions).forEach(([key, cfg]) => {
+    (cfg.lexical_markers || []).forEach(marker => {
+      if (text.includes(marker.toLowerCase())) {
+        ev[key].score += cfg.evidence_weight || 0.5;
+        ev[key].signals += 1;
+        if (!ev[key].words.includes(marker)) ev[key].words.push(marker);
+      }
+    });
+  });
+}
+
+function applyFeatureSignals(features, schema, ev) {
+  Object.entries(schema.dimensions).forEach(([key, cfg]) => {
+    (cfg.feature_signals || []).forEach(sig => {
+      const val = features[sig.feature];
+      if (evaluateCondition(val, sig.condition)) {
+        ev[key].score += (sig.contribution || 0.3) * (cfg.evidence_weight || 0.5);
+        ev[key].signals += 1;
+      }
+    });
+  });
+}
+
+function applySignalThresholds(schema, ev) {
+  Object.entries(schema.dimensions).forEach(([key, cfg]) => {
+    const required = cfg.signals_required || 1;
+    if (ev[key].signals < required) {
+      ev[key].score *= 0.2;
+    }
+  });
+}
+
+function applySaturation(schema, ev) {
+  Object.entries(schema.dimensions).forEach(([key, cfg]) => {
+    const sat = cfg.confidence_saturation || 10;
+    ev[key].score = Math.tanh(ev[key].score / sat);
+  });
+}
+
+function applyFallbacks(schema, ev) {
+  Object.entries(schema.dimensions).forEach(([key, cfg]) => {
+    if (ev[key].score > 0.1) return;
+
+    const fb = cfg.fallback;
+    if (!fb) return;
+
+    if (fb.startsWith("infer_from_")) {
+      const ref = fb.replace("infer_from_", "");
+      if (ev[ref]) {
+        ev[key].score = ev[ref].score * 0.7;
+      }
+    }
+
+    if (fb === "1 - max(att_anxious, att_avoidant, att_fearful)") {
+      const vals = ["att_anxious","att_avoidant","att_fearful"]
+        .map(k => ev[k]?.score || 0);
+      ev[key].score = 1 - Math.max(...vals);
+    }
+
+    if (fb === "infer_from_head_body_heart") {
+      const vals = ["enn_head","enn_body","enn_heart"]
+        .map(k => ev[k]?.score || 0);
+      ev[key].score = vals.reduce((a,b)=>a+b,0)/3;
+    }
+  });
+}
+
+function normalize(ev) {
+  const vals = Object.values(ev).map(v => v.score);
+  const max = Math.max(...vals, 1);
+  Object.keys(ev).forEach(k => {
+    ev[k].score = ev[k].score / max;
+  });
+}
+
+function computeProfile(features) {
+  const schema = SCHEMA;
+
+  let ev = initEvidence(schema);
+
+  applyLexical(features, schema, ev);
+  applyFeatureSignals(features, schema, ev);
+
+  applySignalThresholds(schema, ev);
+  applySaturation(schema, ev);
+  applyFallbacks(schema, ev);
+  normalize(ev);
+
+  return ev;
+}
+
+/* ───────── META ACCURACY TRACKING ───────── */
+
+function updateAccuracy(profile, schema) {
+  if (!profile._meta) {
+    profile._meta = { alpha: 1, beta: 1 };
+  }
+
+  const topDims = Object.entries(profile)
+    .filter(([k,v]) => v.score !== undefined)
+    .sort((a,b)=>b[1].score - a[1].score)
+    .slice(0,3)
+    .map(x=>x[0]);
+
+  const phrases = profile.userPhrases || [];
+
+  let consistent = phrases.some(p =>
+    topDims.some(d => p.toLowerCase().includes(d.split("_")[1]))
+  );
+
+  if (consistent) profile._meta.alpha += 0.5;
+  else profile._meta.beta += 0.5;
+
+  return profile;
+}
+</script>
+
+<script>
+/* ───────── WARM QUESTION SYSTEM ───────── */
+
+function entropy(scores) {
+  const vals = Object.values(scores).map(v => v.score || 0);
+  const sum = vals.reduce((a,b)=>a+b,0) || 1;
+
+  return -vals.reduce((acc,v)=>{
+    const p = v/sum;
+    return acc + (p>0 ? p*Math.log(p) : 0);
+  },0);
+}
+
+function selectNextQuestionWarm(profile) {
+  const ent = entropy(profile);
+
+  if (ent > 2.5) {
+    return {
+      text: "There's a few directions here — what feels most important right now?",
+      mode: "EXPLORE"
+    };
+  }
+
+  const sorted = Object.entries(profile)
+    .filter(([k,v]) => v.score !== undefined)
+    .sort((a,b)=>b[1].score - a[1].score);
+
+  const top = sorted[0]?.[0] || "your experience";
+
+  return {
+    text: `I'm noticing something around ${top.replace("_"," ")} — can you expand on that?`,
+    mode: "FOCUS"
+  };
+}
+</script>
+
+
+<script>
+/* ===== 2026 RESEARCH-ALIGNED OVERRIDE ENGINE ===== */
+(function(){
+  const clamp = (v, lo=0, hi=1) => Math.max(lo, Math.min(hi, v));
+  const sum = arr => arr.reduce((a,b)=>a+b,0);
+  const mean = arr => arr.length ? sum(arr)/arr.length : 0;
+  const uniq = arr => [...new Set(arr.filter(Boolean))];
+
+  const OPEN_DICT = {
+    article: /\b(a|an|the)\b/gi,
+    prep: /\b(in|on|at|by|for|with|without|under|over|between|through|around|against|toward|from|into|onto|across|within)\b/gi,
+    conj: /\b(and|or|but|because|so|although|though|while|whereas|yet|however)\b/gi,
+    aux: /\b(am|is|are|was|were|be|been|being|do|does|did|have|has|had|can|could|should|would|may|might|must)\b/gi,
+    social: /\b(friend|friends|family|partner|relationship|team|people|person|coworker|group|community|together|belong|support|close|trust|intimacy|connection|alone|lonely)\b/gi,
+    affect_pos: /\b(happy|glad|grateful|excited|hopeful|relieved|joy|love|calm|content|good|great|better|warm|connected|safe)\b/gi,
+    affect_neg: /\b(sad|hurt|angry|afraid|anxious|ashamed|guilty|bad|terrible|upset|lonely|scared|worried|broken|empty|resentful|regret)\b/gi,
+    anger: /\b(angry|mad|furious|irritated|annoyed|resentful|pissed|rage)\b/gi,
+    anxiety: /\b(anxious|worried|panic|panicked|fear|afraid|uneasy|nervous|tense|dread)\b/gi,
+    sadness: /\b(sad|down|empty|grief|grieving|cry|cried|hopeless|lonely|hurt|loss)\b/gi,
+    cogproc: /\b(think|thought|know|understand|wonder|because|realize|reason|why|meaning|consider|reflect|question|process|figure out)\b/gi,
+    insight: /\b(realize|understand|learned|noticed|recognize|aware|clarity|insight|it hit me)\b/gi,
+    causal: /\b(because|since|therefore|so that|which means|as a result|led to)\b/gi,
+    tentative: /\b(maybe|perhaps|might|could|i guess|sort of|kind of|possibly|not sure|unclear|seems)\b/gi,
+    certainty: /\b(always|never|definitely|absolutely|clearly|obviously|certain|must|can't deny|no doubt)\b/gi,
+    discrep: /\b(should|would|could|wish|if only|supposed to|meant to|ought)\b/gi,
+    reward: /\b(success|recognition|win|achieve|reward|status|admire|impress|attention|praise|approval|valuable)\b/gi,
+    risk: /\b(risk|danger|unsafe|threat|guard|protect|prevent|avoid|watch|scan|vigilant|brace)\b/gi,
+    affiliation: /\b(together|belong|close|care|support|with you|with them|bond|connect|community|loyal)\b/gi,
+    morality: /\b(right|wrong|fair|unfair|ethical|honest|dishonest|integrity|principle|duty|ought)\b/gi,
+    humility: /\b(maybe i'm wrong|i may be wrong|i don't know|still learning|humble|small part|not above|grace|mercy)\b/gi,
+    power: /\b(control|dominant|power|in charge|status|influence|lead|authority|command|superior)\b/gi,
+    body: /\b(body|chest|stomach|gut|jaw|hands|skin|breath|breathing|heart|tight|tense|ache|numb|shaking|racing)\b/gi,
+    future: /\b(will|going to|plan|soon|future|someday|next|eventually|hope to)\b/gi,
+    past: /\b(was|were|used to|before|back then|years ago|when i was|once|previously|earlier)\b/gi,
+    second: /\b(you|your|yours|yourself)\b/gi,
+    first: /\b(i|me|my|mine|myself|i'm|i've|i'd)\b/gi,
+    third: /\b(they|them|their|he|she|his|her|it|its)\b/gi,
+    absolutist: /\b(always|never|nothing|everything|completely|totally|entirely|everyone|no one)\b/gi,
+    repair: /\b(apologize|repair|make it right|own it|accountable|forgive|amends)\b/gi,
+    pleasure: /\b(enjoy|fun|play|light|laugh|adventure|interesting|curious|new|novel)\b/gi,
+    duty: /\b(should|must|duty|responsibility|obligation|disciplined|order|routine|structure)\b/gi
+  };
+
+  function countRE(re, text){
+    const flags = re.flags.includes('g') ? re.flags : re.flags + 'g';
+    const rr = new RegExp(re.source, flags);
+    return (text.match(rr) || []).length;
+  }
+
+  function tokenize(text){
+    return (text.toLowerCase().match(/[a-z]+(?:'[a-z]+)?/g) || []);
+  }
+
+  function pct(count, total){ return total ? count / total : 0; }
+
+  function safeFeatureValue(features, name){
+    if (features[name] !== undefined) return features[name];
+    const aliases = {
+      clout: 'liwcClout',
+      analytic: 'liwcAnalytic',
+      authenticity: 'liwcAuthenticity',
+      tone: 'liwcTone',
+      affect: 'affectDensity',
+      cogproc: 'cognitiveDensity',
+      negate: 'negationCount',
+      social: 'socialDensity',
+      reward: 'rewardDensity',
+      risk: 'riskDensity'
+    };
+    if (aliases[name] && features[aliases[name]] !== undefined) return features[aliases[name]];
+    return undefined;
+  }
+
+  function evaluateConditionFull(val, cond){
+    if (val === undefined || val === null || !cond) return false;
+    const m = String(cond).trim().match(/^(>=|<=|>|<|==)?\s*(-?\d+(?:\.\d+)?)$/);
+    if (!m) return false;
+    const op = m[1] || '==';
+    const rhs = parseFloat(m[2]);
+    if (op === '>') return val > rhs;
+    if (op === '<') return val < rhs;
+    if (op === '>=') return val >= rhs;
+    if (op === '<=') return val <= rhs;
+    return val === rhs;
+  }
+
+  function deriveSignals(text, sentiment, legacy){
+    const lower = text.toLowerCase();
+    const tokens = tokenize(text);
+    const wc = Math.max(tokens.length, 1);
+    const sentences = text.split(/[.!?]+/).map(s => s.trim()).filter(Boolean);
+    const sentenceLens = sentences.map(s => tokenize(s).length).filter(Boolean);
+    const uniqCount = new Set(tokens).size;
+    const first = countRE(OPEN_DICT.first, lower);
+    const second = countRE(OPEN_DICT.second, lower);
+    const third = countRE(OPEN_DICT.third, lower);
+    const article = countRE(OPEN_DICT.article, lower);
+    const prep = countRE(OPEN_DICT.prep, lower);
+    const conj = countRE(OPEN_DICT.conj, lower);
+    const aux = countRE(OPEN_DICT.aux, lower);
+    const social = countRE(OPEN_DICT.social, lower);
+    const affectPos = countRE(OPEN_DICT.affect_pos, lower);
+    const affectNeg = countRE(OPEN_DICT.affect_neg, lower);
+    const anger = countRE(OPEN_DICT.anger, lower);
+    const anxiety = countRE(OPEN_DICT.anxiety, lower);
+    const sadness = countRE(OPEN_DICT.sadness, lower);
+    const cogproc = countRE(OPEN_DICT.cogproc, lower);
+    const insight = countRE(OPEN_DICT.insight, lower);
+    const causal = countRE(OPEN_DICT.causal, lower);
+    const tentative = countRE(OPEN_DICT.tentative, lower);
+    const certainty = countRE(OPEN_DICT.certainty, lower);
+    const discrep = countRE(OPEN_DICT.discrep, lower);
+    const reward = countRE(OPEN_DICT.reward, lower);
+    const risk = countRE(OPEN_DICT.risk, lower);
+    const affiliation = countRE(OPEN_DICT.affiliation, lower);
+    const morality = countRE(OPEN_DICT.morality, lower);
+    const humility = countRE(OPEN_DICT.humility, lower);
+    const power = countRE(OPEN_DICT.power, lower);
+    const body = countRE(OPEN_DICT.body, lower);
+    const future = countRE(OPEN_DICT.future, lower);
+    const past = countRE(OPEN_DICT.past, lower);
+    const absolutist = countRE(OPEN_DICT.absolutist, lower);
+    const repair = countRE(OPEN_DICT.repair, lower);
+    const pleasure = countRE(OPEN_DICT.pleasure, lower);
+    const duty = countRE(OPEN_DICT.duty, lower);
+    const quoteCount = (text.match(/["“”]/g) || []).length;
+    const questionCount = (text.match(/\?/g) || []).length;
+    const exclaimCount = (text.match(/!/g) || []).length;
+    const commaCount = (text.match(/,/g) || []).length;
+
+    const functionWordDensity = pct(article + prep + conj + aux + first + second + third, wc);
+    const affectDensity = pct(affectPos + affectNeg, wc);
+    const cognitiveDensity = pct(cogproc + insight + causal, wc);
+    const socialDensity = pct(social, wc);
+    const riskDensity = pct(risk, wc);
+    const rewardDensity = pct(reward, wc);
+    const affiliationDensity = pct(affiliation, wc);
+    const discrepancyDensity = pct(discrep, wc);
+    const certaintyDensity = pct(certainty, wc);
+    const tentativeDensity = pct(tentative, wc);
+    const absolutistDensity = pct(absolutist, wc);
+    const bodyDensity = pct(body, wc);
+    const powerDensity = pct(power, wc);
+    const moralityDensity = pct(morality, wc);
+    const humilityDensity = pct(humility, wc);
+    const ttr = uniqCount / wc;
+    const avgSentenceLength = sentenceLens.length ? mean(sentenceLens) : wc;
+    const pronounBalance = pct(first - third, wc);
+    const selfOtherGap = clamp((first - (second + third)) / wc, -1, 1);
+    const timeSpan = pct(future - past, wc);
+    const contradictionSignal = clamp((legacy.valenceCollisions || 0) * 0.28 + absolutistDensity * 2.0 + discrepancyDensity * 1.8, 0, 1.5);
+    const guardSignal = clamp(riskDensity * 7 + (legacy.negationCount || 0) / 18 + certaintyDensity * 2.5, 0, 1.5);
+    const opennessSignal = clamp(ttr * 1.4 + cognitiveDensity * 2.8 + (legacy.metaphorCount || 0) / 10 + pleasure / 20, 0, 1.5);
+    const orderSignal = clamp(duty / 10 + certainty / 12 + future / 15 - tentative / 20 - (legacy.deflectionSignal || 0) * 0.5, 0, 1.5);
+    const warmthSignal = clamp(affiliationDensity * 8 + socialDensity * 4 + repair / 10 + (sentiment.pos * 0.8), 0, 1.5);
+    const distressSignal = clamp(sentiment.neg * 1.3 + bodyDensity * 4 + (legacy.negationCount || 0) / 15 + anxiety / 12 + sadness / 12, 0, 1.5);
+    const dominanceSignal = clamp(powerDensity * 8 + certaintyDensity * 4 + (legacy.cloutCount || 0) / 14 - humilityDensity * 4, 0, 1.5);
+
+    const liwcAnalytic = clamp(50 + (article + prep - first - second) * 4 + avgSentenceLength * 1.2 + cogproc * 1.5 - exclaimCount * 3, 1, 99);
+    const liwcClout = clamp(50 + second * 5 - first * 3 + certainty * 4 + power * 4 - tentative * 3, 1, 99);
+    const liwcAuthenticity = clamp(50 + first * 5 + sadness * 2 + anxiety * 2 - quoteCount * 2 - certainty * 2 + humility * 5, 1, 99);
+    const liwcTone = clamp(50 + (sentiment.pos - sentiment.neg) * 45 + affectPos * 2 - affectNeg * 2, 1, 99);
+
+    return {
+      wc,
+      tokenCount: wc,
+      uniqueCount: uniqCount,
+      lexicalDiversity: ttr,
+      avgSentenceLength,
+      functionWordDensity,
+      affectDensity,
+      cognitiveDensity,
+      socialDensity,
+      rewardDensity,
+      riskDensity,
+      affiliationDensity,
+      discrepancyDensity,
+      certaintyDensity,
+      tentativeDensity,
+      absolutistDensity,
+      bodyDensity,
+      powerDensity,
+      moralityDensity,
+      humilityDensity,
+      firstCount: first,
+      secondCount: second,
+      thirdCount: third,
+      selfOtherGap,
+      pronounBalance,
+      timeSpan,
+      contradictionSignal,
+      guardSignal,
+      opennessSignal,
+      orderSignal,
+      warmthSignal,
+      distressSignal,
+      dominanceSignal,
+      questionCount,
+      exclaimCount,
+      commaCount,
+      liwcAnalytic,
+      liwcClout,
+      liwcAuthenticity,
+      liwcTone,
+      clout: liwcClout,
+      analytic: liwcAnalytic,
+      authenticity: liwcAuthenticity,
+      tone: liwcTone,
+      anxietyDensity: pct(anxiety, wc),
+      angerDensity: pct(anger, wc),
+      sadnessDensity: pct(sadness, wc),
+      positiveAffectDensity: pct(affectPos, wc),
+      negativeAffectDensity: pct(affectNeg, wc),
+      moralityCount: morality,
+      repairCount: repair,
+      pleasureCount: pleasure,
+      dutyCount: duty
+    };
+  }
+
+  function initEvidenceFrame(){
+    const out = {};
+    DIM_KEYS.forEach(k => {
+      out[k] = { observed: 0, inferred: 0, neg: 0, signalCount: 0, coverage: 0, words: [], notes: [] };
+    });
+    return out;
+  }
+
+  function addEv(bucket, key, amt, type='observed', token=null, note=null){
+    if (!bucket[key]) return;
+    bucket[key][type] += Math.max(0, amt || 0);
+    if (type !== 'neg') bucket[key].coverage += Math.max(0, amt || 0) * 0.6;
+    if (amt > 0) bucket[key].signalCount += 1;
+    if (token && !bucket[key].words.includes(token)) bucket[key].words.push(token);
+    if (note && !bucket[key].notes.includes(note)) bucket[key].notes.push(note);
+  }
+
+  function applySchemaEvidence(text, features, ev){
+    const lower = (text || '').toLowerCase();
+    const schema = (typeof SCHEMA !== 'undefined' && SCHEMA.dimensions) ? SCHEMA.dimensions : {};
+    for (const [key, cfg] of Object.entries(schema)) {
+      const lex = cfg.lexical_markers || [];
+      const lexNorm = Math.max(0.18, (cfg.evidence_weight || 0.5) / Math.max(lex.length, 4));
+      for (const marker of lex) {
+        const esc = marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = marker.includes(' ') ? new RegExp(esc, 'i') : new RegExp('\\b' + esc + '\\b', 'i');
+        if (re.test(lower)) addEv(ev, key, lexNorm, 'observed', marker, 'lexical');
+      }
+      for (const sig of (cfg.feature_signals || [])) {
+        const val = safeFeatureValue(features, sig.feature);
+        if (evaluateConditionFull(val, sig.condition)) {
+          const amt = (sig.contribution || 0.25) * (cfg.evidence_weight || 0.5);
+          addEv(ev, key, amt, 'observed', sig.feature, 'feature');
+        }
+      }
+      const cats = cfg.liw_categories || [];
+      for (const cat of cats) {
+        const proxy = safeFeatureValue(features, cat);
+        if (proxy === undefined || proxy === null) continue;
+        const normalized = proxy > 1 ? proxy / 100 : proxy;
+        const amt = clamp(normalized, 0, 1) * 0.18;
+        if (amt > 0.02) addEv(ev, key, amt, 'observed', cat, 'liwc-proxy');
+      }
+    }
+  }
+
+  function applyDimensionSpecificEvidence(features, sentiment, ev){
+    const f = features;
+    const s = sentiment;
+    addEv(ev,'trauma_abandon', clamp((f.thirdPersonDensity||0)*2.2 + (f.pastRatio||0)*0.6 + f.sadnessDensity*4 + f.socialDensity*1.5,0,1.8), 'observed', 'abandon-pattern');
+    addEv(ev,'trauma_shame', clamp((f.passiveCount||0)/6 + f.bodyDensity*4 + f.negativeAffectDensity*4 + f.liwcAuthenticity/250,0,1.6), 'observed', 'shame-pattern');
+    addEv(ev,'trauma_control', clamp(f.guardSignal + f.futureRatio*0.5 + f.cognitiveDensity*1.5,0,1.8), 'observed', 'control-pattern');
+    addEv(ev,'trauma_betrayal', clamp(f.thirdPersonDensity*1.6 + f.angerDensity*5 + f.negationCount/12 + f.valenceCollisions*0.25,0,1.7), 'observed', 'betrayal-pattern');
+
+    addEv(ev,'att_anxious', clamp((f.firstPersonDensity||0)*3.2 + (f.ruminationCount||0)/10 + f.questionCount/6 + f.contradictionSignal*0.6,0,1.9), 'observed', 'anxious-attachment');
+    addEv(ev,'att_avoidant', clamp(((f.firstPersonDensity||0) < 0.055 ? 0.45 : 0) + (f.deflectionSignal||0)*0.9 + (f.socialDensity < 0.03 ? 0.25 : 0),0,1.4), 'observed', 'avoidant-attachment');
+    addEv(ev,'att_fearful', clamp(f.contradictionSignal + f.valenceCollisions*0.35 + (f.firstPersonDensity||0)*0.8,0,1.8), 'observed', 'fearful-attachment');
+
+    addEv(ev,'mbti_i', clamp((1-(f.firstPersonDensity||0))*0.35 + f.thirdPersonDensity*1.2 + (f.socialDensity < 0.04 ? 0.25 : 0),0,1.2), 'observed', 'introversion-proxy');
+    addEv(ev,'mbti_n', clamp(f.opennessSignal + f.metaphorCount/8 + f.cognitiveDensity*2,0,1.8), 'observed', 'intuition-proxy');
+    addEv(ev,'mbti_f', clamp(f.bodyDensity*3 + f.affectDensity*4 + Math.abs(s.compound)*0.5,0,1.5), 'observed', 'feeling-proxy');
+    addEv(ev,'mbti_p', clamp(f.tentativeDensity*4 + (f.futureRatio>0.42?0.15:0) - f.orderSignal*0.25 + 0.35,0,1.2), 'observed', 'perceiving-proxy');
+
+    addEv(ev,'enn_head', clamp(f.guardSignal + f.cognitiveDensity*2.2 + f.riskDensity*3.5,0,1.8), 'observed', 'head-center');
+    addEv(ev,'enn_body', clamp(f.bodyDensity*4 + f.negationCount/14 + f.powerDensity*2,0,1.6), 'observed', 'body-center');
+    addEv(ev,'enn_heart', clamp((f.firstPersonDensity||0)*2.5 + f.affectDensity*3 + f.rewardDensity*2.5,0,1.7), 'observed', 'heart-center');
+
+    addEv(ev,'b5_open', clamp(f.opennessSignal + f.lexicalDiversity*0.8,0,1.8), 'observed', 'open-proxy');
+    addEv(ev,'b5_cons', clamp(f.orderSignal + f.futureRatio*0.4,0,1.6), 'observed', 'cons-proxy');
+    addEv(ev,'b5_extra', clamp((f.socialDensity*4) + (f.positiveAffectDensity*3) + Math.max(0, f.liwcClout-50)/100,0,1.5), 'observed', 'extra-proxy');
+    addEv(ev,'b5_agree', clamp(f.warmthSignal + f.humilityDensity*2 - f.powerDensity*1.2,0,1.7), 'observed', 'agree-proxy');
+    addEv(ev,'b5_neuro', clamp(f.distressSignal + f.absolutistDensity*2,0,1.9), 'observed', 'neuro-proxy');
+
+    addEv(ev,'hex_em', clamp(f.warmthSignal*0.6 + f.distressSignal*0.8 + f.bodyDensity*2.5,0,1.7), 'observed', 'emotionality-proxy');
+    addEv(ev,'hex_hh', clamp(f.humilityDensity*4 + f.moralityDensity*2 + f.repairCount/6 - f.dominanceSignal*0.35,0,1.5), 'observed', 'honesty-humility-proxy');
+
+    addEv(ev,'dark_narc', clamp(f.rewardDensity*4 + f.dominanceSignal*0.8 + Math.max(0,(f.firstPersonDensity||0)-0.11)*6,0,1.6), 'observed', 'narc-proxy');
+    addEv(ev,'dark_mach', clamp(f.powerDensity*3.2 + f.socialDensity*1.2 + f.certaintyDensity*2 - f.humilityDensity*2,0,1.5), 'observed', 'mach-proxy');
+    addEv(ev,'dark_psyc', clamp(f.angerDensity*4 + f.absolutistDensity*2.5 + Math.max(0,(f.liwcAuthenticity<35?0.25:0)) - f.affiliationDensity*2,0,1.4), 'observed', 'psych-proxy');
+    addEv(ev,'dark_sadism', clamp(f.angerDensity*4 + f.powerDensity*2.5 + (s.neg>0.55?0.25:0) - f.warmthSignal*0.5,0,1.3), 'observed', 'sadism-proxy');
+
+    addEv(ev,'light_compassion', clamp(f.warmthSignal + f.repairCount/8 + f.affiliationDensity*3,0,1.6), 'observed', 'compassion-proxy');
+    addEv(ev,'light_hum', clamp(f.humilityDensity*4 + f.liwcAuthenticity/120 + (f.certaintyDensity<0.03?0.15:0),0,1.4), 'observed', 'humility-proxy');
+    addEv(ev,'light_faith', clamp(f.warmthSignal*0.6 + f.moralityDensity*2 + f.futureRatio*0.3,0,1.3), 'observed', 'faith-proxy');
+    addEv(ev,'light_kant', clamp(f.moralityDensity*4 + f.dutyCount/8 + f.orderSignal*0.5,0,1.6), 'observed', 'kant-proxy');
+
+    addEv(ev,'sch_st', clamp(f.rewardDensity*3 + f.powerDensity*2 + f.futureRatio*0.3,0,1.5), 'observed', 'achievement-values');
+    addEv(ev,'sch_se', clamp(f.pleasureCount/8 + f.opennessSignal*0.6 + f.positiveAffectDensity*2.5,0,1.4), 'observed', 'self-direction-values');
+    addEv(ev,'sch_conservation', clamp(f.orderSignal + f.riskDensity*2.5 + f.dutyCount/10,0,1.6), 'observed', 'conservation-values');
+    addEv(ev,'sch_openness', clamp(f.opennessSignal + f.pleasureCount/8 + f.tentativeDensity*1.5,0,1.6), 'observed', 'openness-values');
+
+    const negativeDims = ['dark_narc','dark_mach','dark_psyc','dark_sadism'];
+    negativeDims.forEach(k => addEv(ev, k, clamp(f.warmthSignal*0.4 + f.humilityDensity*2,0,0.9), 'neg', 'prosocial-counterweight'));
+    addEv(ev,'b5_neuro', clamp(f.positiveAffectDensity*1.2 + f.futureRatio*0.2,0,0.8), 'neg', 'stability-counterweight');
+    addEv(ev,'trauma_control', clamp(f.tentativeDensity*1.4 + f.humilityDensity,0,0.7), 'neg', 'flexibility-counterweight');
+    addEv(ev,'att_avoidant', clamp(f.affiliationDensity*2 + f.warmthSignal*0.6,0,0.8), 'neg', 'closeness-counterweight');
+  }
+
+  function applyFallbackInference(ev){
+    const getObs = k => (ev[k]?.observed || 0);
+    const fallback = (typeof SCHEMA !== 'undefined' && SCHEMA.dimensions) ? SCHEMA.dimensions : {};
+    for (const [key, cfg] of Object.entries(fallback)) {
+      const fb = cfg.fallback;
+      if (!fb || getObs(key) > 0.35) continue;
+      if (fb.startsWith('infer_from_')) {
+        const ref = fb.replace('infer_from_','');
+        if (ev[ref]) addEv(ev, key, (ev[ref].observed || 0) * 0.35, 'inferred', ref, 'fallback');
+      } else if (fb === '1 - max(att_anxious, att_avoidant, att_fearful)') {
+        const m = Math.max(getObs('att_anxious'), getObs('att_avoidant'), getObs('att_fearful'));
+        addEv(ev, key, clamp(1 - m, 0, 0.7), 'inferred', 'secure-inverse', 'fallback');
+      } else if (fb === 'infer_from_head_body_heart') {
+        const m = mean([getObs('enn_head'), getObs('enn_body'), getObs('enn_heart')]);
+        addEv(ev, key, clamp(m * 0.4, 0, 0.7), 'inferred', 'enneagram-centers', 'fallback');
+      }
+    }
+    if (ev.att_secure && ev.att_secure.observed < 0.2) {
+      const secure = 1 - Math.max(getObs('att_anxious'), getObs('att_avoidant'), getObs('att_fearful'));
+      addEv(ev, 'att_secure', clamp(secure * 0.6, 0, 0.7), 'inferred', 'inverse-insecure', 'fallback');
+    }
+    if (ev.enn_integration && ev.enn_integration.observed < 0.2) {
+      const integ = mean([getObs('enn_head'), getObs('enn_body'), getObs('enn_heart')]);
+      addEv(ev, 'enn_integration', clamp(integ * 0.45, 0, 0.75), 'inferred', 'center-balance', 'fallback');
+    }
+  }
+
+  function finalizeEvidence(rawEv){
+    const out = {};
+    DIM_KEYS.forEach(k => {
+      const e = rawEv[k];
+      const observed = clamp(e.observed, 0, 2.4);
+      const inferred = clamp(e.inferred, 0, 1.2);
+      const neg = clamp(e.neg, 0, 1.5);
+      const support = observed + inferred * 0.55;
+      const coverage = clamp((e.signalCount / 4) + e.coverage * 0.12, 0, 1);
+      const sourceFactor = observed > 0 ? 1 : 0.62;
+      const confidencePre = clamp((1 - Math.exp(-(support + neg) / 1.8)) * coverage * sourceFactor, 0, 1);
+      out[k] = {
+        pos: observed + inferred * 0.45,
+        neg,
+        observed,
+        inferred,
+        signalCount: e.signalCount,
+        coverage,
+        confidenceHint: confidencePre,
+        source: observed > inferred ? 'observed' : inferred > 0 ? 'mixed' : 'low-support',
+        words: uniq(e.words).slice(0, 10),
+        notes: uniq(e.notes).slice(0, 8)
+      };
+    });
+    return out;
+  }
+
+  function advancedBayesUpdate(acc, evidence){
+    const prevMass = Math.max(0, (acc.alpha + acc.beta - 2));
+    const obs = clamp(evidence.observed || evidence.pos || 0, 0, 2.5);
+    const inf = clamp(evidence.inferred || 0, 0, 1.2);
+    const neg = clamp(evidence.neg || 0, 0, 1.8);
+    const dAlpha = 0.42 * obs + 0.18 * inf;
+    const dBeta = 0.34 * neg + Math.max(0, 0.08 - (obs * 0.03));
+    const a = acc.alpha + dAlpha;
+    const b = acc.beta + dBeta;
+    const meanVal = a / (a + b);
+    const mass = Math.max(0, a + b - 2);
+    const baseConf = 1 - Math.exp(-mass / 7.5);
+    const evidentiality = clamp((evidence.coverage || 0.2) * (evidence.confidenceHint || 0.3) * (obs > 0 ? 1 : 0.66), 0, 1);
+    const confidence = clamp(baseConf * (0.4 + evidentiality), 0, 0.97);
+    const uncertainty = Math.sqrt((a * b) / (Math.pow(a + b, 2) * (a + b + 1)));
+    return {
+      alpha: a,
+      beta: b,
+      mean: meanVal,
+      confidence,
+      uncertainty,
+      words: uniq([...(acc.words || []), ...((evidence.words)||[])]).slice(-12),
+      source: evidence.source || 'observed',
+      observed: obs,
+      inferred: inf,
+      signalCount: evidence.signalCount || 0,
+      coverage: evidence.coverage || 0,
+      notes: evidence.notes || [],
+      massGain: mass - prevMass
+    };
+  }
+
+  function computeQuestionPriorities(profile){
+    const acc = profile.accumulators;
+    const recencyPenalty = {};
+    (profile.questionHistory || []).slice(-5).forEach((q, idx) => {
+      if (q.dk) recencyPenalty[q.dk] = Math.max(recencyPenalty[q.dk] || 0, 1 - idx * 0.18);
+    });
+    const priorities = {};
+    FRAMEWORKS.forEach(fw => {
+      const dims = fw.dims.map(d => ({ key: d.k, mean: acc[d.k].mean, conf: acc[d.k].confidence }));
+      const sorted = dims.slice().sort((a,b)=>b.mean-a.mean);
+      const margin = sorted.length > 1 ? Math.abs(sorted[0].mean - sorted[1].mean) : 0.2;
+      dims.forEach(d => {
+        const uncertainty = acc[d.key].uncertainty || 0.25;
+        const ambiguity = clamp(0.22 - margin, 0, 0.22) / 0.22;
+        const lowSupport = 1 - (acc[d.key].coverage || 0);
+        const recent = recencyPenalty[d.key] || 0;
+        priorities[d.key] = (uncertainty * 0.58) + (ambiguity * 0.22) + (lowSupport * 0.25) - (recent * 0.18);
+      });
+    });
+    return priorities;
+  }
+
+  function improvedSelectNextQuestion(profile, features){
+    const readiness = profile.readiness || 0.45;
+    const asked = new Set((profile.questionHistory || []).map(q => q.t));
+    const priorities = computeQuestionPriorities(profile);
+    const recentFW = (profile.questionHistory || []).slice(-2).map(q => q.fw).filter(Boolean);
+    const mirror = (features && features.salientPhrase && features.deflectionSignal > 0.36)
+      ? `You used the phrase "${String(features.salientPhrase).replace(/</g,'&lt;').replace(/>/g,'&gt;')}" — what feels most true inside that phrase?`
+      : null;
+    if (mirror && !asked.has(mirror) && readiness >= 0.2) {
+      profile.questionHistory.push({ t: mirror, fw: null, dk: null });
+      return { text: mirror, mode: 'MIRROR' };
+    }
+    const candidates = Q.filter(q => !asked.has(q.t)).map(q => {
+      const target = q.dk ? (priorities[q.dk] || 0.18) : 0.16;
+      const readinessFit = readiness >= (q.r || 0) * 0.22 ? 1 : 0.45;
+      const depthFit = q.depth >= 3 && readiness < 0.58 ? 0.52 : q.depth === 2 && readiness < 0.34 ? 0.72 : 1;
+      const diversity = q.fw && recentFW.includes(q.fw) ? 0.72 : 1;
+      const diagnosticBonus = q.dk && (priorities[q.dk] || 0) > 0.28 ? 0.16 : 0;
+      const textBonus = (features && features.deflectionSignal > 0.45 && q.s === 'reflective') ? 0.08 : 0;
+      return { q, score: target * readinessFit * depthFit * diversity + diagnosticBonus + textBonus };
+    }).sort((a,b)=>b.score-a.score);
+    const pick = (candidates.slice(0, 5)[Math.floor(Math.random() * Math.min(3, candidates.length))] || candidates[0]);
+    if (!pick) {
+      const adaptiveFallbacks = [
+        'Given everything we covered, what feels most important to name next?',
+        'If you had to pick one thread to clarify now, which would it be?',
+        'What question do you wish had been asked so far?'
+      ];
+      const recentText = (profile.textHistory || []).slice(-2).join(' ').toLowerCase();
+      const preferred = recentText.includes('confus') || recentText.includes('uncertain')
+        ? adaptiveFallbacks[1]
+        : recentText.includes('question')
+          ? adaptiveFallbacks[2]
+          : adaptiveFallbacks[0];
+      profile.questionHistory.push({ t: preferred, fw: null, dk: null });
+      return { text: preferred, mode: 'FALLBACK' };
+    }
+    profile.questionHistory.push({ t: pick.q.t, fw: pick.q.fw, dk: pick.q.dk });
+    return { text: pick.q.t, mode: 'STANDARD' };
+  }
+
+  function improvedNarrative(profile){
+    const acc = profile.accumulators;
+    const ranked = ALL_DIMS.map(d => ({ d, v: acc[d.k].mean, c: acc[d.k].confidence, s: acc[d.k].source || 'observed' }))
+      .sort((a,b)=>(b.v*b.c)-(a.v*a.c));
+    const top = ranked.filter(x => x.c > 0.24).slice(0, 4);
+    if (!top.length) return '<p>Not enough high-quality language signal yet. The profiler is intentionally withholding interpretation until the text sample is richer.</p>';
+    const style = profile.styleCumulative || {};
+    const profileTone = acc.b5_neuro.mean > 0.62 && acc.b5_neuro.confidence > 0.32
+      ? 'The session language shows elevated distress reactivity and self-monitoring.'
+      : acc.b5_agree.mean > 0.58 && acc.b5_agree.confidence > 0.28
+        ? 'The session language leans relational and repair-oriented.'
+        : 'The current language pattern is mixed rather than dominated by a single register.';
+    const bullets = top.map(x => `<li><strong>${x.d.label}</strong> — ${Math.round(x.v*100)}% score, ${Math.round(x.c*100)}% confidence, source: ${x.s}. Evidence: ${(acc[x.d.k].words || []).slice(0,4).join(', ') || 'structural linguistic cues'}.</li>`).join('');
+    const temporal = (style.pastTotal || 0) > (style.futureTotal || 0) * 1.35
+      ? 'Language is more past-anchored than future-anchored, which often means memory is driving the current interpretation frame.'
+      : (style.futureTotal || 0) > (style.pastTotal || 0) * 1.35
+        ? 'Language is more future-oriented, with noticeable forecasting and anticipation.'
+        : 'Past and future references are relatively balanced.';
+    return `<p>${profileTone} ${temporal}</p><ul>${bullets}</ul><p>These are <strong>language-pattern inferences</strong>, not diagnoses or fixed truths. Low-support dimensions are deliberately down-weighted, and fallback-derived dimensions never receive the same confidence as directly observed evidence.</p>`;
+  }
+
+  function improvedReveal(profile){
+    const acc = profile.accumulators;
+    const topDims = ALL_DIMS.map(d => ({
+      d,
+      v: acc[d.k].mean,
+      c: acc[d.k].confidence,
+      source: acc[d.k].source || 'observed',
+      score: acc[d.k].mean * Math.max(0.2, acc[d.k].confidence)
+    })).sort((a,b)=>b.score-a.score).slice(0,6);
+    const insecure = ['att_anxious','att_avoidant','att_fearful'].map(k => ({ k, v: acc[k].mean * acc[k].confidence })).sort((a,b)=>b.v-a.v)[0];
+    const attMap = { att_anxious:'Anxious-leaning', att_avoidant:'Avoidant-leaning', att_fearful:'Fearful-leaning' };
+    const mbti = `${acc.mbti_i.mean >= 0.5 ? 'I' : 'E'}${acc.mbti_n.mean >= 0.5 ? 'N' : 'S'}${acc.mbti_f.mean >= 0.5 ? 'F' : 'T'}${acc.mbti_p.mean >= 0.5 ? 'P' : 'J'}`;
+    const compounds = (profile.sentimentHistory || []).map(x => x.compound || 0);
+    const avgCompound = compounds.length ? mean(compounds) : 0;
+    return {
+      topDims,
+      primaryAtt: insecure ? (attMap[insecure.k] || 'Mixed insecure pattern') : 'Insufficient signal',
+      mbtiStr: mbti,
+      sentimentLabel: avgCompound > 0.18 ? 'Positive-leaning' : avgCompound < -0.18 ? 'Negative-leaning' : 'Mixed / neutral',
+      avgCompound,
+      volatility: profile.sentimentVolatility || 0,
+      deflections: (profile.deflectionTurns || []).length,
+      turns: profile.turn || 0,
+      words: profile.styleCumulative ? profile.styleCumulative.wordTotal : 0,
+      narrative: improvedNarrative(profile)
+    };
+  }
+
+  const originalInitProfile = initProfile;
+  initProfile = function(){
+    const p = originalInitProfile();
+    p.researchMode = 'uncertainty-aware';
+    p.textHistory = [];
+    p.proxyHistory = [];
+    p.dimensionHistory = [];
+    return p;
+  };
+
+  updateProfile = function(profile, text){
+    const p = JSON.parse(JSON.stringify(profile));
+    p.turn++;
+    p.textHistory = p.textHistory || [];
+    p.textHistory.push(text);
+
+    const sentiment = vaderSentiment(text);
+    const legacy = extractFeatures(text, sentiment);
+    const proxy = deriveSignals(text, sentiment, legacy);
+    const features = Object.assign({}, legacy, proxy);
+    const baseEvidence = mapEvidence(legacy, sentiment);
+    const rawEv = initEvidenceFrame();
+
+    DIM_KEYS.forEach(k => {
+      const base = baseEvidence[k] || { pos:0, neg:0, words:[] };
+      rawEv[k].observed += clamp(base.pos || 0, 0, 1.8);
+      rawEv[k].neg += clamp(base.neg || 0, 0, 1.2);
+      rawEv[k].coverage += clamp((base.pos || 0) * 0.3, 0, 1);
+      rawEv[k].signalCount += base.words && base.words.length ? Math.min(base.words.length, 3) : 0;
+      rawEv[k].words = uniq([...(rawEv[k].words || []), ...((base.words)||[])]).slice(0,10);
+      rawEv[k].notes.push('legacy-map');
+    });
+
+    applySchemaEvidence(text, features, rawEv);
+    applyDimensionSpecificEvidence(features, sentiment, rawEv);
+    applyFallbackInference(rawEv);
+
+    const evidence = finalizeEvidence(rawEv);
+    DIM_KEYS.forEach(k => {
+      p.accumulators[k] = advancedBayesUpdate(p.accumulators[k], evidence[k]);
+    });
+
+    p.sentimentHistory.push({ turn: p.turn, ...sentiment });
+    const sc = p.styleCumulative;
+    sc.pastTotal += legacy.pastCount || 0;
+    sc.futureTotal += legacy.futureCount || 0;
+    sc.metaphorTotal += legacy.metaphorCount || 0;
+    sc.ruminationTotal += legacy.ruminationCount || 0;
+    sc.somaticTotal += legacy.somaticCount || 0;
+    sc.negationTotal += legacy.negationCount || 0;
+    sc.valenceCollisionTotal += legacy.valenceCollisions || 0;
+    sc.wordTotal += features.wc || 0;
+    if ((legacy.deflectionSignal || 0) > 0.5) { sc.deflections += 1; p.deflectionTurns.push(p.turn); }
+    if ((legacy.emotionalIntensity || 0) > 0.45) p.intenseTurns.push(p.turn);
+    if (legacy.salientPhrase) p.userPhrases.push(legacy.salientPhrase);
+    p.proxyHistory.push({ turn: p.turn, analytic: features.liwcAnalytic, clout: features.liwcClout, authenticity: features.liwcAuthenticity, tone: features.liwcTone });
+    p.dimensionHistory.push({ turn: p.turn, top: ALL_DIMS.map(d => ({ key:d.k, value:p.accumulators[d.k].mean, conf:p.accumulators[d.k].confidence })).sort((a,b)=>(b.value*b.conf)-(a.value*a.conf)).slice(0,5) });
+
+    const compounds = p.sentimentHistory.map(s => s.compound);
+    const avg = mean(compounds);
+    const variance = compounds.length ? mean(compounds.map(c => Math.pow(c - avg, 2))) : 0;
+    p.sentimentVolatility = Math.sqrt(variance);
+    const recentDeflect = p.deflectionTurns.filter(t => p.turn - t <= 2).length;
+    const recentIntense = p.intenseTurns.filter(t => p.turn - t <= 2).length;
+    p.readiness = clamp(0.5 - recentDeflect*0.20 + recentIntense*0.16 + (legacy.emotionalIntensity||0)*0.18 + (features.liwcAuthenticity/100)*0.12 - p.sentimentVolatility*0.10, 0, 1);
+
+    return { profile: p, features, sentiment, evidence };
+  };
+
+  selectNextQuestion = function(profile, features){
+    return improvedSelectNextQuestion(profile, features || {});
+  };
+
+  generateNarrative = function(profile){
+    return improvedNarrative(profile);
+  };
+
+  generateRevealProfile = function(profile){
+    return improvedReveal(profile);
+  };
+
+  updateNarrative = function(profile){
+    const el = document.getElementById('narrative-body');
+    if (!el) return;
+    document.getElementById('narrative-section').classList.add('visible');
+    el.innerHTML = improvedNarrative(profile);
+  };
+
+  renderScorePanel = function(profile){
+    const panel = document.getElementById('scores-col');
+    if (!panel) return;
+    const sectionHead = panel.querySelector('.viz-zone-head');
+    panel.innerHTML = '';
+    if (sectionHead) panel.appendChild(sectionHead);
+    const fragment = document.createDocumentFragment();
+
+    FRAMEWORKS.forEach(fw => {
+      const group = document.createElement('div');
+      group.className = 'fw-group';
+
+      const header = document.createElement('div');
+      header.className = 'fw-group-header';
+      header.textContent = fw.label;
+      group.appendChild(header);
+
+      fw.dims.forEach(d => {
+        const a = profile.accumulators[d.k];
+        const pct = Math.round(a.mean * 100);
+        const conf = Math.round(a.confidence * 100);
+
+        const row = document.createElement('div');
+        row.className = 'fw-dim score-updated';
+        const hue = Math.round(8 + (pct * 1.16)); // red→amber→green across 0-100
+        row.style.setProperty('--score-hue', `${Math.max(8, Math.min(124, hue))}`);
+
+        const topRow = document.createElement('div');
+        topRow.className = 'fw-dim-row';
+
+        const dimName = document.createElement('span');
+        dimName.className = 'fw-dim-name';
+        dimName.textContent = d.label;
+
+        const barWrap = document.createElement('div');
+        barWrap.className = 'fw-bar-wrap';
+        const bar = document.createElement('div');
+        bar.className = 'fw-bar';
+        bar.style.width = `${pct}%`;
+        barWrap.appendChild(bar);
+
+        const score = document.createElement('span');
+        score.className = 'fw-score';
+        score.textContent = `${pct}`;
+
+        const confEl = document.createElement('span');
+        confEl.className = 'fw-conf';
+        confEl.textContent = `${conf}%`;
+
+        topRow.append(dimName, barWrap, score, confEl);
+
+        const evRow = document.createElement('div');
+        evRow.className = 'fw-evidence';
+        const evidence = (a.words || []).slice(0, 5);
+        if (evidence.length) {
+          evRow.append('Evidence: ');
+          evidence.forEach((w, idx) => {
+            const em = document.createElement('em');
+            em.textContent = w;
+            evRow.appendChild(em);
+            if (idx < evidence.length - 1) evRow.append(', ');
+          });
+        } else {
+          evRow.textContent = 'Hover for evidence — no signals yet.';
+        }
+
+        row.append(topRow, evRow);
+        group.appendChild(row);
+      });
+
+      fragment.appendChild(group);
+    });
+
+    panel.appendChild(fragment);
+  };
+})();
+</script>
+</body>
+</html>
