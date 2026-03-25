@@ -1897,24 +1897,51 @@ function ensureChartLoaded(timeoutMs = 5000) {
   if (window.Chart) return Promise.resolve(true);
   if (chartLoaderPromise) return chartLoaderPromise;
   chartLoaderPromise = new Promise(resolve => {
+    let settled = false;
+    const settle = value => {
+      if (settled) return;
+      settled = true;
+      resolve(value);
+    };
     const existing = document.querySelector(`script[src="${CHART_CDN_URL}"]`);
     if (existing) {
-      existing.addEventListener('load', () => resolve(!!window.Chart), { once: true });
-      existing.addEventListener('error', () => resolve(false), { once: true });
+      const done = () => settle(!!window.Chart);
+      const failed = () => settle(false);
+      existing.addEventListener('load', done, { once: true });
+      existing.addEventListener('error', failed, { once: true });
+      if (existing.dataset.loadState === 'loaded') {
+        done();
+        return;
+      }
+      if (existing.dataset.loadState === 'error' || existing.readyState === 'complete') {
+        failed();
+        return;
+      }
+      setTimeout(() => {
+        if (window.Chart) {
+          done();
+          return;
+        }
+        if (existing.readyState === 'complete') {
+          failed();
+        }
+      }, Math.max(250, timeoutMs));
       return;
     }
     const tag = document.createElement('script');
     tag.src = CHART_CDN_URL;
     tag.async = true;
     tag.defer = true;
-    const timer = setTimeout(() => resolve(false), timeoutMs);
+    const timer = setTimeout(() => settle(false), timeoutMs);
     tag.onload = () => {
       clearTimeout(timer);
-      resolve(!!window.Chart);
+      tag.dataset.loadState = 'loaded';
+      settle(!!window.Chart);
     };
     tag.onerror = () => {
       clearTimeout(timer);
-      resolve(false);
+      tag.dataset.loadState = 'error';
+      settle(false);
     };
     document.head.appendChild(tag);
   });
