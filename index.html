@@ -363,6 +363,13 @@ body {
   gap: 8px;
 }
 .insight-note input { accent-color: var(--amber); }
+.hf-input {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border-mid);
+  color: var(--text);
+  padding: 6px 8px;
+}
 .mm-status {
   margin-top: 7px;
   font-family: var(--mono);
@@ -378,6 +385,8 @@ body {
 #diag-content {
   flex: 1; overflow-y: auto; display: flex;
   min-width: 0;
+  gap: 14px;
+  padding: 14px;
   scrollbar-width: thin; scrollbar-color: var(--border) transparent;
 }
 #diag-content::-webkit-scrollbar { width: 4px; }
@@ -386,14 +395,38 @@ body {
 /* ── RADAR SECTION ────────────────────────────────── */
 
 #chart-col {
+  width: min(48%, 540px);
+  display: flex; flex-direction: column; flex-shrink: 0;
+  min-width: 300px;
+  gap: 12px;
   width: min(48%, 540px); border-right: 1px solid var(--border);
   display: flex; flex-direction: column; flex-shrink: 0;
   min-width: 300px;
 }
 
-.chart-block {
-  padding: 20px 24px 16px;
+.viz-zone {
+  border: 1px solid var(--border);
+  background: var(--bg1);
+}
+.viz-zone-head {
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+.viz-zone-note {
+  color: var(--text-dim);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+
+.chart-block {
+  padding: 16px;
+  border: 1px solid var(--border);
+  background: var(--bg1);
 }
 .chart-label {
   font-family: var(--mono); font-size: 8px;
@@ -413,6 +446,8 @@ body {
 
 #scores-col {
   flex: 1; overflow-y: auto; padding: 0;
+  border: 1px solid var(--border);
+  background: var(--bg1);
   scrollbar-width: thin; scrollbar-color: var(--border) transparent;
 }
 
@@ -567,21 +602,13 @@ body {
 /* ── NARRATIVE PANEL ──────────────────────────────── */
 
 #narrative-section {
-  border-top: 1px solid var(--border);
   flex-shrink: 0; display: none;
 }
 #narrative-section.visible { display: block; }
-.narrative-header {
-  padding: 14px 20px 12px;
-  background: var(--bg1);
-  font-family: var(--mono); font-size: 8px;
-  letter-spacing: 0.35em; text-transform: uppercase;
-  color: var(--amber); border-bottom: 1px solid var(--border);
-}
 #narrative-body {
-  padding: 20px 20px;
+  padding: 16px;
   font-family: var(--serif); font-size: 14px; font-style: italic;
-  color: var(--text); line-height: 1.75; max-height: 200px;
+  color: var(--text); line-height: 1.75; max-height: 260px;
   overflow-y: auto;
 }
 #narrative-body p { margin-bottom: 10px; }
@@ -1040,7 +1067,7 @@ body.mobile-optimized .reveal-inner {
   }
 
   .chart-label,
-  .narrative-header,
+  .viz-zone-head,
   .framework-title {
     font-size: 10px;
     letter-spacing: 0.18em;
@@ -1227,30 +1254,50 @@ body.mobile-optimized .reveal-inner {
           <div class="insight-note">
             <label><input type="checkbox" id="learning-mode" checked> Learning mode</label>
           </div>
+          <div class="insight-note">
+            <label><input type="checkbox" id="hf-deep-nlp"> Enable Hugging Face deep NLP</label>
+          </div>
+          <div class="insight-grid" style="grid-template-columns: 1fr;">
+            <label class="insight-cell">
+              <span class="insight-label">HF model</span>
+              <input id="hf-model" class="hf-input" type="text" value="google/flan-t5-large">
+            </label>
+            <label class="insight-cell">
+              <span class="insight-label">HF token (optional, stored in-memory)</span>
+              <input id="hf-token" class="hf-input" type="password" placeholder="hf_xxx...">
+            </label>
+          </div>
           <div class="mm-status" id="mm-status">MM emotion: <strong>initializing</strong> · mode: text-only · suite loading</div>
         </div>
       </div>
     </div>
     <div id="diag-content">
       <div id="chart-col">
-        <div class="chart-block">
-          <div class="chart-label">28-axis psychographic profile</div>
-          <div id="radar-wrap">
-            <canvas id="radar-chart" width="340" height="320"></canvas>
+        <div class="viz-zone">
+          <div class="viz-zone-head">Primary Signals <span class="viz-zone-note">focus on directional behavior</span></div>
+          <div class="chart-block">
+            <div class="chart-label">28-axis psychographic profile</div>
+            <div id="radar-wrap">
+              <canvas id="radar-chart" width="340" height="320"></canvas>
+            </div>
           </div>
         </div>
-        <div class="chart-block">
-          <div class="chart-label">Sentiment arc</div>
-          <div id="sentiment-wrap">
-            <canvas id="sentiment-chart" width="340" height="100"></canvas>
+        <div class="viz-zone">
+          <div class="viz-zone-head">Momentum Signals <span class="viz-zone-note">emotional trajectory over turns</span></div>
+          <div class="chart-block">
+            <div class="chart-label">Sentiment arc</div>
+            <div id="sentiment-wrap">
+              <canvas id="sentiment-chart" width="340" height="100"></canvas>
+            </div>
           </div>
         </div>
-        <div id="narrative-section">
-          <div class="narrative-header">Live Interpretation</div>
+        <div class="viz-zone" id="narrative-section">
+          <div class="viz-zone-head">Interpretive Layer <span class="viz-zone-note">language-backed rationale</span></div>
           <div id="narrative-body"></div>
         </div>
       </div>
       <div id="scores-col">
+        <div class="viz-zone-head">Trait Breakdown <span class="viz-zone-note">framework evidence by dimension</span></div>
         <!-- Framework score groups rendered here by JS -->
       </div>
     </div>
@@ -2946,8 +2993,12 @@ function updateCharts(profile) {
 
 function renderScorePanel(profile) {
   const container = document.getElementById('scores-col');
+  if (!container) return;
+  const sectionHead = container.querySelector('.viz-zone-head');
   container.innerHTML = '';
+  if (sectionHead) container.appendChild(sectionHead);
   const acc = profile.accumulators;
+  const fragment = document.createDocumentFragment();
 
   FRAMEWORKS.forEach(fw => {
     const group = document.createElement('div');
@@ -2969,27 +3020,46 @@ function renderScorePanel(profile) {
       const topRow = document.createElement('div');
       topRow.className = 'fw-dim-row';
 
-      topRow.innerHTML = `
-        <span class="fw-dim-name">${d.label}</span>
-        <div class="fw-bar-wrap"><div class="fw-bar" style="width:${pct}%"></div></div>
-        <span class="fw-score">${pct}</span>
-        <span class="fw-conf">${conf}%</span>
-      `;
+      const dimName = document.createElement('span');
+      dimName.className = 'fw-dim-name';
+      dimName.textContent = d.label;
+      const barWrap = document.createElement('div');
+      barWrap.className = 'fw-bar-wrap';
+      const bar = document.createElement('div');
+      bar.className = 'fw-bar';
+      bar.style.width = `${pct}%`;
+      barWrap.appendChild(bar);
+      const score = document.createElement('span');
+      score.className = 'fw-score';
+      score.textContent = `${pct}`;
+      const confEl = document.createElement('span');
+      confEl.className = 'fw-conf';
+      confEl.textContent = `${conf}%`;
+      topRow.append(dimName, barWrap, score, confEl);
 
       const evRow = document.createElement('div');
       evRow.className = 'fw-evidence';
       const words = a.words || [];
-      evRow.innerHTML = words.length > 0
-        ? `Evidence: ${words.map(w => `<em>${w}</em>`).join(', ')}`
-        : 'Hover for evidence — no signals yet.';
+      if (words.length > 0) {
+        evRow.append('Evidence: ');
+        words.forEach((w, idx) => {
+          const em = document.createElement('em');
+          em.textContent = w;
+          evRow.appendChild(em);
+          if (idx < words.length - 1) evRow.append(', ');
+        });
+      } else {
+        evRow.textContent = 'Hover for evidence — no signals yet.';
+      }
 
       row.appendChild(topRow);
       row.appendChild(evRow);
       group.appendChild(row);
     });
 
-    container.appendChild(group);
+    fragment.appendChild(group);
   });
+  container.appendChild(fragment);
 }
 
 /* ─── MULTI-MODAL EMOTION (TEXT + AUDIO + ONNX) ─────────── */
@@ -3062,13 +3132,10 @@ async function cacheModelInTmp(url) {
 const multimodal = {
   modelUrl: '', // Set to your ONNX model path when available.
   modelBlobUrl: '',
-
-const multimodal = {
-  modelUrl: '', // Set to your ONNX model path when available.
   session: null,
   textOnly: true,
   emaScores: { calm: 0.25, stressed: 0.25, guarded: 0.25, engaged: 0.25 },
-  fixedAudio: { rms: 0, zcr: 0, flux: 0 }
+  fixedAudio: { rms: 0, zcr: 0, flux: 0 },
   latestAudio: { rms: 0, zcr: 0, flux: 0 },
   media: { stream: null, ctx: null, analyser: null, data: null }
 };
@@ -3098,9 +3165,6 @@ async function initMultimodalEngine() {
       executionProviders: ['wasm']
     });
     statusEl.innerHTML = `MM emotion: <strong>onnx ready</strong> · mode: text-only · model: ${picked.id}`;
-    multimodal.session = await ort.InferenceSession.create(multimodal.modelUrl, {
-      executionProviders: ['wasm']
-    });
     statusEl.innerHTML = `MM emotion: <strong>onnx ready</strong> · mode: text-only · fusion: ${PRETRAINED_MODEL_SUITE.fusionOnnx.id}`;
   } catch (err) {
     console.warn('ONNX model failed to load; falling back to heuristic fusion.', err);
@@ -3229,10 +3293,6 @@ function renderMultimodalStatus(rawScores, mode) {
 
 async function updateMultimodalEmotion(text, sentiment) {
   const textFeat = textEmotionFeatures(text, sentiment);
-  const audioFeat = multimodal.fixedAudio;
-  const fused = fuseTextAudio(textFeat, audioFeat);
-  const scores = await onnxEmotionInference(fused);
-  renderMultimodalStatus(scores, 'text-only');
   const audioFeat = multimodal.textOnly ? multimodal.latestAudio : sampleAudioFeatures();
   const fused = fuseTextAudio(textFeat, audioFeat);
   const scores = await onnxEmotionInference(fused);
@@ -3249,8 +3309,19 @@ const COG_LING_V2_CONFIG = {
   cohesionLowThreshold: 0.6
 };
 
+const TOKEN_CACHE = new Map();
+const TOKEN_CACHE_MAX = 300;
+
 function simpleTokens(text) {
-  return (text.toLowerCase().match(/[a-z0-9']+/g) || []);
+  const source = text || '';
+  if (TOKEN_CACHE.has(source)) return TOKEN_CACHE.get(source);
+  const tokens = (source.toLowerCase().match(/[a-z0-9']+/g) || []);
+  if (TOKEN_CACHE.size >= TOKEN_CACHE_MAX) {
+    const oldestKey = TOKEN_CACHE.keys().next().value;
+    TOKEN_CACHE.delete(oldestKey);
+  }
+  TOKEN_CACHE.set(source, tokens);
+  return tokens;
 }
 
 function shannonEntropy(tokens) {
@@ -3415,6 +3486,7 @@ function extractSubjectTurns() {
     const complexity = syntacticComplexity(text);
     const mtld = estimateMTLD(tokens);
     const pronouns = pronounRatio(tokens);
+    const thirdPerson = tokens.filter(w => ['they', 'them', 'their', 'he', 'she'].includes(w)).length;
     const words = Math.max(tokens.length, 1);
     return {
       id: `A${idx + 1}`,
@@ -3424,7 +3496,8 @@ function extractSubjectTurns() {
       syntactic_complexity: +complexity.toFixed(3),
       filler_ratio: +(fillers / words).toFixed(3),
       hedging_frequency: hedging,
-      pronouns
+      pronouns,
+      third_person_ratio: +(thirdPerson / words).toFixed(3)
     };
   });
 }
@@ -3467,14 +3540,14 @@ function modeBFromSession(profile, turns, mmScores) {
   const volatility = hist.length ? std(hist.slice(-10)) : 0;
   const volatilityIndex = volatility > 0.35 ? 'high' : volatility > 0.18 ? 'medium' : 'low';
   const pivots = [];
-  const emotions = turns.map((t, i) => {
+  const turnScores = turns.map((t, i) => {
     const sent = hist[i] || 0;
-    if (i === turns.length - 1 && mmScores) return dominantEmotionFromScores(mmScores);
-    return dominantEmotionFromScores(inferTurnEmotionScores(t.text, sent));
+    return i === turns.length - 1 && mmScores ? mmScores : inferTurnEmotionScores(t.text, sent);
   });
+  const emotions = turnScores.map(scores => dominantEmotionFromScores(scores));
   for (let i = 1; i < emotions.length; i++) {
-    const prevScores = inferTurnEmotionScores(turns[i - 1]?.text || '', hist[i - 1] || 0);
-    const currScores = i === turns.length - 1 && mmScores ? mmScores : inferTurnEmotionScores(turns[i]?.text || '', hist[i] || 0);
+    const prevScores = turnScores[i - 1] || {};
+    const currScores = turnScores[i] || {};
     const prevLabel = emotions[i - 1];
     const currLabel = emotions[i];
     const shift = Math.abs((currScores[currLabel] || 0) - (prevScores[prevLabel] || 0));
@@ -3486,13 +3559,6 @@ function modeBFromSession(profile, turns, mmScores) {
   const regulation = turns.length > 1
     ? Math.round(clamp((smoothTransitions / (turns.length - 1)) * (1 - volatility), 0, 1) * 100)
     : Math.round(clamp(1 - volatility * 1.7, 0, 1) * 100);
-  const emotions = turns.map((_, i) => i === turns.length - 1
-    ? (Object.entries(mmScores || { neutral: 1 }).sort((a, b) => b[1] - a[1])[0][0])
-    : 'neutral');
-  for (let i = 1; i < emotions.length; i++) {
-    if (emotions[i] !== emotions[i - 1]) pivots.push({ response: turns[i].id, from: emotions[i - 1], to: emotions[i] });
-  }
-  const regulation = Math.round(clamp(1 - volatility * 1.7, 0, 1) * 100);
   return {
     volatility_index: volatilityIndex,
     emotional_pivot_points: pivots,
@@ -3505,10 +3571,7 @@ function modeCFromTurns(turns, cognitiveProfile) {
   const cohesion = cognitiveProfile?.feature_vectors?.js_metrics?.narrative_cohesion ?? 1;
   const avgHedge = turns.length ? mean(turns.map(t => t.hedging_frequency)) : 0;
   const avgThird = turns.length
-    ? mean(turns.map(t => {
-      const third = simpleTokens(t.text).filter(w => ['they', 'them', 'their', 'he', 'she'].includes(w)).length;
-      return third / Math.max(t.tokens, 1);
-    }))
+    ? mean(turns.map(t => t.third_person_ratio || 0))
     : 0;
   const defensiveness = cohesion < 0.6 && (avgHedge > 1.4 || avgThird > 0.08) ? 'elevated' : 'not elevated';
   return {
@@ -3542,12 +3605,6 @@ function buildTransitionAnalytics(turns, profile) {
       emotion_change: Math.abs(currSent - prevSent) > 0.2,
       trigger_question: triggerQuestion,
       trigger_question_text: triggerQuestionText
-    out.push({
-      from: prev.id,
-      to: curr.id,
-      cognitive_load_delta: delta,
-      emotion_change: Math.abs(currSent - prevSent) > 0.2,
-      trigger_question: Math.abs(delta) > 0.2 ? `Q${i + 1}` : null
     });
   }
   return out;
@@ -3604,6 +3661,106 @@ function getSelectedModesFromUI() {
   return selected.length ? selected : ['A', 'B', 'C'];
 }
 
+function getHFConfigFromUI() {
+  const modelRaw = (document.getElementById('hf-model')?.value || 'google/flan-t5-large').trim();
+  const model = modelRaw.replace(/\s+/g, '');
+  return {
+    enabled: !!document.getElementById('hf-deep-nlp')?.checked,
+    model: model || 'google/flan-t5-large',
+    token: (document.getElementById('hf-token')?.value || '').trim()
+  };
+}
+
+function parseHFQuestions(text = '') {
+  return text
+    .split('\n')
+    .map(line => line.trim().replace(/^[-*]\s*/, ''))
+    .filter(line => /^q\d*[:.)\s-]/i.test(line) || line.includes('?'))
+    .slice(0, 3)
+    .map(line => line.replace(/^q\d*[:.)\s-]*/i, '').trim());
+}
+
+function fastHash(str = '') {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(16);
+}
+
+const HF_REQUEST_CACHE = new Map();
+
+async function requestHFDeepDive(report, profile, cognitiveProfile, mmScores) {
+  const cfg = getHFConfigFromUI();
+  if (!cfg.enabled) return { enabled: false, status: 'disabled' };
+  if (!cfg.token) return { enabled: true, status: 'token_missing', model: cfg.model };
+
+  const compactPayload = {
+    session_arc: report.session_arc,
+    metrics: report.metrics,
+    latest_sentiment: profile?.sentimentHistory?.at(-1) || null,
+    cognitive_summary: cognitiveProfile?.summary || '',
+    multimodal_scores: mmScores || {}
+  };
+  const prompt = [
+    'You are a psycholinguistics analyst.',
+    'Return plain text with exactly these sections:',
+    'EXPLANATION: one short paragraph.',
+    'QUESTIONS: 3 concise follow-up questions for the user.',
+    JSON.stringify(compactPayload)
+  ].join('\n');
+  const cacheKey = `${cfg.model}:${fastHash(prompt)}`;
+  if (HF_REQUEST_CACHE.has(cacheKey)) return HF_REQUEST_CACHE.get(cacheKey);
+
+  let timeoutId = null;
+  try {
+    const controller = new AbortController();
+    timeoutId = setTimeout(() => controller.abort(), 9000);
+    const res = await fetch(`https://api-inference.huggingface.co/models/${encodeURIComponent(cfg.model)}`, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Authorization': `Bearer ${cfg.token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        inputs: prompt,
+        parameters: { max_new_tokens: 240, return_full_text: false, temperature: 0.35 }
+      })
+    });
+    if (!res.ok) {
+      const errTxt = await res.text();
+      return { enabled: true, status: `http_${res.status}`, model: cfg.model, error: errTxt.slice(0, 280) };
+    }
+    const data = await res.json();
+    const text = Array.isArray(data)
+      ? (data[0]?.generated_text || '')
+      : (data?.generated_text || '');
+    const questions = parseHFQuestions(text);
+    const explanation = (text.match(/EXPLANATION:\s*([\s\S]*?)(QUESTIONS:|$)/i)?.[1] || text).trim();
+    const output = {
+      enabled: true,
+      status: 'ok',
+      model: cfg.model,
+      explanation: explanation.slice(0, 900),
+      follow_up_questions: questions
+    };
+    HF_REQUEST_CACHE.set(cacheKey, output);
+    if (HF_REQUEST_CACHE.size > 40) HF_REQUEST_CACHE.delete(HF_REQUEST_CACHE.keys().next().value);
+    return output;
+  } catch (err) {
+    return {
+      enabled: true,
+      status: 'network_error',
+      model: cfg.model,
+      error: err?.message || 'unknown error'
+    };
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
 async function generateLinguaInsightReport(profile, cognitiveProfile, mmScores, modes = LINGUA_MODES) {
   const turns = extractSubjectTurns();
   const modeA = modeAFromTurns(turns, cognitiveProfile);
@@ -3638,7 +3795,7 @@ async function generateLinguaInsightReport(profile, cognitiveProfile, mmScores, 
   if (modes.includes('B')) metrics.mode_b = modeB;
   if (modes.includes('C')) metrics.mode_c = modeC;
 
-  return {
+  const baseReport = {
     modes_selected: modes,
     session_arc: sessionArc,
     metrics,
@@ -3652,6 +3809,20 @@ async function generateLinguaInsightReport(profile, cognitiveProfile, mmScores, 
     },
     self_critique_log: selfCritiqueLog
   };
+
+  const hfDeepDive = await requestHFDeepDive(baseReport, profile, cognitiveProfile, mmScores);
+  if (hfDeepDive.enabled && hfDeepDive.status !== 'ok') {
+    selfCritiqueLog.push({
+      stage: 'hf_deep_nlp',
+      issue: `Hugging Face deep NLP unavailable (${hfDeepDive.status}).`,
+      action: 'Using local psycholinguistic interpretation only.'
+    });
+  }
+
+  return {
+    ...baseReport,
+    hf_deep_dive: hfDeepDive
+  };
 }
 
 function renderLinguaInsightReport(report) {
@@ -3659,10 +3830,17 @@ function renderLinguaInsightReport(report) {
   const metaEl = document.getElementById('report-meta');
   const critiqueEl = document.getElementById('report-critique');
   if (!arcEl || !metaEl || !critiqueEl || !report) return;
-  arcEl.innerHTML = report.session_arc || 'No arc generated yet.';
+  const hfQuestions = report.hf_deep_dive?.follow_up_questions || [];
+  const questionList = hfQuestions.length
+    ? `<br><br><strong>Suggested follow-up questions</strong><br>${hfQuestions.map((q, i) => `${i + 1}. ${escapeHTML(q)}`).join('<br>')}`
+    : '';
+  arcEl.innerHTML = (report.session_arc || 'No arc generated yet.') + questionList;
   metaEl.textContent = `Modes: ${(report.modes_selected || []).join(', ') || 'none'} · ONNX available: ${report.onnx_status?.available ? 'yes' : 'no'} · Fallback: ${report.onnx_status?.fallback_used ? 'yes' : 'no'}`;
   const critiques = (report.self_critique_log || []).map(c => `• [${c.stage}] ${c.issue} → ${c.action}`).join('\n');
-  critiqueEl.textContent = critiques || 'No major critique flags for this turn.';
+  const hfLine = report.hf_deep_dive?.enabled
+    ? `\n• [hf_deep_nlp] status=${report.hf_deep_dive.status}${report.hf_deep_dive.model ? ` model=${report.hf_deep_dive.model}` : ''}${report.hf_deep_dive.error ? ` error=${report.hf_deep_dive.error}` : ''}`
+    : '';
+  critiqueEl.textContent = (critiques || 'No major critique flags for this turn.') + hfLine;
 }
 
 function copyLinguaInsightJson() {
